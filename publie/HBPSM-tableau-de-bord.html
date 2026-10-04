@@ -46,7 +46,7 @@
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
-main{max-width:760px;margin:0 auto;padding:0 16px 96px}
+main{max-width:760px;margin:0 auto;padding:0 16px 48px}
 h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.05;margin:0;color:var(--heading)}
 h1{font-size:2.1rem;letter-spacing:.01em}
 h2{font-size:1.45rem;margin:28px 0 10px}
@@ -97,7 +97,7 @@ ul.plain{list-style:none;margin:0;padding:0}
 .form{display:inline-flex;gap:4px;vertical-align:middle}
 .form i{width:20px;height:20px;border-radius:4px;display:grid;place-items:center;font:700 .72rem var(--body);font-style:normal;color:#fff}
 .V{background:var(--win)} .D{background:var(--loss)} .N{background:var(--draw)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:10px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin:10px 0}
 .kpis.k3{grid-template-columns:repeat(3,1fr)}
 .kpis div{border:1px solid var(--rule);border-radius:8px;padding:8px}
 .kpis .num{font-size:1.6rem;display:block;line-height:1}
@@ -132,9 +132,9 @@ summary::-webkit-details-marker{display:none}
 .res .sc{font:700 1.2rem var(--display);text-align:center;min-width:64px}
 .res .r{text-align:right}
 .res .meta{grid-column:1/-1;font-size:.76rem;color:var(--muted);margin-top:-4px}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--rule);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
-nav.tabs button{flex:1;max-width:160px;border:0;background:none;padding:12px 2px 10px;font:600 1rem var(--display);letter-spacing:.02em;color:var(--muted);cursor:pointer;border-top:3px solid transparent}
-nav.tabs button[aria-selected="true"]{color:var(--heading);border-top-color:var(--accent)}
+nav.tabs{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--rule);display:flex;justify-content:center;z-index:5}
+nav.tabs button{flex:1;max-width:160px;border:0;background:none;padding:12px 2px 10px;font:600 1rem var(--display);letter-spacing:.02em;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+nav.tabs button[aria-selected="true"]{color:var(--heading);border-bottom-color:var(--accent)}
 section[hidden]{display:none}
 .stake{padding:12px 0;border-top:1px solid var(--rule)}
 .stake:first-child{border-top:0}
@@ -166,7 +166,6 @@ nav.tabs[hidden]{display:none}
 </head>
 <body>
 <header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
-<main id="app"></main>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
   <button role="tab" data-tab="match" aria-selected="true">Match</button>
   <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
@@ -174,8 +173,9 @@ nav.tabs[hidden]{display:none}
   <button role="tab" data-tab="saison" aria-selected="false">Saison</button>
   <button role="tab" data-tab="poules" aria-selected="false">Poules</button>
 </nav>
+<main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "1670d779f280", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "182318e0accd", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -188,7 +188,8 @@ let GENERE = null, CHECKED = null, ONLINE = false, CHECKING = false, NEWER = fal
 const POSTES = ["GB","ALG","ARG","DC","ARD","ALD","PIV"];
 const POSTE_NOM = {GB:"Gardien",ALG:"Ailier gauche",ARG:"Arrière gauche",DC:"Demi-centre",ARD:"Arrière droit",ALD:"Ailier droit",PIV:"Pivot"};
 const PLAN_NOM = {equilibre:"Équilibré",attaque:"Attaque",rigueur:"Rigueur"};
-const COMP_NOM = {att:"Buts récents",eff:"Efficacité",disc:"Discipline",imp:"Impact équipe",clutch:"Fins de match",assid:"Assiduité",gk:"Arrêts"};
+const COMP_NOM = {att:"Buts récents",eff:"Réussite au tir",disc:"Discipline",imp:"Impact équipe",clutch:"Fins de match",assid:"Assiduité",gk:"% d'arrêts",gk_vol:"Arrêts par match"};
+const GK_COMPS = ["gk","gk_vol","imp","assid"];
 const KEY = "hbpsm:v1";
 const OPEN = new Set();
 let S = {postes:{}, absents:{}, plan:null, adv:null, tab:"match", poule:null};
@@ -224,10 +225,25 @@ function currentPlan(adv){
   const rec = (adv && D.equipes[adv] && D.equipes[adv].plan) || "equilibre";
   return {plan: S.plan || rec, rec};
 }
+// Gardien : arrêts face aux tirs cadrés subis (arrêts + buts pris). Joueur de champ : buts face aux tirs.
+function shotLine(p){
+  if(isGK(p)){
+    if(p.tirs_subis) return p.pct_arrets+" % d'arrêts ("+p.arrets+" arrêts, "+p.pris+" buts pris sur "+p.tirs_subis
+      +" tirs cadrés"+(p.pris_estime ? ", buts pris estimés" : "")+")";
+    return p.arrets ? p.arrets+" arrêts" : "aucun arrêt";
+  }
+  return p.tirs ? p.buts+" buts sur "+p.tirs+" tirs ("+p.reussite+" %)" : p.buts+" buts";
+}
 function reasons(p){
+  if(!p.m) return "pas encore aligné cette saison : pas de note";
   const out = [];
-  if(isGK(p)){ if(p.arrets) out.push(fr((p.arrets/p.m).toFixed(1))+" arrêts/match"); }
-  else if(p.buts) out.push(fr(p.forme_buts)+" buts/match récents");
+  if(isGK(p)){
+    if(p.tirs_subis) out.push(p.pct_arrets+" % d'arrêts ("+p.arrets+" sur "+p.tirs_subis+" tirs cadrés"+(p.pris_estime?", estimé":"")+")");
+    else if(p.arrets) out.push(fr((p.arrets/p.m).toFixed(1))+" arrêts/match");
+  } else {
+    if(p.buts) out.push(fr(p.forme_buts)+" but"+(p.forme_buts >= 2 ? "s" : "")+"/match récents");
+    if(p.tirs) out.push(p.buts+" sur "+p.tirs+" tirs ("+p.reussite+" %)");
+  }
   if(p.decisifs) out.push(p.decisifs+" but"+(p.decisifs>1?"s":"")+" en fin de match serré");
   if(p.impact >= 1) out.push("équipe à +"+fr(p.impact)+" avec lui");
   if(p.impact <= -1) out.push("équipe à "+fr(p.impact)+" avec lui");
@@ -237,31 +253,31 @@ function reasons(p){
   out.push(p.m+" match"+(p.m>1?"s":""));
   return out.join(", ");
 }
+// Feuille de match : D.meta.effectif joueurs (12), dont D.meta.gardiens gardiens (2), les mieux notés
+// parmi les disponibles. S'il manque du monde, un joueur de l'effectif pas encore aligné complète.
+const byScore = (a, b) => (b.s ?? -1) - (a.s ?? -1);
 function lineup(plan){
-  const pool = D.joueurs.filter(p => p.m > 0 && dispo(p)).map(p => ({p, s:p.scores[plan]})).sort((a,b)=>b.s-a.s);
-  const withPoste = pool.filter(x => poste(x.p)).length;
-  const used = new Set(), start = {};
+  const size = D.meta.effectif || 12, nGK = D.meta.gardiens ?? 2;
+  const pool = D.joueurs.filter(p => dispo(p)).map(p => ({p, s: p.m > 0 ? p.scores[plan] : null})).sort(byScore);
+  const gks = pool.filter(x => isGK(x.p)).slice(0, nGK);
+  const field = pool.filter(x => !isGK(x.p)).slice(0, size - gks.length);
+  const picked = new Set([...gks, ...field]), used = new Set(), start = {};
+  if(gks[0]){ start.GB = gks[0]; used.add(gks[0]); }
+  const withPoste = field.filter(x => poste(x.p)).length;
   if(withPoste >= 4){
-    for(const pos of POSTES){
-      const c = pool.find(x => !used.has(x.p.cle) && poste(x.p).split("/").includes(pos));
-      if(c){ start[pos] = c; used.add(c.p.cle); }
+    for(const pos of POSTES.slice(1)){
+      const c = field.find(x => !used.has(x) && poste(x.p).split("/").includes(pos));
+      if(c){ start[pos] = c; used.add(c); }
     }
-    for(const pos of POSTES){
+    for(const pos of POSTES.slice(1)){
       if(start[pos]) continue;
-      const c = pool.find(x => !used.has(x.p.cle) && (pos === "GB" ? isGK(x.p) : !isGK(x.p) && !poste(x.p)));
-      if(c){ start[pos] = c; used.add(c.p.cle); }
+      const c = field.find(x => !used.has(x) && !poste(x.p));
+      if(c){ start[pos] = c; used.add(c); }
     }
   }
-  const size = D.meta.effectif || 12;
-  const rest = pool.filter(x => !used.has(x.p.cle));
-  const bench = [];
-  const gk2 = rest.find(x => isGK(x.p));
-  const gkCount = Object.values(start).filter(x => isGK(x.p)).length;
-  if(gk2 && gkCount < 2) bench.push(gk2);
-  for(const x of rest){ if(bench.length + used.size >= size) break; if(!bench.includes(x)) bench.push(x); }
-  bench.sort((a,b)=>b.s-a.s);
-  return {start, bench, hasCourt: withPoste >= 4, out: D.joueurs.filter(p => p.m > 0 && !dispo(p)),
-          left: rest.filter(x => !bench.includes(x))};
+  return {start, bench: [...picked].filter(x => !used.has(x)).sort(byScore), hasCourt: withPoste >= 4,
+          size, nGK, missing: size - picked.size, missingGK: nGK - gks.length,
+          out: D.joueurs.filter(p => !dispo(p)), left: pool.filter(x => !picked.has(x))};
 }
 function shortName(n){
   const parts = String(n).trim().split(/\s+/);
@@ -333,6 +349,9 @@ function viewMatch(){
   if(!played.length){
     h += '<div class="panel"><p>Aucune feuille de match du club n\'a encore été lue. Dès qu\'une feuille est disponible, la proposition apparaît ici.</p></div>';
   } else {
+    h += '<p class="small muted" style="margin-top:4px">Feuille de '+L.size+' joueurs dont '+L.nGK+' gardiens, les mieux notés parmi les disponibles.</p>';
+    if(L.missingGK > 0) h += '<p class="note">Il manque '+L.missingGK+' gardien'+(L.missingGK>1?"s":"")+' disponible'+(L.missingGK>1?"s":"")+' pour la feuille.</p>';
+    if(L.missing > 0) h += '<p class="note">Il manque '+L.missing+' joueur'+(L.missing>1?"s":"")+' disponible'+(L.missing>1?"s":"")+' pour compléter la feuille.</p>';
     if(L.hasCourt) h += courtSVG(L.start);
     else h += '<p class="note">Pour placer un sept de départ sur le terrain, indique le poste d\'au moins quatre joueurs dans l\'onglet Joueurs.</p>';
     const starters = POSTES.filter(k=>L.start[k]).map(k=>playerRow(L.start[k], k)).join("");
@@ -347,6 +366,7 @@ function viewMatch(){
   if(e){
     h += '<h2>'+esc(adv)+'</h2><div class="panel"><p>Poule '+esc(e.poule)+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
       + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
+      + (e.arrets_pct!=null ? '<div><b class="num">'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : "")
       + (e.mt1_bp!=null ? '<div><b class="num half">'+fr(e.mt1_bp)+" - "+fr(e.mt1_bc)+'</b><span>1re mi-temps</span></div><div><b class="num half">'+fr(e.mt2_bp)+" - "+fr(e.mt2_bc)+'</b><span>2e mi-temps</span></div>' : "")
       + '</div><h3 style="margin-top:12px">Discipline</h3><div class="kpis k3">'
       + '<div><b class="num">'+fr(e.deux_min_moy)+'</b><span>exclusions de 2 min</span></div>'
@@ -354,7 +374,11 @@ function viewMatch(){
       + '<div><b class="num">'+(e.rouges ?? "–")+'</b><span>cartons rouges</span></div>'
       + '</div><p class="small muted">Moyennes par match ; cartons rouges : total de la saison.</p>'+periods(e);
     if(e.buteurs.length) h += '<h3 style="margin-top:14px">Joueurs à surveiller</h3><ul class="plain">'
-      + e.buteurs.map(b=>'<li class="row"><span class="jersey">'+esc(b.num ?? "–")+'</span><span class="who"><b>'+esc(b.nom)+'</b><br><span class="why">'+b.buts+' buts en '+b.m+' match'+(b.m>1?"s":"")+(b.pen?", dont "+b.pen+" sur 7 m":"")+'</span></span><span class="score">'+fr(b.moy)+'</span></li>').join("")+'</ul>';
+      + e.buteurs.map(b=>'<li class="row"><span class="jersey">'+esc(b.num ?? "–")+'</span><span class="who"><b>'+esc(b.nom)+'</b><br><span class="why">'+b.buts+' buts'+(b.tirs?' sur '+b.tirs+' tirs ('+b.reussite+' %)':'')+' en '+b.m+' match'+(b.m>1?"s":"")+(b.pen?", dont "+b.pen+" sur 7 m":"")+'</span></span><span class="score">'+fr(b.moy)+'</span></li>').join("")+'</ul>';
+    if((e.gardiens||[]).length) h += '<h3 style="margin-top:14px">Leurs gardiens</h3><ul class="plain">'
+      + e.gardiens.map(g=>'<li class="row"><span class="jersey">'+esc(g.num ?? "–")+'</span><span class="who"><b>'+esc(g.nom)+'</b><br><span class="why">'
+        + g.arrets+' arrêts'+(g.pris!=null?', '+g.pris+' buts pris'+(g.estime?' (estimé)':''):'')+' en '+g.m+' match'+(g.m>1?"s":"")+'</span></span>'
+        + '<span class="score">'+(g.pct!=null?g.pct+' %':'–')+'</span></li>').join("")+'</ul>';
     h += '</div>' + common(adv);
   }
   return h;
@@ -367,19 +391,30 @@ function viewJoueurs(){
   const list = D.joueurs.filter(p => p.m > 0).sort((a,b)=>b.scores[plan]-a.scores[plan]);
   h += list.length ? '<div class="panel">' : '<div class="panel"><p>Aucune feuille de match du club n\'a encore été lue.</p>';
   for(const p of list){
-    const comps = Object.keys(COMP_NOM).filter(k => isGK(p) ? ["gk","imp","assid"].includes(k) : k !== "gk");
+    const gk = isGK(p);
+    const comps = Object.keys(COMP_NOM).filter(k => gk ? GK_COMPS.includes(k) : !k.startsWith("gk"));
     h += '<details data-cle="'+esc(p.cle)+'"'+(OPEN.has(p.cle)?" open":"")+'><summary><div class="row'+(dispo(p)?"":" out")+'" style="border:0"><span class="jersey">'+esc(p.num ?? "–")+'</span><span class="who"><b>'+esc(p.nom)+'</b>'+(poste(p)?'<span class="tag">'+esc(poste(p))+'</span>':"")
-      + '<br><span class="why">'+p.m+' match'+(p.m>1?"s":"")+' sur '+p.m_total+', '+p.buts+' buts'+(p.pen?" ("+p.pen+" pen.)":"")+(p.arrets?", "+p.arrets+" arrêts":"")+', '+sanctions(p)+'</span></span><span class="score">'+p.scores[plan]+'</span></div></summary>'
+      + '<br><span class="why">'+p.m+' match'+(p.m>1?"s":"")+' sur '+p.m_total+', '+shotLine(p)+(!gk && p.pen?", dont "+p.pen+" sur 7 m":"")+', '+sanctions(p)+'</span></span><span class="score">'+p.scores[plan]+'</span></div></summary>'
       + '<div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'"><option value="">non renseigné</option>'+POSTES.map(k=>'<option value="'+k+'"'+(poste(p)===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("")+'</select></label>'
       + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Marquer absent":"Remettre disponible")+'</button></div>'
       + '<dl class="facts"><dt>Matchs disputés</dt><dd>'+p.m+' sur '+p.m_total+'</dd>'
+      + (gk ? '<dt>Tirs cadrés subis</dt><dd>'+(p.tirs_subis ?? "–")+'</dd><dt>Arrêts</dt><dd>'+p.arrets+'</dd>'
+            + '<dt>Buts pris'+(p.pris_estime?' (estimé)':'')+'</dt><dd>'+(p.pris ?? "–")+'</dd>'
+            + '<dt>Pourcentage d\'arrêts</dt><dd>'+(p.pct_arrets!=null ? p.pct_arrets+' %' : "–")+'</dd>'
+            : '<dt>Tirs</dt><dd>'+(p.tirs ?? "–")+'</dd><dt>Buts</dt><dd>'+p.buts+(p.pen?' (dont '+p.pen+' sur 7 m)':'')+'</dd>'
+            + '<dt>Réussite au tir</dt><dd>'+(p.reussite!=null ? p.reussite+' %' : "–")+'</dd>')
       + '<dt>Présence au jeu (actions relevées)</dt><dd>'+(p.presence==null?"non disponible":fr(p.presence)+' tranches de 10 min sur 6')+'</dd>'
       + '<dt>Cartons jaunes</dt><dd>'+p.jaunes+'</dd>'
       + '<dt>Exclusions de 2 minutes</dt><dd>'+p.deux_min+' ('+p.min_deux+' min sur le banc)</dd>'
       + '<dt>Cartons rouges</dt><dd>'+p.rouges+'</dd></dl>'
       + comps.map(k=>'<div class="comp"><span>'+COMP_NOM[k]+'</span><span class="track"><i style="width:'+Math.round(100*p.comps[k])+'%"></i></span><span class="num">'+Math.round(100*p.comps[k])+'</span></div>').join("")
-      + '<div class="scroll" style="margin:10px 0 14px"><table><thead><tr><th>Date</th><th>Adversaire</th><th>Score</th><th>Buts</th><th title="Cartons jaunes">CJ</th><th title="Exclusions de 2 minutes">2 min</th><th title="Cartons rouges">CR</th><th>Arrêts</th></tr></thead><tbody>'
-      + p.journal.map(j=>'<tr><td>'+esc(fmtDate((j.date||"").slice(0,10)))+'</td><td class="team">'+esc(j.adv)+'</td><td>'+j.res+" "+j.score+'</td><td>'+j.buts+'</td><td>'+(j.jaunes||"")+'</td><td>'+(j.deux_min||"")+'</td><td>'+(j.rouges||"")+'</td><td>'+j.arrets+'</td></tr>').join("")
+      + '<div class="scroll" style="margin:10px 0 14px"><table><thead><tr><th>Date</th><th>Adversaire</th><th>Score</th>'
+      + (gk ? '<th>Arrêts</th><th title="Buts pris">Pris</th><th title="Pourcentage d\'arrêts">%</th>' : '<th>Buts</th><th>Tirs</th><th title="Réussite au tir">%</th>')
+      + '<th title="Cartons jaunes">CJ</th><th title="Exclusions de 2 minutes">2 min</th><th title="Cartons rouges">CR</th></tr></thead><tbody>'
+      + p.journal.map(j=>'<tr><td>'+esc(fmtDate((j.date||"").slice(0,10)))+'</td><td class="team">'+esc(j.adv)+'</td><td>'+j.res+" "+j.score+'</td>'
+        + (gk ? '<td>'+j.arrets+'</td><td>'+(j.pris ?? "–")+'</td><td>'+(j.pct!=null ? j.pct : "–")+'</td>'
+              : '<td>'+j.buts+'</td><td>'+(j.tirs ?? "–")+'</td><td>'+(j.tirs ? Math.round(100*j.buts/j.tirs) : "–")+'</td>')
+        + '<td>'+(j.jaunes||"")+'</td><td>'+(j.deux_min||"")+'</td><td>'+(j.rouges||"")+'</td></tr>').join("")
       + '</tbody></table></div></details>';
   }
   h += '</div>';
