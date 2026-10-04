@@ -347,23 +347,36 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.click("#unlock")
         page.wait_for_selector("header.top h1")
         assert "HBPSM contre" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
-        # feuille de 12 joueurs dont 2 gardiens, même quand un gardien est absent
-        sheet = "(() => { const L = lineup('equilibre'); const all = [...Object.values(L.start), ...L.bench];"\
-                " return [all.length, all.filter(x => isGK(x.p)).length, L.missing, L.missingGK]; })()"
-        assert page.evaluate(sheet) == [12, 2, 0, 0]
-        page.evaluate("(() => { const g = lineup('equilibre').start.GB.p; S.absents[g.cle] = true; })()")
-        assert page.evaluate(sheet) == [12, 1, 0, 1]  # un seul gardien disponible : signalé, la feuille reste à 12
+        # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
+        sheet = "(k => { const r = planning()[k]; return [r.sel.length, r.gks.length, r.missing, r.missingGK]; })"
+        assert [page.evaluate(sheet + "(%d)" % k) for k in range(4)] == [[12, 2, 0, 0]] * 4
+        page.evaluate("(() => { const g = planning()[0].gks[0]; S.absents[g.cle] = true; })()")
+        assert page.evaluate(sheet + "(0)") == [12, 1, 0, 1]  # un seul gardien disponible : signalé
         page.evaluate("S.absents = {}")
+        # planification : un clic écarte un retenu, la feuille se complète avec un autre
+        page.click("nav.tabs button[data-tab=planif]")
+        first = page.locator("button.cell.in").first
+        cle = first.get_attribute("data-cell").split("|")[1]
+        first.click()
+        assert page.evaluate("planning()[0].sel.some(p => p.cle === %r)" % cle) is False
+        assert page.evaluate(sheet + "(0)")[0] == 12 and page.locator("button.cell.man").count() == 1
+        page.click("button[data-reset=all]")
+        assert page.locator("button.cell.man").count() == 0
+        # convocation : le message porte les 12 de la planification
+        page.click("nav.tabs button[data-tab=convoc]")
+        message = page.input_value("#message")
+        assert "Gardiens : " in message and "Joueurs : " in message
+        assert message.count("(") >= 12
         page.click("nav.tabs button[data-tab=joueurs]")
         main = page.inner_text("main")
-        assert "× 2 min" in main and "tirs (" in main and "% d'arrêts" in main
-        page.click("nav.tabs button[data-tab=poules]")
+        assert "× 2 min" in main and "Réussite au tir" in main and "Arrêts sur tirs cadrés" in main
+        page.click("nav.tabs button[data-tab=saison]")
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18
         demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte
         publish.seal("2026-10-04")
         page.wait_for_function("() => D && D.meta.matchs === 24", timeout=20000)
-        assert page.get_attribute("nav.tabs button[data-tab=poules]", "aria-selected") == "true"
+        assert page.get_attribute("nav.tabs button[data-tab=saison]", "aria-selected") == "true"
         server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
         server.server_close()
         page.reload()
@@ -482,3 +495,22 @@ def test_seance_publique_sans_nom(sandbox, monkeypatch):
     for fuite in ('{"objectif": "Surveiller EXEMPLE Isidore"}', '{"titre": "Joueur 03 en forme"}'):
         with pytest.raises(vault.VaultError):
             publish.check_public(fuite, names)
+
+
+def test_gymnase_des_prochains_matchs(monkeypatch):
+    """Le gymnase n'est lu que pour les prochains matchs du club, et seulement quand il change."""
+    pages = []
+    bloc = {"competitions---rencontre-salle": {"equipement": {"libelle": "GYMNASE  DU  PARC", "rue": "1 RUE DU STADE",
+                                                             "codePostal": "38000", "ville": "VILLE"}, "mapsApiKey": "x"}}
+    monkeypatch.setattr(collect, "page_data", lambda url, name: pages.append(url) or bloc)
+    fx = lambda i, home, equip, score=None: dict(id=str(i), poule="71", home=home, away="Autre", score_home=score,
+                                                 date=f"2026-10-{10 + i:02d}T20:00", equipement=equip, url=f"u{i}")
+    ours = lambda t: t == "Club"
+    fixtures = {"1": fx(1, "Club", "55"), "2": fx(2, "Club", None), "3": fx(3, "Autre", "56"), "4": fx(4, "Club", "57", 30)}
+    collect.add_venues(fixtures, {}, ours)
+    assert pages == ["u1"]  # salle fixée, match du club, à venir ; ni l'autre poule, ni le match joué
+    assert fixtures["1"]["salle"] == dict(nom="GYMNASE DU PARC", rue="1 RUE DU STADE", code_postal="38000", ville="VILLE")
+    assert "salle" not in fixtures["2"] and "mapsApiKey" not in json.dumps(fixtures)
+    again = {"1": fx(1, "Club", "55")}
+    collect.add_venues(again, fixtures, ours)  # même salle qu'au passage précédent : pas de nouvelle page
+    assert pages == ["u1"] and again["1"]["salle"]["nom"] == "GYMNASE DU PARC"

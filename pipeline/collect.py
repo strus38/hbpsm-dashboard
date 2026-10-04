@@ -14,6 +14,7 @@ des données brouillées : on ne s'en sert pas. Pages lues :
   <compétition>/                          liste des poules (poule-selector)
   <compétition>/poule-<id>/               calendrier des journées, journée en cours, classement
   <compétition>/poule-<id>/journee-<n>/   rencontres de la journée n
+  <compétition>/poule-<id>/rencontre-<n>/ gymnase des 4 prochains matchs du club, une fois fixé
 Feuille de match : FDM + chemin tiré de son code (WAGWUHC -> W/A/G/W/WAGWUHC.pdf).
 """
 import datetime as dt
@@ -27,7 +28,7 @@ import time
 import urllib.error
 import urllib.request
 
-from .common import DATA, MATCHES, RAW, ROOT, load_config, norm, read_json, write_json
+from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, read_json, write_json
 
 UA = "hbpsm-dashboard/1.0 (suivi hebdomadaire de deux poules; +https://github.com/strus38/hbpsm-dashboard)"
 FDM = "https://fdm.fdme.ffhandball.fr/"
@@ -105,7 +106,7 @@ def fixture(r, poule, base, start=None):
               away=clean(r.get("equipe2Libelle")), score_home=score(r.get("equipe1Score")),
               score_away=score(r.get("equipe2Score")), ht_home=score(r.get("equipe1ScoreMT")),
               ht_away=score(r.get("equipe2ScoreMT")), url=f"{base}rencontre-{rid}/",
-              pdf_url=pdf_url(r.get("fdmCode")))
+              pdf_url=pdf_url(r.get("fdmCode")), equipement=str(r.get("equipementId") or "") or None)
     if not fx["date"] and start:  # horaire pas encore fixé : début du week-end de la journée
         fx.update(date=start, date_provisoire=True)
     return fx
@@ -122,6 +123,29 @@ def standings(data, url):
                          for k in ("place", "equipe_libelle", "point", "joue", "gagne", "nul",
                                    "perdu", "butPlus", "butMoins", "diff")] for r in rows],
                 url=url)
+
+
+def venue(data):
+    """Gymnase d'une rencontre, lu sur sa page ; None tant que la fédération ne l'a pas fixé."""
+    e = (data.get("competitions---rencontre-salle") or {}).get("equipement") or {}
+    if not e.get("libelle"):
+        return None
+    return dict(nom=clean(e.get("libelle")), rue=clean(e.get("rue")),
+                code_postal=clean(e.get("codePostal")), ville=clean(e.get("ville")))
+
+
+def add_venues(fixtures, old, is_ours, limit=4):
+    """Gymnase des prochains matchs du club, pour la convocation : une page de rencontre par
+    match, seulement quand la fédération a fixé la salle ou l'a changée depuis la dernière fois."""
+    upcoming = sorted((f for f in fixtures.values() if f["score_home"] is None
+                       and (is_ours(f["home"]) or is_ours(f["away"]))),
+                      key=lambda f: f.get("date") or "9999")[:limit]
+    for fx in upcoming:
+        before = old.get(fx["id"]) or {}
+        if before.get("salle") and before.get("equipement") == fx["equipement"]:
+            fx["salle"] = before["salle"]
+        elif fx["equipement"]:
+            fx["salle"] = venue(page_data(fx["url"], f"{fx['poule']}_rencontre_{fx['id']}"))
 
 
 def discover(config):
@@ -161,9 +185,10 @@ def finished(fixtures, known, now):
         for f in fixtures)
 
 
-def crawl_poule(poule, known, old, now):
+def crawl_poule(poule, known, old, now, is_ours=None):
     """Rencontres et classement d'une poule. Une journée close n'est pas relue.
-    now : date et heure locales, '2026-10-04T19:30'."""
+    now : date et heure locales, '2026-10-04T19:30'.
+    is_ours : reconnaît le club, dont on lit aussi le gymnase des prochains matchs."""
     base = poule["url"].rstrip("/") + "/"
     pid = str(poule["id"])
     first = page_data(base, f"{pid}_poule")
@@ -187,6 +212,8 @@ def crawl_poule(poule, known, old, now):
             if r.get("ext_rencontreId"):
                 fx = fixture(r, pid, base, days.get(n))
                 fixtures[fx["id"]] = fx
+    if is_ours:
+        add_venues(fixtures, old, is_ours)
     sheets = 0
     for fx in fixtures.values():
         target = RAW / "fdme" / f"{fx['id']}.pdf"
@@ -234,7 +261,7 @@ def main():
         if not poule.get("url"):
             continue
         try:
-            fixtures, official = crawl_poule(poule, known, old, now)
+            fixtures, official = crawl_poule(poule, known, old, now, lambda t: is_club(t, config))
         except (urllib.error.URLError, OSError) as exc:  # site injoignable : l'état précédent reste valable
             print(f"[collecte] poule {poule['id']}: {exc}", file=sys.stderr)
             missing.append(poule["id"])

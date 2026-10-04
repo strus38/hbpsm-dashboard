@@ -101,8 +101,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 - Couleurs : celles du profil HBPSM de HANDBALL-training (`clubs/hbpsm/profil.json`), recopiées
   dans `dashboard/template.html` avec les mêmes rôles (bleu marine = ossature, jaune = actif ou
   mis en avant, toujours avec un texte foncé). Si le club change sa palette, changer les deux.
-- Tout le calcul se fait dans la collecte sur GitHub ; la page ne refait que la composition
-  d'équipe (absences et postes saisis sur le poste). Ouverte, elle relit `publie/manifeste.json`
+- Organisation de la page (demande de l'auteur, 04/10/2026, pour l'entraîneur qui convoque les
+  12 joueurs après l'entraînement du vendredi) : Semaine, Planification (4 prochains matchs),
+  Convocation, Joueurs, Adversaires, Saison. Feuille : 12 joueurs dont 2 gardiens
+  (`effectif_feuille`, `gardiens_feuille`). Rotation guidée par défaut (au moins 1 match sur 3,
+  hors match clé, 3 joueurs de champ et 1 gardien au plus par match). Gymnase des 4 prochains
+  matchs du club lu sur la page de la rencontre ; heure de rendez-vous saisie par l'entraîneur.
+  Disponibilités, choix et rendez-vous restent dans le navigateur de l'entraîneur (`S` dans
+  `localStorage`), avec export / import en fichier ; jamais publiés.
+- Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
+  proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au
   retour de la connexion, et ne retélécharge `hbpsm.enc` que si `maj` a changé.
 - Barème du classement : victoire 3, nul 2, défaite 1.

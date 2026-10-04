@@ -513,7 +513,7 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         enjeu = round(si_v) - round(si_o) if si_v is not None and si_o is not None else None
         base["matchs"].append(dict(
             id=f["id"], date=f.get("date"), provisoire=bool(f.get("date_provisoire")),
-            journee=f.get("journee"), adversaire=adv, domicile=dom,
+            journee=f.get("journee"), adversaire=adv, domicile=dom, salle=f.get("salle"),
             rang_adv=table[adv]["rang"], pts_adv=table[adv]["pts"],
             p_victoire=round(100 * s["v"] / sims),
             si_victoire=None if si_v is None else round(si_v),
@@ -636,7 +636,7 @@ def analyze(today=None, roster=None):
     if upcoming:
         f = upcoming[0]
         dom = is_club(f.get("home"), config)
-        nxt = dict(date=f.get("date"), provisoire=bool(f.get("date_provisoire")),
+        nxt = dict(id=f["id"], date=f.get("date"), provisoire=bool(f.get("date_provisoire")), salle=f.get("salle"),
                    adversaire=f["away"] if dom else f["home"],
                    domicile=dom, journee=f.get("journee"), poule=f.get("poule"))
 

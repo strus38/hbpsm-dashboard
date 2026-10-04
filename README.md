@@ -43,10 +43,29 @@ elles ont changé, puis se redessine sans perdre l'onglet ni les réglages. Le b
 affiche la dernière copie reçue. Quand la page elle-même évolue, un bandeau propose de
 télécharger la nouvelle version.
 
-Tout le calcul (classements, notes, chances de finir premier, matchs clés, axes de travail)
-est fait par la collecte sur GitHub. La page ne fait qu'un calcul léger : la composition
-d'équipe proposée, à partir des notes, parce que les absences et les postes se saisissent sur
-l'ordinateur de l'entraîneur.
+La page suit la semaine de l'entraîneur :
+
+| Onglet | Ce qu'il donne |
+|---|---|
+| Semaine | le prochain match : rang de l'adversaire, victoire estimée avec l'équipe retenue, enjeu pour la saison, recommandation de prise de risque, les 12 retenus, le sept possible |
+| Planification | les 4 prochains matchs : disponibilités (disponible, incertain, absent) et choix saisis par l'entraîneur, 12 joueurs dont 2 gardiens proposés par match, rotation guidée, force alignée et risque recalculés à chaque clic |
+| Convocation | après l'entraînement du vendredi : les 12, la date, le gymnase (lu sur ffhandball.fr), l'heure du rendez-vous, un message à copier pour le groupe et une version imprimable |
+| Joueurs | fiches graphiques : note, buts ou arrêts par match, réussite au tir ou pourcentage d'arrêts face à la référence, sanctions, sélections à venir |
+| Adversaires | repérage : buts, mi-temps, discipline, gardiens, joueurs à surveiller, repères communs |
+| Saison | chances de finir premier, matchs à gagner, axes de travail, séance à importer, classements |
+
+La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
+(notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur. En rotation
+guidée, hors match clé, elle fait entrer jusqu'à 3 joueurs de champ et 1 gardien qui attendent
+depuis le plus longtemps, pour que chacun joue au moins 1 match sur 3 (ou 1 sur 2). La force
+alignée rapporte la valeur des 12 retenus à celle de l'équipe type ; la victoire estimée part
+de celle calculée sur GitHub (équipe au complet) et baisse avec la force ; le risque multiplie
+cette baisse par l'enjeu du match pour la saison.
+
+Tout le calcul lourd (classements, notes, chances de victoire et de finir premier, matchs clés,
+axes de travail) est fait par la collecte sur GitHub. La page ne fait que ces calculs légers,
+parce que les disponibilités, les choix et les postes se saisissent sur l'ordinateur de
+l'entraîneur et n'en sortent pas (un fichier « Sauvegarder mon planning » les emporte ailleurs).
 
 Couleurs : celles du club, reprises du profil HBPSM de HANDBALL-training
 (`clubs/hbpsm/profil.json`), avec les mêmes rôles : le bleu marine pour l'ossature, le jaune
