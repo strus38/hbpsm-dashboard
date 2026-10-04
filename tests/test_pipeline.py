@@ -370,6 +370,16 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.evaluate("S.regle = 1")
         assert all(n == 0 for n in rot["cle"]) and rot["paires"] and rot["libre"] and rot["gb2"]
         assert sum(rot["ordre"]) > 0 and rot["ordre"] == sorted(rot["ordre"], reverse=True) and rot["manque"] == 0
+        # postes clefs : 2 pivots et 4 arrières sur chaque feuille, rotation comprise ; un 2e poste compte
+        cov = page.evaluate("""(() => { const champ = D.joueurs.filter(p => !isGK(p)), cycle = ["PIV","ARG","DC","ALG","ALD","ARD"];
+          champ.forEach((p, i) => S.postes[p.cle] = cycle[i % cycle.length]);
+          const res = [0, 1, 2].map(q => { S.regle = q; return planning().every(r => r.postesOk); });
+          champ.filter(p => poste(p) === "PIV").forEach(p => S.postes[p.cle] = "ALG");
+          const sans = planning()[0].postesOk;
+          S.postes[champ[0].cle] = "ALG/PIV"; S.postes[champ[1].cle] = "ALD/PIV";
+          const deux = planning().every(r => r.postesOk && r.sel.length === 12);
+          S.postes = {}; S.regle = 1; return {res, sans, deux}; })()""")
+        assert cov == {"res": [True, True, True], "sans": False, "deux": True}
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
         page.click("nav.tabs button[data-tab=planif]")
         first = page.locator("button.cell.in").first

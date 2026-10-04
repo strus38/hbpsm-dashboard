@@ -16,6 +16,12 @@ poules:
 # Joueurs à choisir pour chaque match, dont les gardiens ("auto" = maximum déjà aligné cette saison)
 effectif_feuille: 12
 gardiens_feuille: 2
+# Postes clefs : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un des postes
+# du groupe (choix de l'entraîneur, 05/10/2026) ; un joueur à deux postes, « ARG/DC », compte pour
+# un seul groupe. Postes : ALG ARG DC ARD ALD PIV.
+postes_clefs:
+  - {nom: pivots, postes: [PIV], min: 2}
+  - {nom: arrières, postes: [ARG, DC, ARD], min: 4}
 # true = garde quelques captures dans raw/sample pour régler les extracteurs
 # (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
 echantillons_debug: true

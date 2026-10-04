@@ -870,7 +870,7 @@ def analyze(today=None, roster=None):
                   club_court=config["club"]["nom_affiche"],
                   demo=any((m.get("source") or {}).get("demo") for m in matches),
                   matchs=len(matches), feuilles=n_fdme, effectif=squad,
-                  gardiens=int(config.get("gardiens_feuille", 2)),
+                  gardiens=int(config.get("gardiens_feuille", 2)), postes_clefs=config.get("postes_clefs") or [],
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
                   historique=[x.get("saison") for x in seasons]),
         prochain=nxt,

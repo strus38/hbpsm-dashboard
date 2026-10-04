@@ -66,13 +66,17 @@ La page suit la semaine de l'entraîneur :
 | Saison | chances de finir premier, matchs à gagner, axes de travail, séance à importer, classements |
 
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
-(notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur. Puis la rotation,
+(notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur et les postes clefs
+de `config.yml` : au moins 2 pivots et 4 arrières (ARG, DC ou ARD) sur chaque feuille ; un joueur
+à deux postes (« 2e poste » dans sa fiche) compte pour l'un ou l'autre. Puis la rotation,
 sur les 4 matchs à la fois : chacun joue au moins 1 des 4 matchs (ou 2, ou rotation libre, au
 choix de l'entraîneur). Elle se fait d'abord sur les matchs les plus abordables (victoire
 estimée la plus haute), jamais sur un match clé, avec au plus 3 joueurs de champ et 1 gardien
 changés par match (les 2 gardiens si le minimum l'exige, sur un match à la victoire estimée
 d'au moins 65 %) ; laisse sa place celui qui a le plus joué sur la période (à égalité, le moins
-bien noté), si bien que le repos tourne aussi chez les titulaires et les gardiens. Chaque note
+bien noté), si bien que le repos tourne aussi chez les titulaires et les gardiens ; le
+remplacement se fait poste pour poste quand c'est possible, et jamais au point de découvrir un
+poste clef. Chaque note
 dit sur combien de matchs elle repose (saison passée comptée pour moitié) : fragile sous 3,
 indicative sous 6, solide au-delà ; tant que le club a moins de 5 feuilles lues ou des notes
 fragiles, la planification le rappelle. Chaque case
