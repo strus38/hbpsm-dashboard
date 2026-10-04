@@ -196,6 +196,7 @@ nav.tabs[hidden]{display:none}
 .cell.rest{border-style:dashed;border-color:var(--track);color:var(--track);background:transparent}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
+.fia{font-size:.74rem;letter-spacing:0;color:var(--track);white-space:nowrap;cursor:help}
 .how{display:grid;gap:3px;margin:4px 0 12px;padding:10px 12px;border-left:3px solid var(--accent-trait);background:var(--surface);border-radius:6px}
 .cell.man{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--accent-trait)}
 .legend-plan{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
@@ -248,7 +249,7 @@ nav.tabs[hidden]{display:none}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "05ad20d65226", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "bc898903b87d", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -317,7 +318,7 @@ function reasons(p){
 // Les 4 prochains matchs du club. Les chances de victoire et l'enjeu viennent de GitHub ; les
 // disponibilités et les choix de l'entraîneur restent sur cet ordinateur. La page en déduit la
 // feuille proposée (12 joueurs dont 2 gardiens), la force alignée et le risque.
-const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1;
+const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
 const horizon = () => {
   const ms = (D.saison && D.saison.matchs) || [];
   if(ms.length) return ms.slice(0, HORIZON);
@@ -339,11 +340,24 @@ const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rh
 };
 const shortName = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[w.length-1] : w[0]; };
 let PLAN = null;   // calculée à chaque rendu : quelques dizaines d'opérations
+const FIABLE_CLUB = 5;   // en deçà de 5 feuilles du club cette saison, la planification le rappelle
+const FIA = {aucune: [0, "sans note : jamais aligné, à vous de juger"], fragile: [1, "note fragile"],
+             indicative: [2, "note indicative"], solide: [3, "note solide"]};
+function fia(p){
+  const f = p.fiabilite;
+  if(!f) return "";
+  const [n, what] = FIA[f.niveau] || FIA.aucune;
+  const sur = !f.matchs ? "" : " : "+f.saison+" match"+(f.saison>1?"s":"")+" cette saison"
+    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "");
+  return '<span class="fia" title="'+esc(what+sur)+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
+}
 
 // Rotation, réglée par l'entraîneur (S.regle) : chacun joue au moins S.regle des matchs où il est
 // disponible. Elle se fait d'abord sur les matchs les plus abordables (victoire estimée la plus
 // haute), jamais sur un match clé, au plus ROT_CHAMP joueurs de champ et ROT_GB gardien changés par
-// match ; sort celui qui a le plus joué sur la période, à égalité le moins bien noté.
+// match ; sort celui qui a le plus joué sur la période, à égalité le moins bien noté. Si le minimum
+// n'est pas tenu pour les gardiens, les deux sont changés sur un match à votre portée (victoire
+// estimée d'au moins ROT_GB2 %).
 const ruleOf = n => Math.min(Number(S.regle) || 0, n);
 function planning(){
   const H = horizon(), size = D.meta.effectif || 12, nGK = D.meta.gardiens ?? 2;
@@ -370,21 +384,22 @@ function planning(){
   if(quota){
     const easy = P.filter(r => !r.m.cle).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
       || (a.m.enjeu ?? 0) - (b.m.enjeu ?? 0) || a.k - b.k);
-    for(const gk of [true, false]){
-      const cap = gk ? ROT_GB : ROT_CHAMP, team = r => gk ? r.gks : r.field, used = {};
+    const capsOf = gk => gk ? [r => ROT_GB, r => (r.m.p_victoire ?? 0) >= ROT_GB2 ? 2 : ROT_GB] : [r => ROT_CHAMP];
+    for(const gk of [true, false]) for(const cap of capsOf(gk)){
+      const team = r => gk ? r.gks : r.field, used = P.map(r => r.rotated.filter(p => isGK(p) === gk).length);
       for(let moved = true; moved;){
         moved = false;
         const owed = D.joueurs.filter(p => isGK(p) === gk && apps(p) < need(p))
           .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || val(b, H[0]) - val(a, H[0]));
         for(const p of owed){
           for(const r of easy){
-            if((used[r.k] || 0) >= cap || !r.sure.includes(p) || team(r).includes(p)) continue;
+            if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
             const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q))
               .sort((a, b) => apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
             team(r)[team(r).indexOf(out)] = p;
             r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
-            used[r.k] = (used[r.k] || 0) + 1; moved = true;
+            used[r.k]++; moved = true;
             break;
           }
         }
@@ -496,10 +511,16 @@ function viewPlanif(){
   h += '<div class="how small"><b>Comment la feuille est proposée.</b> '
     + '<span>1. Pour chaque match, les '+P[0].size+' mieux notés parmi les disponibles ('+P[0].nGK+' gardiens), vos choix d\'abord.</span>'
     + (q ? '<span>2. Rotation : chacun joue au moins '+q+' des '+n+' matchs. Elle se fait d\'abord sur les matchs les plus abordables (victoire estimée la plus haute), jamais sur un match clé, '
-         + 'avec au plus '+ROT_CHAMP+' joueurs de champ et '+ROT_GB+' gardien changés par match.</span>'
+         + 'avec au plus '+ROT_CHAMP+' joueurs de champ et '+ROT_GB+' gardien changés par match ; les 2 gardiens si le minimum l\'exige, sur un match à votre portée (victoire estimée d\'au moins '+ROT_GB2+' %).</span>'
          + '<span>3. Laisse sa place celui qui a le plus joué sur ces '+n+' matchs (à égalité, le moins bien noté) : le repos tourne aussi chez les titulaires, gardiens compris.</span>'
        : '<span>2. Pas de rotation automatique : à vous de faire tourner d\'un clic.</span>')
     + '<span class="muted">Survolez une case pour savoir pourquoi.</span></div>';
+  const fragile = D.joueurs.filter(p => p.fiabilite && ["fragile", "aucune"].includes(p.fiabilite.niveau)).length;
+  if(D.meta.club_feuilles < FIABLE_CLUB || fragile) h += '<p class="note"><b>Des notes encore fragiles.</b> '
+    + D.meta.club_feuilles+' feuille'+(D.meta.club_feuilles>1?"s":"")+' de match du club lue'+(D.meta.club_feuilles>1?"s":"")+' cette saison ; la saison passée compte pour moitié. '
+    + fragile+' joueur'+(fragile>1?"s ont":" a")+' une note sur moins de 3 matchs <span class="fia">●○○</span> : entre deux joueurs proches, l\'écart ne départage rien. '
+    + 'En début de saison, « au moins 2 des '+n+' matchs » fait jouer tout le monde et donne vite des notes plus sûres ; '
+    + 'et ce que vous voyez à l\'entraînement vaut plus que ces chiffres : un clic sur une case impose votre choix.</p>';
   h += '<div class="panel scroll"><div class="plan" style="--n:'+P.length+'"><div></div>'
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'+matchLine(r.m)+'<br>'
       + (r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br>'
@@ -510,9 +531,7 @@ function viewPlanif(){
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
     for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
-      const tag = p.m ? "" : rated(p) ? ' <small class="muted" title="Pas encore aligné cette saison : note provisoire, d\'après la saison '+esc(p.passe ? p.passe.saison : "passée")+'">25-26</small>'
-        : ' <small class="muted" title="Jamais aligné : note par défaut, à vous de juger">sans note</small>';
-      h += '<div class="who" title="'+esc(p.nom)+'"><b>'+esc(p.num ?? "")+'</b> '+esc(p.nom)+tag+'</div>';
+      h += '<div class="who" title="'+esc(p.nom)+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' '+esc(p.nom)+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -537,7 +556,7 @@ function viewPlanif(){
     + 'force '+Math.round(100*r.force)+' %<br>victoire '+pct(r.pAdj)+'<br>'+riskTag(r)
     + (r.impact != null && r.impact >= 0.5 ? '<br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small>' : '')
     + '<br><button class="link" data-reset="'+esc(r.m.id)+'">réinitialiser</button></div>').join("") + '<div></div></div></div>';
-  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent</p>';
+  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent · <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
   h += '<p class="note">Force : valeur des 12 retenus rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos choix restent sur cet ordinateur.</p>';
   h += '<div class="edit noprint"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button><label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
