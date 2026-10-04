@@ -6,8 +6,9 @@ Sortie  : dictionnaire prêt pour le tableau de bord (docs/data.json).
 import csv
 import datetime as dt
 import itertools
-import re
+import math
 import random
+import re
 import statistics
 from collections import Counter, defaultdict
 
@@ -37,8 +38,10 @@ def sides(match):
 def keepers_conceded(match, side):
     """Buts pris par chaque gardien d'une équipe sur un match : ({numéro: buts}, estimé ?).
 
-    La feuille donne les arrêts de chaque gardien, pas ses buts pris : elle ne dit pas qui était
-    dans les buts. Un seul gardien a fait des arrêts : il prend tous les buts. Sinon, un but est
+    La feuille donne les arrêts de chaque gardien, pas ses buts pris. L'ancienne feuille (2025-2026)
+    dit qui entre et sort des buts : le but est pour le gardien en place (exact), pour aucun si le
+    gardien était sorti (jeu à 7). Sinon, un seul
+    gardien a fait des arrêts : il prend tous les buts ; plusieurs : un but est
     pour le gardien du dernier arrêt de la même mi-temps, à défaut du prochain arrêt de cette
     mi-temps, sinon de l'arrêt le plus proche. Sans déroulé, plusieurs gardiens : inconnu ({})."""
     other = "away" if side == "home" else "home"
@@ -51,17 +54,34 @@ def keepers_conceded(match, side):
     events = match.get("events") or []
     saves = [e for e in events if e["type"] == "save" and e["side"] == side and e.get("num") is not None]
     goals = [e for e in events if e["type"] in ("goal", "pen_goal") and e["side"] == other]
-    if not saves or not goals:
+    changes = [e for e in events if e["type"] in ("gk_in", "gk_out") and e["side"] == side and e.get("num") is not None]
+    if not goals or not (saves or changes):
         return {}, True
     half = lambda t: t > 1800
     out = {p["num"]: 0 for p in keepers}
+    exact = bool(changes)
     for g in goals:
+        if changes:  # l'ancienne feuille dit qui entre et sort des buts : le gardien en place
+            on, known = None, False
+            for e in changes:
+                if e["t"] > g["t"]:
+                    break
+                known = True
+                on = e["num"] if e["type"] == "gk_in" else (None if on == e["num"] else on)
+            if on is not None:
+                out[on] = out.get(on, 0) + 1
+                continue
+            if known:  # gardien sorti (jeu à 7) : but dans le but vide, pour aucun gardien
+                continue
+            exact = False
+        if not saves:
+            continue
         same = [s for s in saves if half(s["t"]) == half(g["t"])]
         before = [s for s in same if s["t"] <= g["t"]]
         after = [s for s in same if s["t"] > g["t"]]
         pick = before[-1] if before else after[0] if after else min(saves, key=lambda s: abs(s["t"] - g["t"]))
         out[pick["num"]] = out.get(pick["num"], 0) + 1
-    return out, True
+    return out, not exact
 
 
 def save_pct(saves, conceded):
@@ -578,11 +598,16 @@ def pairs(with_sheet):
     return out
 
 
+UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
+
+
 def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None):
     """Course au classement : chances d'atteindre le rang visé et enjeu de chaque match.
 
     Chaque match restant est simulé à partir des moyennes de buts marqués et
     encaissés, ramenées vers la moyenne de la poule tant qu'il y a peu de matchs.
+    Ces forces restent incertaines : chaque saison simulée les tire autour de leur
+    valeur, d'autant plus large qu'il y a peu de matchs joués (UNSURE).
     L'enjeu d'un match = chances d'atteindre l'objectif en cas de victoire,
     moins ces chances sinon.
     """
@@ -624,9 +649,17 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         k = 3 + 2 * c
         return ((r["bp" if scored else "bc"] + k * avg * rel) / (r["j"] + k)) / avg
 
-    att = {t: rate(t, True) for t in table}
-    dfn = {t: rate(t, False) for t in table}
+    att0 = {t: rate(t, True) for t in table}
+    dfn0 = {t: rate(t, False) for t in table}
+    k_of = {t: 3 + 2 * (priors[t][2] if t in priors else 0.0) for t in table}
+    unsure = {t: UNSURE * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
     rng = random.Random(seed)
+    att, dfn = dict(att0), dict(dfn0)
+
+    def draw_strengths():
+        for t in table:
+            att[t] = att0[t] * math.exp(rng.gauss(0, unsure[t]))
+            dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
 
     def play(f):
         mh = avg * att[f["home"]] * dfn[f["away"]] * 1.04
@@ -636,6 +669,7 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
     already = [(m["home"]["name"], m["away"]["name"], m["home"]["score"], m["away"]["score"]) for m in played]
 
     def season(force_win=False):
+        draw_strengths()
         sim, res = list(already), {}
         for f in rest:
             gh, ga = play(f)

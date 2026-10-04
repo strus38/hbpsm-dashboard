@@ -34,7 +34,11 @@ ACTIONS = [  # (début de l'action, type) — du plus précis au plus général 
     ("AVERTISSEMENT", "yellow"), ("CARTON JAUNE", "yellow"),
     ("2MN", "two_min"), ("2 MN", "two_min"), ("2 MIN", "two_min"),
     ("DISQUALIFICATION", "red"), ("CARTON ROUGE", "red"), ("CARTON BLEU", "blue"),
-    ("TEMPS MORT", "timeout"), ("COMMOTION", None),
+    ("TEMPS MORT", "timeout"),
+    # ancienne feuille : qui entre et sort des buts (pour attribuer les buts pris) ; jamais gardés :
+    # commotion et protocole commotion (donnée de santé), temps de régulation comportementale
+    ("ENTREE GARDIEN", "gk_in"), ("SORTIE GARDIEN", "gk_out"),
+    ("COMMOTION", None), ("PROTOCOLE COMMOTION", None), ("TEMPS DE REGULATION", None),
 ]
 OLD_RE = re.compile(r"^(.+?)J([RV])N°(\d{1,2})(.*)$")  # « ButJRN°51DUPONTjean », ancienne feuille
 HEADERS = {"num": ("N", "NO", "NUM"), "name": ("NOM",), "goals": ("BUTS",), "pen_goals": ("7M",),

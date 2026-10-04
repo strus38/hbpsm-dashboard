@@ -17,8 +17,10 @@ Le dépôt `strus38/hbpsm-dashboard` est PUBLIC et ne sert qu'à poser le code.
 - Aucun nom de joueur en clair : ni dans un fichier versionné, ni dans un test, ni dans un
   commentaire, ni dans une Release, ni dans un artefact, ni dans le journal des Actions.
 - Ne jamais versionner `data/`, `raw/`, `docs/`, `roster.csv` (voir `.gitignore`).
-- Les résultats ne sortent que chiffrés (`publie/*.enc`, AES-256-GCM, `pipeline/vault.py`).
-- Pas de GitHub Pages.
+- Les résultats ne sortent que chiffrés (`publie/*.enc`, AES-256-GCM, `pipeline/vault.py`),
+  sauf deux fichiers d'équipe sans nom (`seance-prochaine.hbt.json`, `tableau-public.json`),
+  relus par `publish.check_public` contre tous les noms connus avant d'être écrits.
+- GitHub Pages ne sert que la page sans donnée (décision de l'auteur, 04/10/2026).
 - Les tests n'utilisent que des joueurs et des clubs inventés.
 - Avant tout commit : chercher les noms de l'effectif dans le diff.
 
@@ -102,10 +104,17 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 - Horaire pas encore fixé : la date est celle du début du week-end de la journée, marquée
   « à confirmer » (`date_provisoire`). La comparaison avec l'heure courante se fait en heure
   locale du PC ou du runner (UTC sur GitHub) : sans conséquence, une feuille absente répond 404.
-- HANDBALL-training lit lui-même `publie/hbpsm.enc` (décision de l'auteur, 04/10/2026) : un
-  bouton « Tableau de bord HBPSM » dans son exemplaire HBPSM, seule partie connectée de
-  l'application, au clic. Contrat à ne pas rompre : chemin `publie/hbpsm.enc` sur `main`,
-  format de l'enveloppe (`pipeline/vault.py`), champ `seance_hbt` au format `.hbt.json` v3.
+- HANDBALL-training ne demande jamais la phrase (décision de l'auteur, 04/10/2026) : son
+  écran « Tableau de bord HBPSM » lit `publie/tableau-public.json` et
+  `publie/seance-prochaine.hbt.json`, et ouvre la page complète sur GitHub Pages
+  (https://strus38.github.io/hbpsm-dashboard/), qui demande la phrase une fois par poste.
+  Contrat à ne pas rompre : ces deux chemins sur `main`, `format` « hbpsm-public » `v` 1,
+  `.hbt.json` v3, l'adresse Pages.
+- Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris
+  exacts) ; PROTOCOLECOMMOTION, COMMOTION et TEMPSDEREGULATIONCOMPORTEMENTAL sont ignorés
+  (donnée de santé, sans intérêt). Feuille en 404 : `pdf_absent`, plus redemandée.
+- Simulation de saison : forces tirées à chaque saison simulée, `analyze.UNSURE` (8 %) réduit
+  par les matchs joués ; sans cela, 99 % de chances dès la 1re journée.
 
 ## Choix déjà arrêtés
 

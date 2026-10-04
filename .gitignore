@@ -9,3 +9,4 @@ __pycache__/
 .venv/
 # le code est versionné directement : le paquet d'origine écraserait les corrections (voir weekly.yml)
 hbpsm-bundle.zip
+_site/

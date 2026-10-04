@@ -275,12 +275,15 @@ def test_publication_chiffree(sandbox, monkeypatch):
     publish.seal("2026-10-04")
     out = sandbox / "publie"
     assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc",
-                                                    "hbpsm.enc", "manifeste.json", publish.SEANCE_NAME]
+                                                    "hbpsm.enc", "manifeste.json", publish.SEANCE_NAME, publish.PUBLIC_NAME]
     for p in out.iterdir():
         text = p.read_text("utf-8")
         assert "Joueur 0" not in text and "Fictif" not in text, p.name  # aucun nom de joueur en clair
-        if p.name != publish.SEANCE_NAME:  # seule la séance publique nomme les équipes
+        if p.name not in (publish.SEANCE_NAME, publish.PUBLIC_NAME):  # seuls les fichiers publics nomment les équipes
             assert "quipe fictive" not in text, p.name
+    board = json.loads((out / publish.PUBLIC_NAME).read_text("utf-8"))
+    assert board["format"] == "hbpsm-public" and board["prochain"] and board["poules"]["71"]
+    assert all(set(b) <= {"num", "buts", "pen", "m", "moy", "tirs", "reussite"} for b in board["adversaire"]["buteurs"])
     seance = json.loads((out / publish.SEANCE_NAME).read_text("utf-8"))
     assert seance["format"] == "handball-training" and seance["contenu"]["seance"]["exercices"] == []
     box = vault.decrypt(json.loads((out / "hbpsm.enc").read_text("utf-8")), PHRASE)
@@ -466,6 +469,13 @@ def test_gardiens_et_tirs(sandbox):
     assert an.keepers_conceded(match, "home") == ({1: 5}, False)
     match["players"]["home"], match["events"] = [dict(num=1, saves=2), dict(num=16, saves=2)], []
     assert an.keepers_conceded(match, "home") == ({}, True)  # deux gardiens sans déroulé : inconnu
+    # l'ancienne feuille dit qui entre et sort des buts : exact, et rien pour le but vide (jeu à 7)
+    change = lambda t, typ, num: dict(t=t, side="home", type=typ, num=num, score=[0, 0])
+    match["events"] = [change(0, "gk_in", 1), goal(300), save(600, 1), change(1500, "gk_out", 1), goal(1600),
+                       change(1700, "gk_in", 16), goal(1900), save(2000, 16), goal(2500), goal(3000)]
+    assert an.keepers_conceded(match, "home") == ({1: 1, 16: 3}, False)
+    assert [parse_fdme.match_action(x)[1] for x in ("ENTREEGARDIEN", "SORTIE GARDIEN")] == ["gk_in", "gk_out"]
+    assert all(parse_fdme.match_action(x)[1] is None for x in ("PROTOCOLECOMMOTION", "TEMPSDEREGULATIONCOMPORTEMENTAL"))
     common.write_json(sandbox / "data" / "matches" / "1.json", dict(
         id="1", poule="71", journee=1, date="2026-10-03T21:00", played=True,
         home=dict(name=demo_data.CLUB, score=6, ht=3), away=dict(name="Club B", score=3, ht=2),
@@ -575,14 +585,14 @@ def test_saison_passee_exploitee(sandbox):
     ours_now = [pl("GARDIEN Alpha", 1, saves=10), pl("TIREUR Basile", 7, 6, 9), pl("AILIER Corentin", 9, 4, 6)]
     them_now = [pl("ADVERSE Firmin", 4, 5, 8), pl("ADVERSE Gaspard", 5, 3, 5), pl("NOUVEAU Hector", 6, 2, 4)]
     common.write_json(sandbox / "data" / "matches" / "1.json", match(1, club, "Club Bravo", 12, 10, ours_now, them_now))
-    past = [match(i, "HANDBALL PAYS DE ST MARCELLIN", "CLUB BRAVO", 30, 20 + i,
+    past = [match(i, "HBPSM", "CLUB BRAVO", 30, 20 + i,
                   [pl("GARDIEN Alpha", 1, saves=12), pl("TIREUR Basile", 7, 8, 12), pl("ABSENT Isidore", 11, 9, 11),
                    pl("PARTI Octave", 13, 5, 7)],
                   [pl("ADVERSE Firmin", 4, 10, 15), pl("ADVERSE Gaspard", 5, 6, 9), pl("ANCIEN Leon", 8, 4, 6)],
                   saison="2025-2026", poule="5A") for i in (1, 2)]
     common.write_json(sandbox / "data" / "historique" / "2025-2026.json", dict(saison="2025-2026", poules={
         "POULE 5A": dict(id="1", equipes=[], classement=dict(entetes=["Pos.", "Équipe", "Pts"], lignes=[
-            ["1", "HANDBALL PAYS DE ST MARCELLIN", "6"], ["2", "CLUB BRAVO", "2"]]))}, matches=past))
+            ["1", "HBPSM", "6"], ["2", "CLUB BRAVO", "2"]]))}, matches=past))
     roster = {common.name_key(n): dict(nom=n, poste="", disponible=True)
               for n in ("Alpha Gardien", "Basile Tireur", "Corentin Ailier", "Isidore Absent")}
     d = an.analyze("2026-01-02", roster=roster)

@@ -14,9 +14,17 @@ joueur est chiffré avant d'y entrer (AES-256-GCM, clé dérivée d'une phrase s
 | `publie/HBPSM-tableau-de-bord.html` | la page, sans aucune donnée | tout le monde |
 | `publie/hbpsm.enc` | données du tableau de bord et séance à importer | qui connaît la phrase |
 | `publie/etat.enc` | état de la collecte (rencontres, feuilles lues) | qui connaît la phrase |
+| `publie/historique.enc` | saisons passées collectées (rencontres, feuilles lues) | qui connaît la phrase |
 | `publie/manifeste.json` | date et empreinte de la dernière mise à jour | tout le monde |
+| `publie/seance-prochaine.hbt.json` | séance du prochain entraînement, sans nom de joueur | tout le monde |
+| `publie/tableau-public.json` | résumé d'équipe sans nom de joueur (prochain match, classements, chances, repérage par numéro) | tout le monde |
 
-Aucune page GitHub Pages n'est créée. Les captures brutes d'un lancement partent dans une archive
+Les deux fichiers publics en clair sont relus avant d'être écrits : si un nom de l'effectif ou
+d'une feuille de match (saison passée comprise) y apparaît, la publication est refusée.
+
+La même page sans donnée est aussi servie par GitHub Pages, à une adresse fixe
+(https://strus38.github.io/hbpsm-dashboard/) : elle demande la phrase une fois par poste, comme
+le fichier gardé sur le PC. Les captures brutes d'un lancement partent dans une archive
 7z chiffrée avec la même phrase. La phrase n'existe que dans le secret `HBPSM_CLE` et chez les
 entraîneurs : choisir au moins cinq mots tirés au hasard, car le fichier chiffré est public et
 une phrase courte se devine par essais successifs.
@@ -25,7 +33,8 @@ une phrase courte se devine par essais successifs.
 
 1. **Settings > Secrets and variables > Actions** : créer `HBPSM_CLE` (la phrase secrète) et,
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom »).
-2. **Actions > Collecte hebdomadaire > Run workflow**. Les adresses des poules 71 et 72 sont
+2. **Settings > Pages** : source « GitHub Actions » (une fois).
+3. **Actions > Collecte hebdomadaire > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
 
 Ensuite la collecte tourne seule le lundi et le jeudi à 05:00 UTC. Quand les données changent,
@@ -140,7 +149,9 @@ les notes sont des tendances.
 L'onglet Saison estime les chances d'atteindre le rang visé (`objectif.rang`, 3 : se qualifier
 pour la deuxième phase) en simulant les matchs restants de la poule, montre les chances de chaque
 rang final, et donne pour chaque match du club l'écart de chances entre une victoire et un autre
-résultat : les trois plus gros écarts sont les matchs clés. Égalités départagées comme le
+résultat : les trois plus gros écarts sont les matchs clés. La force de chaque équipe reste
+incertaine : chaque saison simulée la tire autour de son estimation (±8 % de buts au départ),
+d'autant moins large que l'équipe a joué de matchs. Égalités départagées comme le
 règlement (confrontations directes, puis différence de buts). Règlement AURA 2026-2027 : 2
 montées par secteur (poules 71 et 72), au terme d'une deuxième phase dont la formule sera
 publiée vers février ; le modèle ignore les pénalités.
@@ -152,8 +163,11 @@ publiée vers février ; le modèle ignore les pénalités.
 adversaires d'aujourd'hui, puis les feuilles de leurs matchs. Le serveur des feuilles limite le
 débit (HTTP 429) : elles arrivent par reprises successives, une toutes les 4 secondes, en
 respectant le délai demandé, dans un budget de 15 minutes par passage (la collecte hebdomadaire
-la relance jusqu'à ce qu'elle soit complète). Le résultat est publié chiffré dans
-`publie/historique.enc`, réécrit seulement s'il change.
+la relance jusqu'à ce qu'elle soit complète ; une feuille jamais déposée, HTTP 404, n'est plus
+redemandée). Le résultat est publié chiffré dans `publie/historique.enc`, réécrit seulement
+s'il change. Les anciennes feuilles disent qui entre et sort des buts : les buts pris y sont
+attribués exactement au gardien en place, et à aucun quand il était sorti (jeu à 7). Les
+mentions de commotion ne sont jamais conservées.
 
 Ce qu'elle apporte :
 - les notes des joueurs partent de la saison passée (un match de l'an dernier compte pour la
@@ -171,15 +185,19 @@ datée du prochain entraînement, avec les axes de travail et le repérage de l'
 l'objectif, sans exercice. Elle se télécharge depuis l'onglet Saison et s'importe par la
 fonction Importer de l'application (vérifié avec l'importeur de la version 1.14.2).
 
-L'exemplaire HBPSM de l'application a aussi un bouton « Tableau de bord HBPSM », à côté
-d'Importer : il télécharge `publie/hbpsm.enc`, le déchiffre avec la même phrase secrète et
-ajoute la séance du champ `seance_hbt`, comme une séance reçue. C'est la seule partie de
-l'application qui passe par internet, et seulement au clic.
+L'exemplaire HBPSM de l'application a un écran « Tableau de bord HBPSM », sans phrase
+secrète : il lit `publie/tableau-public.json` (prochain match, objectif et chances de chaque
+rang, classements des deux poules, repérage de l'adversaire par numéro, axes de travail), crée
+la séance de la semaine depuis `publie/seance-prochaine.hbt.json`, et ouvre d'un bouton le
+tableau de bord complet sur GitHub Pages (planification, convocation, fiches des joueurs), qui
+lui demande la phrase. C'est la seule partie de l'application qui passe par internet, et
+seulement quand l'entraîneur ouvre cet écran.
 
 Les deux projets restent indépendants, sans code partagé. Le seul lien est ce contrat, à ne
-pas rompre d'un côté sans l'autre : le chemin `publie/hbpsm.enc` sur la branche `main`, le
-format de l'enveloppe (en tête de `pipeline/vault.py`) et le champ `seance_hbt` au format
-`.hbt.json`. L'adresse est déclarée dans `clubs/hbpsm/profil.json` de HANDBALL-training.
+pas rompre d'un côté sans l'autre : les chemins `publie/tableau-public.json` (`format`
+« hbpsm-public », `v` 1) et `publie/seance-prochaine.hbt.json` (`.hbt.json` v3) sur la branche
+`main`, et l'adresse GitHub Pages. Ces adresses sont déclarées dans `clubs/hbpsm/profil.json`
+de HANDBALL-training.
 
 ## Tests
 

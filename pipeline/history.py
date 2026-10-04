@@ -86,8 +86,9 @@ def fetch_sheets(season, target, is_ours, budget=SHEET_BUDGET):
     serveur ; enregistre au fur et à mesure. Renvoie le nombre de feuilles encore à lire."""
     start = collect.time.monotonic()
     folder = RAW / "historique" / season["saison"] / "fdme"
-    todo = [i for i, m in enumerate(season["matches"])
-            if m["source"].get("utile") and m["source"].get("pdf") and not m["source"].get("fdme")]
+    wanted = lambda m: (m["source"].get("utile") and m["source"].get("pdf") and not m["source"].get("fdme")
+                        and not m["source"].get("pdf_absent"))
+    todo = [i for i, m in enumerate(season["matches"]) if wanted(m)]
     done = 0
     for n, i in enumerate(todo):
         m = season["matches"][i]
@@ -107,6 +108,11 @@ def fetch_sheets(season, target, is_ours, budget=SHEET_BUDGET):
                     write_json(target, season)
                     return len(todo) - n
                 collect.time.sleep(min(exc.wait, 120))
+            except urllib.error.HTTPError as exc:
+                if exc.code == 404:  # feuille jamais déposée : on ne la redemandera pas
+                    m["source"]["pdf_absent"] = True
+                print(f"[historique] feuille {m['id']}: {exc}", file=sys.stderr)
+                break
             except (urllib.error.URLError, OSError) as exc:
                 print(f"[historique] feuille {m['id']}: {exc}", file=sys.stderr)
                 break
@@ -119,9 +125,7 @@ def fetch_sheets(season, target, is_ours, budget=SHEET_BUDGET):
         if done and done % 10 == 0:
             write_json(target, season)
     write_json(target, season)
-    left = sum(1 for m in season["matches"] if m["source"].get("utile") and m["source"].get("pdf")
-               and not m["source"].get("fdme"))
-    return left
+    return sum(1 for m in season["matches"] if wanted(m))
 
 
 def main():

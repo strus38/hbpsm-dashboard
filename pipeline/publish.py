@@ -13,6 +13,10 @@ Fichiers versionnés, dans publie/ :
                               (vérifié avant publication) : HANDBALL-training la lit sans phrase
   historique.enc              saisons passées (pipeline.history), chiffrées ; réécrit seulement
                               quand elles changent, c'est-à-dire presque jamais
+  tableau-public.json         ce qui ne nomme aucun joueur (prochain match, chances, classements,
+                              repérage par numéros, axes) : l'écran « Tableau de bord » de
+                              HANDBALL-training le lit sans phrase ; vérifié avant publication
+La page part aussi sur GitHub Pages (workflow) : elle ne contient aucune donnée.
 """
 import datetime as dt
 import hashlib
@@ -32,6 +36,7 @@ PAGE_NAME = "HBPSM-tableau-de-bord.html"
 # porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.
 SEANCE_NAME = "seance-prochaine.hbt.json"
 HISTORY_NAME = "historique.enc"
+PUBLIC_NAME = "tableau-public.json"
 VERIF = 600  # secondes entre deux vérifications du manifeste par la page ouverte
 
 
@@ -89,12 +94,53 @@ def roster():
     return 0
 
 
-def known_names(state, roster_text):
-    """Noms de personnes connus : joueurs des feuilles (les deux équipes) et effectif du club."""
-    names = {p.get("name") for m in state["matches"].values()
+def known_names(state, roster_text, history=None):
+    """Noms de personnes connus : joueurs des feuilles (les deux équipes, saison passée comprise)
+    et effectif du club."""
+    matches = list(state["matches"].values())
+    matches += [m for season in (history or {}).values() for m in season.get("matches") or []]
+    names = {p.get("name") for m in matches
              for side in ("home", "away") for p in (m.get("players") or {}).get(side, [])}
     names |= {line.split(",")[0] for line in roster_text.splitlines()[1:]}
     return {norm(n) for n in names if n and len(norm(n).split()) >= 2}
+
+
+def team_public(e):
+    """Profil d'équipe sans nom de personne : les joueurs à surveiller par leur numéro."""
+    if not e:
+        return None
+    keep = ("equipe", "poule", "j", "bp_moy", "bc_moy", "forme", "mt1_bp", "mt2_bp", "mt1_bc", "mt2_bc",
+            "deux_min_moy", "jaunes_moy", "rouges", "arrets_pct", "periodes_bp", "periodes_bc", "plan", "plan_raison")
+    out = {k: e.get(k) for k in keep}
+    out["buteurs"] = [{k: b.get(k) for k in ("num", "buts", "pen", "m", "moy", "tirs", "reussite")} for b in e.get("buteurs") or []]
+    out["gardiens"] = [{k: g.get(k) for k in ("num", "m", "arrets", "pris", "pct", "estime")} for g in e.get("gardiens") or []]
+    x = e.get("passe")
+    out["passe"] = None if not x else dict(
+        {k: x.get(k) for k in ("saison", "j", "v", "n", "d", "bp_moy", "bc_moy", "rangs", "face_a_face", "continuite", "feuilles")},
+        buteurs=[{k: b.get(k) for k in ("num", "buts", "present")} for b in x.get("buteurs") or []])
+    return out
+
+
+def public_summary(data):
+    """Ce que HANDBALL-training montre sans phrase : l'équipe, jamais un joueur par son nom."""
+    club, s = data["meta"].get("club"), data.get("saison") or {}
+    nxt = dict(data["prochain"]) if data.get("prochain") else None
+    if nxt:
+        found = next((m for m in s.get("matchs") or [] if m.get("id") == nxt.get("id")), {})
+        nxt.update({k: found.get(k) for k in ("p_victoire", "enjeu", "cle", "rang_adv")})
+    keep_m = ("journee", "date", "provisoire", "adversaire", "domicile", "p_victoire", "enjeu", "cle", "rang_adv")
+    return dict(
+        format="hbpsm-public", v=1, genere=data["meta"]["genere"], club=club, club_court=data["meta"].get("club_court"),
+        saison=data["meta"].get("saison"), feuilles=data["meta"].get("club_feuilles"), prochain=nxt,
+        adversaire=team_public((data.get("equipes") or {}).get(nxt["adversaire"])) if nxt else None,
+        nous=team_public((data.get("equipes") or {}).get(club)),
+        objectif=None if not s else dict({k: s.get(k) for k in ("statut", "poule", "cible", "rang", "pts", "restants",
+                                                                  "proba", "proba_tout", "rangs", "pts_max")},
+                                         matchs=[{k: m.get(k) for k in keep_m} for m in s.get("matchs") or []]),
+        poules={p: [{k: r.get(k) for k in ("rang", "equipe", "pts", "j", "v", "n", "d", "bp", "bc", "diff", "forme")}
+                    for r in v["classement"]] for p, v in (data.get("poules") or {}).items()},
+        resultats=[{k: r.get(k) for k in ("poule", "journee", "date", "dom", "ext", "sd", "se")} for r in (data.get("resultats") or [])[:16]],
+        axes=[{k: a.get(k) for k in ("titre", "libelle", "constat")} for a in data.get("axes") or []])
 
 
 def check_public(text, names):
@@ -104,7 +150,7 @@ def check_public(text, names):
         parts = name.split()
         for i in range(len(words) - len(parts) + 1):
             if sorted(words[i:i + len(parts)]) == sorted(parts):
-                raise vault.VaultError(f"{SEANCE_NAME} contiendrait un nom de joueur : publication refusée.")
+                raise vault.VaultError("un fichier public contiendrait un nom de joueur : publication refusée.")
 
 
 def seal(today=None):
@@ -123,12 +169,17 @@ def seal(today=None):
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()
     cfg = page_config(config)
     public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
-    check_public(public_seance, known_names(state, roster_text))  # avant d'écrire quoi que ce soit
+    public_board = json.dumps(public_summary(data), ensure_ascii=False, indent=1)
+    names = known_names(state, roster_text, history_state())
+    check_public(public_seance, names)  # avant d'écrire quoi que ce soit
+    check_public(public_board, names)
     PUBLIE.mkdir(parents=True, exist_ok=True)
     # la page ne contient aucune donnée : elle peut être publique
     (PUBLIE / PAGE_NAME).write_text(render(None, cfg), "utf-8")
     if changed or not (PUBLIE / SEANCE_NAME).exists():
         (PUBLIE / SEANCE_NAME).write_text(public_seance, "utf-8")
+    if changed or not (PUBLIE / PUBLIC_NAME).exists():
+        (PUBLIE / PUBLIC_NAME).write_text(public_board, "utf-8")
     if hist and (previous.get("historique") != hist_digest or not (PUBLIE / HISTORY_NAME).exists()):
         write_json(PUBLIE / HISTORY_NAME, vault.encrypt(hist, secret))
     if changed:
