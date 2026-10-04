@@ -130,10 +130,15 @@ datée du prochain entraînement, avec les axes de travail et le repérage de l'
 l'objectif, sans exercice. Elle se télécharge depuis l'onglet Saison et s'importe par la
 fonction Importer de l'application (vérifié avec l'importeur de la version 1.14.2).
 
-Les deux projets restent indépendants : aucun code partagé. Pour que l'application lise
-elle-même le point de la semaine, il lui suffit de télécharger `publie/hbpsm.enc`, de le
-déchiffrer (format décrit en tête de `pipeline/vault.py`, quelques lignes de WebCrypto) et de
-prendre le champ `seance_hbt`.
+L'exemplaire HBPSM de l'application a aussi un bouton « Tableau de bord HBPSM », à côté
+d'Importer : il télécharge `publie/hbpsm.enc`, le déchiffre avec la même phrase secrète et
+ajoute la séance du champ `seance_hbt`, comme une séance reçue. C'est la seule partie de
+l'application qui passe par internet, et seulement au clic.
+
+Les deux projets restent indépendants, sans code partagé. Le seul lien est ce contrat, à ne
+pas rompre d'un côté sans l'autre : le chemin `publie/hbpsm.enc` sur la branche `main`, le
+format de l'enveloppe (en tête de `pipeline/vault.py`) et le champ `seance_hbt` au format
+`.hbt.json`. L'adresse est déclarée dans `clubs/hbpsm/profil.json` de HANDBALL-training.
 
 ## Tests
 

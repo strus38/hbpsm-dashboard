@@ -86,9 +86,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 - Horaire pas encore fixé : la date est celle du début du week-end de la journée, marquée
   « à confirmer » (`date_provisoire`). La comparaison avec l'heure courante se fait en heure
   locale du PC ou du runner (UTC sur GitHub) : sans conséquence, une feuille absente répond 404.
-- Intégration plus poussée possible : HANDBALL-training lit lui-même `publie/hbpsm.enc`
-  (format en tête de `pipeline/vault.py`). Non faite : elle romprait sa promesse « pas de
-  connexion » ; décision de l'auteur.
+- HANDBALL-training lit lui-même `publie/hbpsm.enc` (décision de l'auteur, 04/10/2026) : un
+  bouton « Tableau de bord HBPSM » dans son exemplaire HBPSM, seule partie connectée de
+  l'application, au clic. Contrat à ne pas rompre : chemin `publie/hbpsm.enc` sur `main`,
+  format de l'enveloppe (`pipeline/vault.py`), champ `seance_hbt` au format `.hbt.json` v3.
 
 ## Choix déjà arrêtés
 
