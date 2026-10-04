@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest
+reportlab
+# tests de la page publiée : Chrome installé sur le poste (HBPSM_NAVIGATEUR=chromium sinon)
+playwright>=1.47

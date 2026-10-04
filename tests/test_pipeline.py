@@ -1,0 +1,426 @@
+"""Tests de la chaîne. Lancer : python -m pytest -q"""
+import functools
+import http.server
+import json
+import os
+import threading
+
+import pytest
+
+from pipeline import analyze as an
+from pipeline import collect, common, demo_data, parse_fdme, publish, vault
+from pipeline.build_dashboard import build, render
+from pipeline.export_training import build_exports
+
+
+def chrome(p):
+    """Le Chrome installé sur le poste ; HBPSM_NAVIGATEUR=chromium pour celui de Playwright."""
+    channel = os.environ.get("HBPSM_NAVIGATEUR") or "chrome"
+    return p.chromium.launch(channel=None if channel == "chromium" else channel)
+
+
+def serve(directory, handler=http.server.SimpleHTTPRequestHandler):
+    """Serveur local sur un port libre ; renvoie (serveur, adresse de base)."""
+    handler = functools.partial(handler, directory=str(directory))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_port}/"
+
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    seen = []
+
+    def log_message(self, *a, **k):
+        Quiet.seen.append(self.path)
+
+
+@pytest.fixture()
+def sandbox(tmp_path, monkeypatch):
+    """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
+    data, raw = tmp_path / "data", tmp_path / "raw"
+    for mod in (common, an, collect, parse_fdme, publish):
+        for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
+                          ("PUBLIE", tmp_path / "publie")):
+            if hasattr(mod, name):
+                monkeypatch.setattr(mod, name, val)
+    monkeypatch.setattr(publish, "ROOT", tmp_path)
+    monkeypatch.setattr(an, "load_matches", lambda: [
+        json.loads(p.read_text("utf-8")) for p in sorted((data / "matches").glob("*.json"))])
+    return tmp_path
+
+
+def demo(sandbox, **kw):
+    return demo_data.generate(data_dir=sandbox / "data", matches_dir=sandbox / "data" / "matches", **kw)
+
+
+def test_classement_et_notes(sandbox):
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    for poule in d["poules"].values():
+        rows = poule["classement"]
+        assert sum(r["bp"] for r in rows) == sum(r["bc"] for r in rows)
+        assert all(r["pts"] == 3 * r["v"] + 2 * r["n"] + r["d"] for r in rows)
+        assert [r["pts"] for r in rows] == sorted((r["pts"] for r in rows), reverse=True)
+    assert d["meta"]["club"] == demo_data.CLUB
+    assert d["prochain"]["journee"] == 4
+    notes = [p for p in d["joueurs"] if p["m"]]
+    assert notes and all(0 <= s <= 100 for p in notes for s in p["scores"].values())
+    assert all(p["scores"]["equilibre"] is None for p in d["joueurs"] if not p["m"])
+    club = next(r for r in d["poules"]["71"]["classement"] if r["equipe"] == demo_data.CLUB)
+    assert sum(p["buts"] for p in d["joueurs"]) == club["bp"]
+    assert all(e["plan"] in an.PLANS for e in d["equipes"].values())
+
+
+def test_sans_donnees(sandbox):
+    (sandbox / "data" / "matches").mkdir(parents=True)
+    d = an.analyze("2026-10-04")
+    assert not any(p["m"] for p in d["joueurs"]) and d["poules"] == {} and d["prochain"] is None
+    build(d, sandbox / "docs")
+    assert (sandbox / "docs" / "index.html").exists()
+
+
+# Lignes de la feuille FDME telles que pdfplumber les extrait (forme relevée sur une vraie
+# feuille en 2026-2027, noms inventés) : un seul tableau, une ligne d'en-tête par équipe.
+ENTETE = ["", "", "", "Capt", "", "N°", "NOM Prénom (Nom d'usage)", "", "", "", "", "Licence", "",
+          "Type", "JFL", "", "Buts", "7m", "", "Tirs", "", "Arrets", "Av.", "", "2'", "", "Dis"]
+
+
+def ligne(num, nom, buts="", pen="", tirs="", arrets="", av="", deux="", dis="", capt=""):
+    return ["", "", "", capt, "", str(num), nom, "", "", "", "", "6138012100123", "", "A", "", "",
+            buts, pen, "", tirs, "", arrets, av, "", deux, "", dis]
+
+
+FEUILLE = [
+    ["Organisateur", "", "", "", "LIGUE INVENTÉE (5100000)"] + [""] * 22,
+    ["CLUB ALPHA / CLUB BRAVO"] + [""] * 19 + ["6", "", "3"] + [""] * 4,
+    ["# - tnavecer bulC", "AHPLA BULC"] + ENTETE[2:],
+    ligne(1, "GARDIEN Alpha", arrets="9"),
+    ligne(7, "DUPONT Jean", buts="4", pen="1", tirs="5", av="X", capt="X"),
+    ligne(9, "ESSAI Basile", buts="2", tirs="2", deux="2"),
+    ["", "", "", "Officiel Resp. A", "", "", "OFFICIEL Alpha", "", "", "", "", "6138012100999"] + [""] * 15,
+    ["# - ruetisiv bulC", "OVARB BULC"] + ENTETE[2:],
+    ligne(4, "TESTARD Octave", buts="3", tirs="5", dis="X"),
+    ligne(16, "PORTIER Bravo", arrets="2"),
+    [""] * 27,
+    ["erocs liatéD", "", "Période 1"] + [""] * 24,
+    ["", "", "REC", "", "", "", "", "VIS"] + [""] * 19,
+    ["", "", "3", "", "", "", "", "2", "", "", "", "6", "", "", "", "", "", "", "3"] + [""] * 8,
+]
+DEROULE = ("PERIODE 1 31:10 4 - 2 But ESSAI Basile\n"
+           "Temps Score Action 33:00 4 - 2 Arrêt PORTIER Bravo\n"
+           "00:45 01 - 00 But 7m DUPONT Jean 0123456789012 41:00 4 - 2 Tir DUPONT Jean\n"
+           "05:30 01 - 01 But TESTARD Octave 44:00 4 - 2 2MN ESSAI Basile\n"
+           "10:00 02 - 01 But DUPONT Jean 50:00 5 - 2 But DUPONT Jean\n"
+           "18:44 02 - 01 Commotion TESTARD Octave 55:00 5 - 3 But TESTARD Octave\n"
+           "20:00 02 - 01 Temps mort Visiteur 59:59 5 - 3 Arrêt GARDIEN Alpha\n"
+           "22:00 02 - 02 But TESTARD Octave 01:00:00 6 - 3 But ESSAI Basile\n"
+           "29:00 03 - 02 But DUPONT Jean\n")
+
+
+def test_feuille_forme_reelle():
+    """Tableau unique, cases « X », deux colonnes de déroulé, heure au-delà de 59:59."""
+    players = parse_fdme.parse_tables([FEUILLE])
+    assert [p["num"] for p in players["home"]] == [1, 7, 9] and [p["num"] for p in players["away"]] == [4, 16]
+    jean = players["home"][1]
+    assert (jean["goals"], jean["pen_goals"], jean["shots"], jean["yellow"]) == (4, 1, 5, 1)
+    assert players["home"][2]["two_min"] == 2 and players["away"][0]["red"] == 1
+    assert players["home"][0]["saves"] == 9 and players["away"][1]["saves"] == 2
+    assert parse_fdme.sheet_scores([FEUILLE]) == ([6, 3], [3, 2])
+    ev = parse_fdme.attribute(parse_fdme.parse_events(DEROULE), players)
+    assert len(ev) == 14 and ev[-1]["t"] == 3600 and ev[-1]["score"] == [6, 3]
+    goals = [(e["side"], e["num"]) for e in ev if e["type"] in ("goal", "pen_goal")]
+    assert goals.count(("home", 7)) == 4 and goals.count(("away", 4)) == 3 and len(goals) == 9
+    assert ("away", "timeout", None) in [(e["side"], e["type"], e["num"]) for e in ev]
+    assert ("away", 16) in [(e["side"], e["num"]) for e in ev if e["type"] == "save"]
+    assert "0123456789012" not in json.dumps(ev) and "COMMOTION" not in json.dumps(ev).upper()
+
+
+def test_feuille_sans_tableau():
+    """Repli sur le déroulé : l'équipe d'un but se déduit du score."""
+    ev = parse_fdme.attribute(parse_fdme.parse_events(DEROULE), None)
+    stats = parse_fdme.players_from_events(ev)
+    assert sum(p["goals"] for p in stats["home"]) == 6 and sum(p["goals"] for p in stats["away"]) == 3
+
+
+def test_blocs_du_site():
+    """Données lues dans le HTML servi, comme sur ffhandball.fr."""
+    page = ("<smartfire-component name='toaster'></smartfire-component><smartfire-component "
+            "name='competitions---rencontre-list' attributes=\"{&quot;rencontres&quot;:[{&quot;"
+            "ext_rencontreId&quot;:&quot;12&quot;,&quot;journeeNumero&quot;:&quot;2&quot;,&quot;date&quot;:"
+            "null,&quot;equipe1Libelle&quot;:&quot;CLUB  A&quot;,&quot;equipe2Libelle&quot;:&quot;CLUB B&quot;,"
+            "&quot;equipe1Score&quot;:null,&quot;fdmCode&quot;:&quot;ABCDEFG&quot;}]}\"></smartfire-component>")
+    rows = collect.blocks(page)["competitions---rencontre-list"]["rencontres"]
+    fx = collect.fixture(rows[0], "71", "https://exemple/poule-1/", start="2026-10-10")
+    assert fx["home"] == "CLUB A" and fx["score_home"] is None and fx["journee"] == 2
+    assert fx["date"] == "2026-10-10" and fx["date_provisoire"]
+    assert fx["pdf_url"] == collect.FDM + "A/B/C/D/ABCDEFG.pdf"
+    assert collect.iso_date("2026-10-03T21:00:00+02:00") == "2026-10-03T21:00"
+    assert collect.pdf_url("") is None and collect.score("") is None and collect.score("32") == 32
+
+
+def test_bout_en_bout_faux_site(sandbox, monkeypatch):
+    """Collecte -> PDF -> JSON -> analyse sur un faux site local, puis second passage léger."""
+    pytest.importorskip("reportlab")
+    from tests import mock_site
+    src = sandbox / "source"
+    out = demo_data.generate(data_dir=src, matches_dir=src / "matches")
+    truth = {p.stem: json.loads(p.read_text("utf-8")) for p in (src / "matches").glob("*.json")}
+    later = next(f["id"] for f in out["fixtures"] if f["poule"] == "71" and f["journee"] == 5)
+    site = sandbox / "site"
+    rel = mock_site.build(site, list(truth.values()), out["fixtures"], "71", sans_date={later})
+    server, base = serve(site, Quiet)
+    monkeypatch.setattr(collect, "FDM", base + "fdm/")
+    monkeypatch.setattr(collect, "PAUSE", 0)
+    now = "2026-10-04T23:00"
+    try:
+        found = collect.discover(dict(common.load_config(), competition=base + rel))
+        assert found["71"] == base + rel + "poule-9071/" and "99" in found
+        poule = dict(id="71", url=found["71"])
+        fixtures, official = collect.crawl_poule(poule, {}, {}, now)
+        played = [f for f in out["fixtures"] if f["poule"] == "71" and f["score_home"] is not None]
+        assert len(fixtures) == 30 and official and official["lignes"]
+        assert sum(1 for f in fixtures.values() if f["score_home"] is not None) == len(played)
+        assert len(list((sandbox / "raw" / "fdme").glob("*.pdf"))) == len(played)
+        assert fixtures[later]["date_provisoire"] and fixtures[later]["date"] == \
+            min(f["date"][:10] for f in out["fixtures"] if f["poule"] == "71" and f["journee"] == 5)
+        common.write_json(sandbox / "data" / "fixtures.json", list(fixtures.values()))
+        parse_fdme.main()
+        for f in played:
+            got = json.loads((sandbox / "data" / "matches" / f"{f['id']}.json").read_text("utf-8"))
+            ref = truth[f["id"]]
+            assert got["home"]["name"] == ref["home"]["name"] and got["home"]["score"] == ref["home"]["score"]
+            assert got["source"]["fdme"] and "alertes" not in got["source"]
+            for side in ("home", "away"):
+                keys = ("goals", "saves", "yellow", "two_min", "red")
+                want = {p["num"]: tuple(p[k] for k in keys) for p in ref["players"][side]}
+                have = {p["num"]: tuple(p[k] for k in keys) for p in got["players"][side]}
+                assert have == want
+            assert (got["home"]["ht"], got["away"]["ht"]) == (ref["home"]["ht"], ref["away"]["ht"])
+            assert len([e for e in got["events"] if e["num"] is None and e["type"] != "timeout"]) == 0
+            assert "6138012100123" not in json.dumps(got)
+        # second passage : journées closes et feuilles déjà lues ne sont pas redemandées
+        known = {f["id"]: True for f in played}
+        Quiet.seen.clear()
+        again, _ = collect.crawl_poule(poule, known, fixtures, now)
+        assert len(again) >= 21 and not any("/fdm/" in p for p in Quiet.seen)
+        assert not any(f"journee-{d}/" in p for p in Quiet.seen for d in (1, 2, 3))
+    finally:
+        server.shutdown()
+    d = an.analyze("2026-10-04")
+    assert d["prochain"] and d["meta"]["feuilles"] == len(played) and d["joueurs"]
+
+
+def test_course_au_classement(sandbox):
+    demo(sandbox)
+    s = an.analyze("2026-10-04")["saison"]
+    assert s["statut"] == "en_cours" and s["restants"] == len(s["matchs"]) == 7
+    assert 0 <= s["proba"] <= s["proba_tout"] <= 100
+    assert s["pts_max"] == s["pts"] + 3 * s["restants"]
+    assert 1 <= sum(m["cle"] for m in s["matchs"]) <= 3
+    for m in s["matchs"]:
+        assert m["si_victoire"] >= m["sinon"] and m["enjeu"] == m["si_victoire"] - m["sinon"]
+
+
+def test_seance_a_importer(sandbox):
+    """Le fichier respecte le format d'échange .hbt.json de l'application d'entraînement."""
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    brief, fichier = build_exports(d, sandbox / "docs", today="2026-10-05")
+    f = json.loads((sandbox / "docs" / "seance-prochaine.hbt.json").read_text("utf-8"))
+    assert f == fichier
+    assert f["format"] == "handball-training" and f["version"] == 3
+    seance = f["contenu"]["seance"]
+    assert f["contenu"]["type"] == "seance" and seance["exercices"] == []
+    assert seance["date"] == "2026-10-06" and seance["equipe"] == "Seniors garçons"
+    for key in ("id", "titre", "categorieAge", "objectifSeance", "effectifJoueurs", "effectifGardiens",
+                "espaceDisponible", "retour", "retourEcritLe", "creeLe", "modifieLe"):
+        assert key in seance
+    assert seance["objectifSeance"] == brief["objectif"] and d["prochain"]["adversaire"] in seance["titre"]
+    assert all(a["categorie"] in an.LIB_CAT for a in brief["axes"])
+    assert json.loads((sandbox / "docs" / "entrainement.json").read_text("utf-8"))["version"] == 1
+
+
+def test_effectif_et_feuilles(sandbox):
+    """Le nom de l'effectif (Prénom Nom) retrouve celui de la feuille (NOM Prénom)."""
+    keys = {common.name_key(n): n for n in ("Firmin Testard", "Anatole Essai", "Gaspard Essai", "Célestin Bidule")}
+    assert keys[common.match_name("TESTARD Firmin", keys)] == "Firmin Testard"
+    assert keys[common.match_name("ESSAI GASPARD", keys)] == "Gaspard Essai"
+    assert keys[common.match_name("BIDULE Celestin Octave", keys)] == "Célestin Bidule"
+    assert common.match_name("ESSAI", keys) is None and common.match_name("DUPONT Jean", keys) is None
+    demo(sandbox)
+    roster = {common.name_key(n): dict(nom=n, poste="", disponible=True)
+              for n in ("01 Joueur", "Jamais Aligné")}
+    d = an.analyze("2026-10-04", roster=roster)
+    assert next(p for p in d["joueurs"] if p["nom"] == "01 Joueur")["m"] == 3
+    absent = d["joueurs"][-1]
+    assert absent["nom"] == "Jamais Aligné" and absent["m"] == 0 and absent["m_total"] == 3
+
+
+PHRASE = "cinq mots tires au hasard"
+
+
+def test_publication_chiffree(sandbox, monkeypatch):
+    """Rien de nominatif en clair dans publie/, et l'état se reprend d'un lancement à l'autre."""
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.delenv("HBPSM_CLE", raising=False)
+    with pytest.raises(vault.VaultError):
+        publish.seal("2026-10-04")
+    monkeypatch.setenv("HBPSM_CLE", "court")
+    with pytest.raises(vault.VaultError):
+        publish.seal("2026-10-04")
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    publish.seal("2026-10-04")
+    out = sandbox / "publie"
+    assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc",
+                                                    "hbpsm.enc", "manifeste.json"]
+    for p in out.iterdir():
+        text = p.read_text("utf-8")
+        assert "Joueur 0" not in text and "quipe fictive" not in text, p.name
+    box = vault.decrypt(json.loads((out / "hbpsm.enc").read_text("utf-8")), PHRASE)
+    assert box["data"]["meta"]["matchs"] == 18 and box["seance_hbt"]["format"] == "handball-training"
+    with pytest.raises(vault.VaultError):
+        vault.decrypt(json.loads((out / "hbpsm.enc").read_text("utf-8")), "une autre phrase secrete")
+    # inchangé : pas de nouvelle version
+    before = (out / "hbpsm.enc").read_text("utf-8")
+    publish.seal("2026-10-04")
+    assert (out / "hbpsm.enc").read_text("utf-8") == before
+    # reprise de l'état sur une machine vierge
+    import shutil
+    shutil.rmtree(sandbox / "data")
+    publish.restore()
+    assert len(list((sandbox / "data" / "matches").glob("*.json"))) == 18
+    assert an.analyze("2026-10-04")["meta"]["matchs"] == 18
+
+
+def test_effectif_depuis_secret(sandbox, monkeypatch):
+    monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
+    publish.roster()
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible\nIsidore Exemple\nJean Modele,GB\n"
+
+
+def test_page_publiee_dechiffre(sandbox, monkeypatch):
+    """La page sans donnée, ouverte en fichier local, lit le coffre, voit passer les nouvelles
+    données sans être rouverte, et garde la dernière copie hors connexion."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    publish.seal("2026-10-04")
+    out = sandbox / "publie"
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def end_headers(self):  # comme raw.githubusercontent.com
+            self.send_header("Access-Control-Allow-Origin", "*")
+            super().end_headers()
+
+        def log_message(self, *a, **k):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Handler, directory=str(out)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}/"
+    page_file = sandbox / "tableau.html"
+    html = render(None, dict(src=base + "hbpsm.enc", manifeste=base + "manifeste.json", versions="",
+                             club="HBPSM", verif=1))
+    assert "Joueur 0" not in html
+    page_file.write_text(html, "utf-8")
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        ctx = browser.new_context()
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(page_file.as_uri())
+        page.wait_for_selector("#phrase")
+        page.fill("#phrase", "mauvaise phrase secrete")
+        page.click("#unlock")
+        page.wait_for_selector(".err")
+        assert "incorrecte" in page.inner_text(".err")
+        page.fill("#phrase", PHRASE)
+        page.click("#unlock")
+        page.wait_for_selector("header.top h1")
+        assert "HBPSM contre" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        page.click("nav.tabs button[data-tab=joueurs]")
+        assert "× 2 min" in page.inner_text("main")
+        page.click("nav.tabs button[data-tab=poules]")
+        page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
+        assert page.evaluate("D.meta.matchs") == 18
+        demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte
+        publish.seal("2026-10-04")
+        page.wait_for_function("() => D && D.meta.matchs === 24", timeout=20000)
+        assert page.get_attribute("nav.tabs button[data-tab=poules]", "aria-selected") == "true"
+        server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
+        server.server_close()
+        page.reload()
+        page.wait_for_selector("header.top h1")
+        assert page.evaluate("D.meta.matchs") == 24  # la copie gardée est la plus récente
+        assert "hors connexion" in page.inner_text(".status") and "hors connexion" in page.inner_text("#club-etat")
+        browser.close()
+    assert errors == []
+
+
+def test_debut_de_saison(sandbox):
+    """Situation réelle de début de saison : un seul match, des équipes qui n'ont pas joué,
+    pas de calendrier, pas de feuille."""
+    common.write_json(sandbox / "data" / "fixtures.json", [dict(
+        id="1", poule="71", home=demo_data.CLUB, away="Club B 2", score_home=32, score_away=19)])
+    lignes = [["1", demo_data.CLUB, "3"], ["2", "Club B 2", "0"], ["3", "Club C", "0"]]
+    common.write_json(sandbox / "data" / "official_standings.json",
+                      {"71": dict(entetes=["#", "Équipe", "Pts"], lignes=lignes)})
+    parse_fdme.main()
+    d = an.analyze("2026-10-04")
+    rows = d["poules"]["71"]["classement"]
+    assert [(r["equipe"], r["pts"], r["j"]) for r in rows] == [
+        (demo_data.CLUB, 3, 1), ("Club B 2", 1, 1), ("Club C", 0, 0)]
+    assert d["poules"]["71"]["ecarts"] == [dict(equipe="Club B 2", officiel=0, calcule=1, retard=False)]
+    assert d["equipes"]["Club C"]["j"] == 0 and d["equipes"]["Club B 2"]["deux_min_moy"] is None
+    assert d["saison"]["statut"] == "calendrier_inconnu" and d["prochain"] is None and d["axes"] == []
+    build(d, sandbox / "docs")
+
+
+def test_feuille_avant_la_poule(sandbox):
+    """Score connu par la feuille seule (page de la poule en cache), classement fédéral en retard,
+    horaire du match suivant pas encore fixé."""
+    club = demo_data.CLUB
+    common.write_json(sandbox / "data" / "fixtures.json", [
+        dict(id="1", poule="71", journee=1, date="2026-10-03T21:00", home=club, away="Club B",
+             score_home=None, score_away=None),
+        dict(id="2", poule="71", journee=2, date="2026-10-10", date_provisoire=True, home="Club B",
+             away=club, score_home=None, score_away=None)])
+    common.write_json(sandbox / "data" / "matches" / "1.json", dict(
+        id="1", poule="71", journee=1, date="2026-10-03T21:00", played=True,
+        home=dict(name=club, score=30, ht=15), away=dict(name="Club B", score=20, ht=10),
+        players={"home": [], "away": []}, events=[], source=dict(fdme=True)))
+    common.write_json(sandbox / "data" / "official_standings.json", {"71": dict(
+        entetes=["Pos.", "Équipe", "Pts", "J"], lignes=[["1", club, "0", "0"], ["2", "Club B", "0", "0"]])})
+    d = an.analyze("2026-10-03")
+    assert d["prochain"]["adversaire"] == "Club B" and d["prochain"]["provisoire"]
+    assert [r["dom"] for r in d["a_venir"]] == ["Club B"]
+    assert all(e["retard"] for e in d["poules"]["71"]["ecarts"]) and len(d["poules"]["71"]["ecarts"]) == 2
+    assert d["saison"]["restants"] == 1
+
+
+def test_trois_sanctions(sandbox):
+    """Carton jaune, exclusion de 2 minutes et carton rouge restent distincts, de la feuille à l'analyse."""
+    assert [parse_fdme.card(v) for v in ("X", "D", "R", "1", "", "0", None)] == [1, 1, 1, 1, 0, 0, 0]
+    unknown = {}
+    ev = parse_fdme.parse_events("10:00 1 - 0 Carton rouge ESSAI Basile 40:00 1 - 0 Carton bleu ESSAI Basile\n"
+                                 "13:00 1 - 0 Avertissement DUPONT Jean 44:00 1 - 0 Exclusion directe DUPONT Jean\n",
+                                 unknown)
+    assert [e["type"] for e in ev] == ["red", "yellow", "blue"] and unknown == {"EXCLUSION": 1}
+    players = parse_fdme.parse_tables([FEUILLE])
+    common.write_json(sandbox / "data" / "matches" / "1.json", dict(
+        id="1", poule="71", journee=1, date="2026-10-03T21:00", played=True,
+        home=dict(name=demo_data.CLUB, score=6, ht=3), away=dict(name="Club B", score=3, ht=2),
+        players=players, events=[], source=dict(fdme=True)))
+    d = an.analyze("2026-10-04")
+    jean = next(p for p in d["joueurs"] if p["nom"] == "DUPONT Jean")
+    basile = next(p for p in d["joueurs"] if p["nom"] == "ESSAI Basile")
+    assert (jean["jaunes"], jean["deux_min"], jean["rouges"]) == (1, 0, 0)
+    assert (basile["jaunes"], basile["deux_min"], basile["rouges"], basile["min_deux"]) == (0, 2, 0, 4)
+    assert basile["journal"][0]["deux_min"] == 2 and jean["journal"][0]["jaunes"] == 1
+    us, them = d["equipes"][demo_data.CLUB], d["equipes"]["Club B"]
+    assert (us["jaunes_moy"], us["deux_min_moy"], us["rouges"]) == (1.0, 2.0, 0)
+    assert (them["jaunes_moy"], them["deux_min_moy"], them["rouges"]) == (0.0, 0.0, 1)

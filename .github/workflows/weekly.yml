@@ -1,0 +1,100 @@
+# Collecte hebdomadaire HBPSM : ffhandball.fr -> feuilles de match -> résultats chiffrés
+#
+# Le dépôt est public. Rien de nominatif n'y est écrit en clair : ni dans les
+# fichiers, ni dans les Releases, ni dans les artefacts, ni dans ce journal.
+# Secrets attendus (Settings > Secrets and variables > Actions) :
+#   HBPSM_CLE       phrase secrète partagée avec les entraîneurs (16 caractères au moins)
+#   HBPSM_EFFECTIF  facultatif : un joueur par ligne, « Prénom Nom »
+name: Collecte hebdomadaire
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"   # lundi 05:00 UTC
+    - cron: "0 5 * * 4"   # jeudi : rattrape les feuilles validées tard
+  workflow_dispatch:
+    inputs:
+      url_poule_71:
+        description: "URL ffhandball.fr de la poule 71 (seulement pour remplacer celle de config.yml)"
+        required: false
+      url_poule_72:
+        description: "URL ffhandball.fr de la poule 72 (seulement pour remplacer celle de config.yml)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collecte
+  cancel-in-progress: false
+
+env:
+  HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
+
+jobs:
+  collecte:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Reprendre l'état chiffré de la collecte précédente
+        run: python -m pipeline.publish restore
+
+      - name: Effectif (depuis le secret, jamais versionné)
+        env:
+          HBPSM_EFFECTIF: ${{ secrets.HBPSM_EFFECTIF }}
+        run: python -m pipeline.publish roster
+
+      - name: Collecte sur ffhandball.fr
+        env:
+          URL_71: ${{ inputs.url_poule_71 }}
+          URL_72: ${{ inputs.url_poule_72 }}
+        run: python -m pipeline.collect || echo "::warning::Collecte incomplète, voir le journal"
+
+      - name: Lecture des feuilles de match
+        run: python -m pipeline.parse_fdme
+
+      - name: Analyse et chiffrement
+        id: scelle
+        run: python -m pipeline.publish seal
+
+      - name: Enregistrer dans le dépôt (code, réglages, fichiers chiffrés)
+        run: |
+          git config user.name "hbpsm-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Collecte du $(date -u +%F)"
+          git push
+
+      - name: Publier une Release quand les données ont changé
+        if: steps.scelle.outputs.release == 'oui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "donnees-$(date -u +%Y%m%d-%H%M)" \
+            publie/HBPSM-tableau-de-bord.html publie/hbpsm.enc \
+            --title "Données du $(date -u +%d/%m/%Y)" \
+            --notes "Télécharger HBPSM-tableau-de-bord.html une seule fois : à chaque ouverture, la page récupère les dernières données et les déchiffre avec la phrase secrète du club. Le fichier hbpsm.enc est illisible sans cette phrase."
+
+      - name: Archiver les captures brutes, chiffrées (14 jours)
+        if: always()
+        run: |
+          if [ -d raw ] && [ -n "$HBPSM_CLE" ]; then
+            command -v 7z >/dev/null || sudo apt-get install -y -q p7zip-full >/dev/null
+            7z a -bso0 -bsp0 -mhe=on -p"$HBPSM_CLE" brut.7z raw/
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brut-chiffre
+          path: brut.7z
+          retention-days: 14
+          if-no-files-found: ignore

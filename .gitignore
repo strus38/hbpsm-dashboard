@@ -1,0 +1,11 @@
+# Dépôt public : aucune donnée nominative n'est versionnée en clair.
+data/
+raw/
+docs/
+roster.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+# le code est versionné directement : le paquet d'origine écraserait les corrections (voir weekly.yml)
+hbpsm-bundle.zip

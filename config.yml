@@ -1,0 +1,29 @@
+# Configuration du suivi HBPSM
+saison: "2026-2027"
+club:
+  nom_affiche: "HBPSM"
+  # Le club est reconnu si le nom d'équipe contient l'un de ces motifs (sans accents, majuscules)
+  motifs: ["ST MARCELLIN", "SAINT MARCELLIN", "ST-MARCELLIN", "HBPSM"]
+# Page de la compétition sur ffhandball.fr (vérifiée le 04/10/2026 via le site de la ligue AURA)
+competition: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/"
+poules:
+  # Laisser vide : la collecte cherche chaque poule depuis la page de la compétition.
+  # Si elle n'y arrive pas, coller ici l'adresse de la poule (…/poule-<numéro>/).
+  - id: "71"
+    url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196332/"
+  - id: "72"
+    url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196334/"
+# Nombre de joueurs sur la feuille : "auto" = maximum déjà aligné cette saison
+effectif_feuille: auto
+# true = garde quelques captures dans raw/sample pour régler les extracteurs
+# (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
+echantillons_debug: true
+# Objectif de la saison : rang visé dans la poule du club (1 = finir premier)
+objectif:
+  rang: 1
+# Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
+entrainement:
+  equipe: "Seniors garçons"
+  categorie_age: "+18 ans"
+  # jours d'entraînement : 0 = lundi ... 6 = dimanche
+  jours: [1, 4]
