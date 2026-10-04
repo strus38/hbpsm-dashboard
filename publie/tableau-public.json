@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-04 19:55",
+ "genere": "2026-10-04 22:17",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -247,21 +247,21 @@
     "deja": 10,
     "sur": 12
    },
-   "feuilles": 17,
+   "feuilles": 19,
    "buteurs": [
     {
-     "num": 6,
-     "buts": 111,
+     "num": 44,
+     "buts": 116,
      "present": true
     },
     {
      "num": 10,
-     "buts": 68,
+     "buts": 71,
      "present": true
     },
     {
-     "num": 11,
-     "buts": 59,
+     "num": 9,
+     "buts": 71,
      "present": true
     }
    ]
@@ -277,9 +277,9 @@
   "proba": 94,
   "proba_tout": 100,
   "rangs": [
-   64.9,
-   20.9,
-   8.2,
+   64.7,
+   21.0,
+   8.3,
    3.8,
    1.6,
    0.5,
@@ -326,7 +326,7 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 61,
+    "p_victoire": 60,
     "enjeu": 10,
     "cle": false,
     "rang_adv": 3
@@ -393,7 +393,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
     "p_victoire": 78,
-    "enjeu": 13,
+    "enjeu": 12,
     "cle": false,
     "rang_adv": 3
    },

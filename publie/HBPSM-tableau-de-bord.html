@@ -244,7 +244,7 @@ nav.tabs[hidden]{display:none}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "4787be504fd3", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "5398cde19f68", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -742,7 +742,7 @@ function viewPoules(){
   if(GENERE) h += '<p class="status"><span id="source">'+esc(sourceText())+'</span> <button class="link" data-lock="1">Oublier la phrase secrète sur cet ordinateur</button></p>';
   return h;
 }
-const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte hebdomadaire » dans l\'onglet Actions du dépôt.</p></div>';
+const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
 const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueurs:viewJoueurs, adv:viewAdv,
                saison: () => viewSaison() + viewPoules()};

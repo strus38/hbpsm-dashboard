@@ -1,7 +1,7 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-04T19:55:18.000Z",
+ "exporteLe": "2026-10-04T20:17:22.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-04T19:55:18.000Z",
-   "modifieLe": "2026-10-04T19:55:18.000Z"
+   "creeLe": "2026-10-04T20:17:22.000Z",
+   "modifieLe": "2026-10-04T20:17:22.000Z"
   }
  }
 }
