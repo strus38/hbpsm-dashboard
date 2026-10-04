@@ -1,0 +1,682 @@
+{
+ "format": "hbpsm-public",
+ "v": 1,
+ "genere": "2026-10-04 19:55",
+ "club": "HB PAYS DE ST MARCELLIN",
+ "club_court": "HBPSM",
+ "saison": "2026-2027",
+ "feuilles": 1,
+ "prochain": {
+  "id": "2727558",
+  "date": "2026-10-10",
+  "provisoire": true,
+  "salle": null,
+  "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+  "domicile": false,
+  "journee": 2,
+  "poule": "71",
+  "p_victoire": 77,
+  "enjeu": 10,
+  "cle": false,
+  "rang_adv": 5
+ },
+ "adversaire": {
+  "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+  "poule": "71",
+  "j": 1,
+  "bp_moy": 21.0,
+  "bc_moy": 29.0,
+  "forme": [
+   "D"
+  ],
+  "mt1_bp": 11.0,
+  "mt2_bp": 10.0,
+  "mt1_bc": 15.0,
+  "mt2_bc": 14.0,
+  "deux_min_moy": 3.0,
+  "jaunes_moy": 1.0,
+  "rouges": 0,
+  "arrets_pct": 19,
+  "periodes_bp": [
+   7.0,
+   2.0,
+   2.0,
+   4.0,
+   5.0,
+   1.0
+  ],
+  "periodes_bc": [
+   6.0,
+   7.0,
+   2.0,
+   1.0,
+   6.0,
+   7.0
+  ],
+  "plan": "equilibre",
+  "plan_raison": "Adversaire dans la moyenne des deux poules : pondération équilibrée.",
+  "buteurs": [
+   {
+    "num": 12,
+    "buts": 6,
+    "pen": 3,
+    "m": 1,
+    "moy": 6.0,
+    "tirs": 10,
+    "reussite": 60
+   },
+   {
+    "num": 7,
+    "buts": 4,
+    "pen": 0,
+    "m": 1,
+    "moy": 4.0,
+    "tirs": 9,
+    "reussite": 44
+   },
+   {
+    "num": 2,
+    "buts": 3,
+    "pen": 0,
+    "m": 1,
+    "moy": 3.0,
+    "tirs": 6,
+    "reussite": 50
+   },
+   {
+    "num": 9,
+    "buts": 3,
+    "pen": 1,
+    "m": 1,
+    "moy": 3.0,
+    "tirs": 5,
+    "reussite": 60
+   },
+   {
+    "num": 6,
+    "buts": 3,
+    "pen": 0,
+    "m": 1,
+    "moy": 3.0,
+    "tirs": 7,
+    "reussite": 43
+   }
+  ],
+  "gardiens": [
+   {
+    "num": 81,
+    "m": 1,
+    "arrets": 4,
+    "pris": 16,
+    "pct": 20,
+    "estime": true
+   },
+   {
+    "num": 16,
+    "m": 1,
+    "arrets": 3,
+    "pris": 13,
+    "pct": 19,
+    "estime": true
+   }
+  ],
+  "passe": null
+ },
+ "nous": {
+  "equipe": "HB PAYS DE ST MARCELLIN",
+  "poule": "71",
+  "j": 1,
+  "bp_moy": 32.0,
+  "bc_moy": 19.0,
+  "forme": [
+   "V"
+  ],
+  "mt1_bp": 16.0,
+  "mt2_bp": 16.0,
+  "mt1_bc": 9.0,
+  "mt2_bc": 10.0,
+  "deux_min_moy": 2.0,
+  "jaunes_moy": 1.0,
+  "rouges": 0,
+  "arrets_pct": 51,
+  "periodes_bp": [
+   7.0,
+   4.0,
+   5.0,
+   6.0,
+   6.0,
+   4.0
+  ],
+  "periodes_bc": [
+   3.0,
+   2.0,
+   4.0,
+   3.0,
+   3.0,
+   4.0
+  ],
+  "plan": "rigueur",
+  "plan_raison": "Attaque adverse forte (32,0 buts/match, médiane 28,5) : priorité à la discipline et à l'impact collectif.",
+  "buteurs": [
+   {
+    "num": 31,
+    "buts": 6,
+    "pen": 3,
+    "m": 1,
+    "moy": 6.0,
+    "tirs": 8,
+    "reussite": 75
+   },
+   {
+    "num": 44,
+    "buts": 5,
+    "pen": 2,
+    "m": 1,
+    "moy": 5.0,
+    "tirs": 9,
+    "reussite": 56
+   },
+   {
+    "num": 7,
+    "buts": 5,
+    "pen": 0,
+    "m": 1,
+    "moy": 5.0,
+    "tirs": 7,
+    "reussite": 71
+   },
+   {
+    "num": 8,
+    "buts": 4,
+    "pen": 0,
+    "m": 1,
+    "moy": 4.0,
+    "tirs": 5,
+    "reussite": 80
+   },
+   {
+    "num": 4,
+    "buts": 3,
+    "pen": 0,
+    "m": 1,
+    "moy": 3.0,
+    "tirs": 4,
+    "reussite": 75
+   }
+  ],
+  "gardiens": [
+   {
+    "num": 1,
+    "m": 1,
+    "arrets": 11,
+    "pris": 10,
+    "pct": 52,
+    "estime": true
+   },
+   {
+    "num": 16,
+    "m": 1,
+    "arrets": 9,
+    "pris": 9,
+    "pct": 50,
+    "estime": true
+   }
+  ],
+  "passe": {
+   "saison": "2025-2026",
+   "j": 19,
+   "v": 14,
+   "n": 1,
+   "d": 4,
+   "bp_moy": 32.8,
+   "bc_moy": 25.6,
+   "rangs": [
+    {
+     "poule": "POULE 5A",
+     "rang": 1,
+     "equipes": 8
+    },
+    {
+     "poule": "POULE 5 HAUTE",
+     "rang": 3,
+     "equipes": 8
+    }
+   ],
+   "face_a_face": [],
+   "continuite": {
+    "deja": 10,
+    "sur": 12
+   },
+   "feuilles": 17,
+   "buteurs": [
+    {
+     "num": 6,
+     "buts": 111,
+     "present": true
+    },
+    {
+     "num": 10,
+     "buts": 68,
+     "present": true
+    },
+    {
+     "num": 11,
+     "buts": 59,
+     "present": true
+    }
+   ]
+  }
+ },
+ "objectif": {
+  "statut": "en_cours",
+  "poule": "71",
+  "cible": 3,
+  "rang": 1,
+  "pts": 3,
+  "restants": 11,
+  "proba": 94,
+  "proba_tout": 100,
+  "rangs": [
+   64.9,
+   20.9,
+   8.2,
+   3.8,
+   1.6,
+   0.5,
+   0.1
+  ],
+  "pts_max": 36,
+  "matchs": [
+   {
+    "journee": 2,
+    "date": "2026-10-10",
+    "provisoire": true,
+    "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+    "domicile": false,
+    "p_victoire": 77,
+    "enjeu": 10,
+    "cle": false,
+    "rang_adv": 5
+   },
+   {
+    "journee": 3,
+    "date": "2026-11-07",
+    "provisoire": true,
+    "adversaire": "HBC ST DONAT",
+    "domicile": true,
+    "p_victoire": 86,
+    "enjeu": 15,
+    "cle": true,
+    "rang_adv": 4
+   },
+   {
+    "journee": 4,
+    "date": "2026-11-14",
+    "provisoire": true,
+    "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+    "domicile": false,
+    "p_victoire": 69,
+    "enjeu": 10,
+    "cle": false,
+    "rang_adv": 7
+   },
+   {
+    "journee": 6,
+    "date": "2026-12-06T14:00",
+    "provisoire": false,
+    "adversaire": "HB TAIN VION TOURNON 2",
+    "domicile": false,
+    "p_victoire": 61,
+    "enjeu": 10,
+    "cle": false,
+    "rang_adv": 3
+   },
+   {
+    "journee": 7,
+    "date": "2026-12-12",
+    "provisoire": true,
+    "adversaire": "BIEVRE HANDBALL",
+    "domicile": true,
+    "p_victoire": 78,
+    "enjeu": 13,
+    "cle": false,
+    "rang_adv": 2
+   },
+   {
+    "journee": 8,
+    "date": "2027-01-09T18:00",
+    "provisoire": false,
+    "adversaire": "HBC PILAT-2",
+    "domicile": false,
+    "p_victoire": 78,
+    "enjeu": 10,
+    "cle": false,
+    "rang_adv": 6
+   },
+   {
+    "journee": 9,
+    "date": "2027-01-16",
+    "provisoire": true,
+    "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+    "domicile": true,
+    "p_victoire": 90,
+    "enjeu": 15,
+    "cle": true,
+    "rang_adv": 5
+   },
+   {
+    "journee": 10,
+    "date": "2027-01-23",
+    "provisoire": true,
+    "adversaire": "HBC ST DONAT",
+    "domicile": false,
+    "p_victoire": 73,
+    "enjeu": 11,
+    "cle": false,
+    "rang_adv": 4
+   },
+   {
+    "journee": 11,
+    "date": "2027-01-30",
+    "provisoire": true,
+    "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+    "domicile": true,
+    "p_victoire": 85,
+    "enjeu": 15,
+    "cle": true,
+    "rang_adv": 7
+   },
+   {
+    "journee": 13,
+    "date": "2027-03-06",
+    "provisoire": true,
+    "adversaire": "HB TAIN VION TOURNON 2",
+    "domicile": true,
+    "p_victoire": 78,
+    "enjeu": 13,
+    "cle": false,
+    "rang_adv": 3
+   },
+   {
+    "journee": 14,
+    "date": "2027-03-13",
+    "provisoire": true,
+    "adversaire": "BIEVRE HANDBALL",
+    "domicile": false,
+    "p_victoire": 59,
+    "enjeu": 9,
+    "cle": false,
+    "rang_adv": 2
+   }
+  ]
+ },
+ "poules": {
+  "71": [
+   {
+    "rang": 1,
+    "equipe": "HB PAYS DE ST MARCELLIN",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 32,
+    "bc": 19,
+    "diff": 13,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 2,
+    "equipe": "BIEVRE HANDBALL",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 29,
+    "bc": 21,
+    "diff": 8,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 3,
+    "equipe": "HB TAIN VION TOURNON 2",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 30,
+    "bc": 24,
+    "diff": 6,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 4,
+    "equipe": "HBC ST DONAT",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 24,
+    "bc": 30,
+    "diff": -6,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 5,
+    "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 21,
+    "bc": 29,
+    "diff": -8,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 6,
+    "equipe": "HBC PILAT-2",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 19,
+    "bc": 32,
+    "diff": -13,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 7,
+    "equipe": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+    "pts": 0,
+    "j": 0,
+    "v": 0,
+    "n": 0,
+    "d": 0,
+    "bp": 0,
+    "bc": 0,
+    "diff": 0,
+    "forme": []
+   }
+  ],
+  "72": [
+   {
+    "rang": 1,
+    "equipe": "USVIZILLE HB",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 42,
+    "bc": 21,
+    "diff": 21,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 2,
+    "equipe": "HANDBALL CLUB PONTOIS",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 34,
+    "bc": 23,
+    "diff": 11,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 3,
+    "equipe": "RC DOMENE",
+    "pts": 3,
+    "j": 1,
+    "v": 1,
+    "n": 0,
+    "d": 0,
+    "bp": 31,
+    "bc": 28,
+    "diff": 3,
+    "forme": [
+     "V"
+    ]
+   },
+   {
+    "rang": 4,
+    "equipe": "MEYLAN HANDBALL 2",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 28,
+    "bc": 31,
+    "diff": -3,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 5,
+    "equipe": "HAND BIEVRE TERRES FROIDES",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 23,
+    "bc": 34,
+    "diff": -11,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 6,
+    "equipe": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+    "pts": 1,
+    "j": 1,
+    "v": 0,
+    "n": 0,
+    "d": 1,
+    "bp": 21,
+    "bc": 42,
+    "diff": -21,
+    "forme": [
+     "D"
+    ]
+   },
+   {
+    "rang": 7,
+    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 2",
+    "pts": 0,
+    "j": 0,
+    "v": 0,
+    "n": 0,
+    "d": 0,
+    "bp": 0,
+    "bc": 0,
+    "diff": 0,
+    "forme": []
+   }
+  ]
+ },
+ "resultats": [
+  {
+   "poule": "71",
+   "journee": 1,
+   "date": "2026-10-04T14:00",
+   "dom": "BIEVRE HANDBALL",
+   "ext": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+   "sd": 29,
+   "se": 21
+  },
+  {
+   "poule": "72",
+   "journee": 1,
+   "date": "2026-10-04T14:00",
+   "dom": "MEYLAN HANDBALL 2",
+   "ext": "RC DOMENE",
+   "sd": 28,
+   "se": 31
+  },
+  {
+   "poule": "71",
+   "journee": 1,
+   "date": "2026-10-04T12:00",
+   "dom": "HB TAIN VION TOURNON 2",
+   "ext": "HBC ST DONAT",
+   "sd": 30,
+   "se": 24
+  },
+  {
+   "poule": "71",
+   "journee": 1,
+   "date": "2026-10-03T21:00",
+   "dom": "HB PAYS DE ST MARCELLIN",
+   "ext": "HBC PILAT-2",
+   "sd": 32,
+   "se": 19
+  },
+  {
+   "poule": "72",
+   "journee": 1,
+   "date": "2026-10-03T20:00",
+   "dom": "HAND BIEVRE TERRES FROIDES",
+   "ext": "HANDBALL CLUB PONTOIS",
+   "sd": 23,
+   "se": 34
+  },
+  {
+   "poule": "72",
+   "journee": 1,
+   "date": "2026-10-03T19:00",
+   "dom": "USVIZILLE HB",
+   "ext": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+   "sd": 42,
+   "se": 21
+  }
+ ],
+ "axes": []
+}
