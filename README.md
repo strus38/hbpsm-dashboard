@@ -1,6 +1,6 @@
 # Tableau de bord HBPSM
 
-Suivi hebdomadaire des poules 71 et 72 de la 2e division masculine P16 AURA : classements,
+Suivi des poules 71 et 72 de la 2e division masculine P16 AURA : classements,
 feuilles de match, équipe proposée pour le match suivant, matchs clés de la saison et axes de
 travail pour l'entraînement.
 
@@ -34,10 +34,12 @@ une phrase courte se devine par essais successifs.
 1. **Settings > Secrets and variables > Actions** : créer `HBPSM_CLE` (la phrase secrète) et,
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom »).
 2. **Settings > Pages** : source « GitHub Actions » (une fois).
-3. **Actions > Collecte hebdomadaire > Run workflow**. Les adresses des poules 71 et 72 sont
+3. **Actions > Collecte quotidienne > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
 
-Ensuite la collecte tourne seule le lundi et le jeudi à 05:00 UTC. Quand les données changent,
+Ensuite la collecte tourne seule chaque jour du dimanche au vendredi à 05:00 UTC (7 h à
+Paris l'été, 6 h l'hiver) : les feuilles arrivent dans le désordre, et une journée n'est close
+que lorsque toutes ses feuilles sont lues. Dates et heures sont celles de Paris. Quand les données changent,
 une Release « Données du … » est créée.
 
 ## Pour les entraîneurs
@@ -162,7 +164,7 @@ publiée vers février ; le modèle ignore les pénalités.
 `python -m pipeline.history` les collecte une fois : les poules où jouaient le club et ses
 adversaires d'aujourd'hui, puis les feuilles de leurs matchs. Le serveur des feuilles limite le
 débit (HTTP 429) : elles arrivent par reprises successives, une toutes les 4 secondes, en
-respectant le délai demandé, dans un budget de 15 minutes par passage (la collecte hebdomadaire
+respectant le délai demandé, dans un budget de 15 minutes par passage (la collecte quotidienne
 la relance jusqu'à ce qu'elle soit complète ; une feuille jamais déposée, HTTP 404, n'est plus
 redemandée). Le résultat est publié chiffré dans `publie/historique.enc`, réécrit seulement
 s'il change. Les anciennes feuilles disent qui entre et sort des buts : les buts pris y sont

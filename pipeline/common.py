@@ -1,8 +1,10 @@
-"""Fonctions partagées : chemins, configuration, normalisation des noms."""
+"""Fonctions partagées : chemins, configuration, heure de Paris, normalisation des noms."""
+import datetime as dt
 import json
 import pathlib
 import re
 import unicodedata
+import zoneinfo
 
 import yaml
 
@@ -16,6 +18,15 @@ PUBLIE = ROOT / "publie"  # seuls fichiers de résultat versionnés : chiffrés 
 
 def load_config():
     return yaml.safe_load((ROOT / "config.yml").read_text("utf-8"))
+
+
+PARIS = zoneinfo.ZoneInfo("Europe/Paris")
+
+
+def paris_now():
+    """Date et heure de Paris, celles des matchs et de l'entraîneur, quel que soit le fuseau de la
+    machine (UTC sur GitHub)."""
+    return dt.datetime.now(PARIS)
 
 
 def norm(text):

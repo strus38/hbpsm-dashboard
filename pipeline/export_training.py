@@ -12,7 +12,7 @@ exercice : le tableau de bord dit quoi travailler, l'entraîneur choisit comment
 import datetime as dt
 
 from .analyze import analyze
-from .common import DOCS, load_config, read_json, write_json
+from .common import DOCS, load_config, paris_now, read_json, write_json
 
 FORMAT_VERSION = 3  # version du format .hbt.json visée ; les versions suivantes le relisent
 JOURS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
@@ -62,7 +62,7 @@ def build_exports(data=None, out_dir=DOCS, today=None):
     data = data or read_json(out_dir / "data.json") or analyze()
     config = load_config()
     conf = config.get("entrainement") or {}
-    today = today or dt.date.today().isoformat()
+    today = today or paris_now().date().isoformat()
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     nxt = data.get("prochain")
     brief = dict(

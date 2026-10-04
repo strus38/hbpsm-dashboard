@@ -1,4 +1,5 @@
 """Tests de la chaîne. Lancer : python -m pytest -q"""
+import datetime as dt
 import functools
 import http.server
 import json
@@ -453,6 +454,14 @@ def test_trois_sanctions(sandbox):
     us, them = d["equipes"][demo_data.CLUB], d["equipes"]["Club B"]
     assert (us["jaunes_moy"], us["deux_min_moy"], us["rouges"]) == (1.0, 2.0, 0)
     assert (them["jaunes_moy"], them["deux_min_moy"], them["rouges"]) == (0.0, 0.0, 1)
+
+
+def test_heure_de_paris():
+    """Heures et dates sont celles de Paris, même sur une machine en UTC (runner GitHub)."""
+    now = common.paris_now()
+    assert now.utcoffset() in (dt.timedelta(hours=1), dt.timedelta(hours=2))
+    assert common.PARIS.utcoffset(dt.datetime(2026, 7, 1, 12)) == dt.timedelta(hours=2)
+    assert common.PARIS.utcoffset(dt.datetime(2027, 1, 15, 12)) == dt.timedelta(hours=1)
 
 
 def test_gardiens_et_tirs(sandbox):

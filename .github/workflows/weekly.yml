@@ -1,16 +1,17 @@
-# Collecte hebdomadaire HBPSM : ffhandball.fr -> feuilles de match -> résultats chiffrés
+# Collecte quotidienne HBPSM : ffhandball.fr -> feuilles de match -> résultats chiffrés
 #
 # Le dépôt est public. Rien de nominatif n'y est écrit en clair : ni dans les
 # fichiers, ni dans les Releases, ni dans les artefacts, ni dans ce journal.
 # Secrets attendus (Settings > Secrets and variables > Actions) :
 #   HBPSM_CLE       phrase secrète partagée avec les entraîneurs (16 caractères au moins)
 #   HBPSM_EFFECTIF  facultatif : un joueur par ligne, « Prénom Nom »
-name: Collecte hebdomadaire
+name: Collecte quotidienne
 
 on:
   schedule:
-    - cron: "0 5 * * 1"   # lundi 05:00 UTC
-    - cron: "0 5 * * 4"   # jeudi : rattrape les feuilles validées tard
+    # chaque jour du dimanche au vendredi, 05:00 UTC (7 h à Paris l'été, 6 h l'hiver) : les feuilles
+    # arrivent dans le désordre, une journée n'est close que lorsque toutes sont lues
+    - cron: "0 5 * * 0-5"
   workflow_dispatch:
     inputs:
       url_poule_71:

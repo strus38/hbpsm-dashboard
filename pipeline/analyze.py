@@ -4,7 +4,6 @@ Entrées : data/matches/*.json, data/fixtures.json, roster.csv, config.yml
 Sortie  : dictionnaire prêt pour le tableau de bord (docs/data.json).
 """
 import csv
-import datetime as dt
 import itertools
 import math
 import random
@@ -13,7 +12,7 @@ import statistics
 from collections import Counter, defaultdict
 
 from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
-                     norm, read_json, same_team)
+                     norm, paris_now, read_json, same_team)
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
 PLANS = {
@@ -803,7 +802,7 @@ def poule_view(matches, teams, official):
 
 def analyze(today=None, roster=None):
     config = load_config()
-    today = today or dt.date.today().isoformat()
+    today = today or paris_now().date().isoformat()
     matches = [m for m in load_matches() if m.get("played")
                and m["home"].get("score") is not None and m["away"].get("score") is not None
                and m["home"].get("name") and m["away"].get("name")]
@@ -856,7 +855,7 @@ def analyze(today=None, roster=None):
               if club_name else None)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
-        meta=dict(genere=dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
                   saison=config.get("saison"), club=club_name,
                   club_court=config["club"]["nom_affiche"],
                   demo=any((m.get("source") or {}).get("demo") for m in matches),

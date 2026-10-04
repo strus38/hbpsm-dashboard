@@ -1,4 +1,4 @@
-"""Collecte hebdomadaire sur ffhandball.fr.
+"""Collecte sur ffhandball.fr, chaque jour du dimanche au vendredi.
 
 Usage : python -m pipeline.collect
 Sorties :
@@ -29,9 +29,9 @@ import time
 import urllib.error
 import urllib.request
 
-from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, read_json, write_json
+from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, paris_now, read_json, write_json
 
-UA = "hbpsm-dashboard/1.0 (suivi hebdomadaire de deux poules; +https://github.com/strus38/hbpsm-dashboard)"
+UA = "hbpsm-dashboard/1.0 (suivi de deux poules; +https://github.com/strus38/hbpsm-dashboard)"
 FDM = "https://fdm.fdme.ffhandball.fr/"
 PAUSE = 1.0     # secondes entre deux pages : rester léger avec le site
 OUBLI = 21      # jours après lesquels une rencontre sans feuille n'est plus recherchée
@@ -210,7 +210,7 @@ def finished(fixtures, known, now):
 
 def crawl_poule(poule, known, old, now, is_ours=None):
     """Rencontres et classement d'une poule. Une journée close n'est pas relue.
-    now : date et heure locales, '2026-10-04T19:30'.
+    now : date et heure de Paris, '2026-10-04T19:30'.
     is_ours : reconnaît le club, dont on lit aussi le gymnase des prochains matchs."""
     base = poule["url"].rstrip("/") + "/"
     pid = str(poule["id"])
@@ -272,7 +272,7 @@ def main():
         known[m["id"]] = (m.get("source") or {}).get("fdme") and not (m.get("source") or {}).get("demo")
     old = {f["id"]: f for f in (read_json(DATA / "fixtures.json", []) or []) if not f.get("demo")}
     officials = read_json(DATA / "official_standings.json", {}) or {}
-    now = dt.datetime.now().strftime("%Y-%m-%dT%H:%M")
+    now = paris_now().strftime("%Y-%m-%dT%H:%M")
     if not all(p.get("url") for p in config["poules"]):
         found = discover(config)
         for p in config["poules"]:

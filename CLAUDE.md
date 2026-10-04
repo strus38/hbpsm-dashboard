@@ -63,12 +63,13 @@ Le dépôt GitHub est vide au 04/10/2026 : rien n'a encore été poussé.
 ## Prochaine tâche
 
 1. Chercher les noms de l'effectif (et ceux vus sur les feuilles) dans tout ce qui sera versionné.
-2. Pousser le code, créer les deux secrets, lancer le workflow « Collecte hebdomadaire » et
+2. Pousser le code, créer les deux secrets, lancer le workflow « Collecte quotidienne » et
    vérifier le premier passage sur GitHub (le site répond-il aux adresses de GitHub ?).
 3. Après la journée 2 (10-11/10), relancer et vérifier qu'une journée close n'est plus relue.
 
 En local : `python -m venv .venv`, `.venv/Scripts/python -m pip install -r requirements-dev.txt`.
-Rester léger avec le site de la fédération : deux poules, deux passages par semaine, une
+Rester léger avec le site de la fédération : deux poules, un passage par jour du dimanche au
+vendredi (demande de l'auteur, 04/10/2026, car les feuilles arrivent dans le désordre), une
 seconde entre deux pages, ne pas relire une journée dont toutes les feuilles sont lues.
 
 ## Points ouverts
@@ -102,8 +103,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   1 s d'intervalle (04/10/2026) : `collect.Ralenti` ; une feuille toutes les 4 s pour
   l'historique, attente du Retry-After, budget de 15 min par passage, reprise au suivant.
 - Horaire pas encore fixé : la date est celle du début du week-end de la journée, marquée
-  « à confirmer » (`date_provisoire`). La comparaison avec l'heure courante se fait en heure
-  locale du PC ou du runner (UTC sur GitHub) : sans conséquence, une feuille absente répond 404.
+  « à confirmer » (`date_provisoire`).
+- Heures : toujours celles de Paris (`common.paris_now`, paquet `tzdata` pour Windows), y compris
+  sur le runner GitHub en UTC : `meta.genere`, la date du jour, la comparaison avec l'heure des
+  matchs. Seuls `maj` du manifeste et `exporteLe` de la séance restent en UTC, avec leur « Z ».
 - HANDBALL-training ne demande jamais la phrase (décision de l'auteur, 04/10/2026) : son
   écran « Tableau de bord HBPSM » lit `publie/tableau-public.json` et
   `publie/seance-prochaine.hbt.json`, et ouvre la page complète sur GitHub Pages
