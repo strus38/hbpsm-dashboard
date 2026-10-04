@@ -9,6 +9,8 @@ Fichiers versionnés, dans publie/ :
   etat.enc                    état de la collecte (rencontres, feuilles lues), chiffré
   manifeste.json              date et empreinte, sans donnée
   HBPSM-tableau-de-bord.html  la page, sans donnée : elle lit hbpsm.enc et le déchiffre
+  seance-prochaine.hbt.json   séance du prochain entraînement, en clair et sans nom de joueur
+                              (vérifié avant publication) : HANDBALL-training la lit sans phrase
 """
 import datetime as dt
 import hashlib
@@ -19,11 +21,14 @@ import sys
 from . import vault
 from .analyze import analyze
 from .build_dashboard import app_version, render
-from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, read_json, write_json
+from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
 from .export_training import build_exports
 
 STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json")
 PAGE_NAME = "HBPSM-tableau-de-bord.html"
+# Séance du prochain entraînement, publiée EN CLAIR pour l'application HANDBALL-training : elle ne
+# porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.
+SEANCE_NAME = "seance-prochaine.hbt.json"
 VERIF = 600  # secondes entre deux vérifications du manifeste par la page ouverte
 
 
@@ -72,6 +77,24 @@ def roster():
     return 0
 
 
+def known_names(state, roster_text):
+    """Noms de personnes connus : joueurs des feuilles (les deux équipes) et effectif du club."""
+    names = {p.get("name") for m in state["matches"].values()
+             for side in ("home", "away") for p in (m.get("players") or {}).get(side, [])}
+    names |= {line.split(",")[0] for line in roster_text.splitlines()[1:]}
+    return {norm(n) for n in names if n and len(norm(n).split()) >= 2}
+
+
+def check_public(text, names):
+    """Refuse un fichier public où apparaît un nom de personne, dans un ordre ou dans l'autre."""
+    words = norm(text).split()
+    for name in names:
+        parts = name.split()
+        for i in range(len(words) - len(parts) + 1):
+            if sorted(words[i:i + len(parts)]) == sorted(parts):
+                raise vault.VaultError(f"{SEANCE_NAME} contiendrait un nom de joueur : publication refusée.")
+
+
 def seal(today=None):
     secret = vault.passphrase()
     config = load_config()
@@ -85,9 +108,13 @@ def seal(today=None):
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()
     cfg = page_config(config)
+    public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
+    check_public(public_seance, known_names(state, roster_text))  # avant d'écrire quoi que ce soit
     PUBLIE.mkdir(parents=True, exist_ok=True)
     # la page ne contient aucune donnée : elle peut être publique
     (PUBLIE / PAGE_NAME).write_text(render(None, cfg), "utf-8")
+    if changed or not (PUBLIE / SEANCE_NAME).exists():
+        (PUBLIE / SEANCE_NAME).write_text(public_seance, "utf-8")
     if changed:
         now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         payload = dict(v=1, genere=now, data=data, seance_hbt=seance)

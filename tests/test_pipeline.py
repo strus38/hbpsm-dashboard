@@ -275,10 +275,14 @@ def test_publication_chiffree(sandbox, monkeypatch):
     publish.seal("2026-10-04")
     out = sandbox / "publie"
     assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc",
-                                                    "hbpsm.enc", "manifeste.json"]
+                                                    "hbpsm.enc", "manifeste.json", publish.SEANCE_NAME]
     for p in out.iterdir():
         text = p.read_text("utf-8")
-        assert "Joueur 0" not in text and "quipe fictive" not in text, p.name
+        assert "Joueur 0" not in text and "Fictif" not in text, p.name  # aucun nom de joueur en clair
+        if p.name != publish.SEANCE_NAME:  # seule la séance publique nomme les équipes
+            assert "quipe fictive" not in text, p.name
+    seance = json.loads((out / publish.SEANCE_NAME).read_text("utf-8"))
+    assert seance["format"] == "handball-training" and seance["contenu"]["seance"]["exercices"] == []
     box = vault.decrypt(json.loads((out / "hbpsm.enc").read_text("utf-8")), PHRASE)
     assert box["data"]["meta"]["matchs"] == 18 and box["seance_hbt"]["format"] == "handball-training"
     with pytest.raises(vault.VaultError):
@@ -462,3 +466,19 @@ def test_gardiens_et_tirs(sandbox):
     them = d["equipes"]["Club B"]
     assert them["arrets_pct"] == 25 and them["gardiens"][0]["num"] == 16 and them["gardiens"][0]["pris"] == 6
     assert next(b for b in them["buteurs"] if b["num"] == 4)["reussite"] == 60
+
+
+def test_seance_publique_sans_nom(sandbox, monkeypatch):
+    """La séance publiée en clair pour HANDBALL-training est refusée si un nom de joueur s'y glisse."""
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    (sandbox / "roster.csv").write_text("nom,poste,disponible\nIsidore Exemple,GB\n", "utf-8")
+    publish.seal("2026-10-04")  # rien de nominatif : publiée
+    assert (sandbox / "publie" / publish.SEANCE_NAME).exists()
+    names = publish.known_names(publish.collect_state(), (sandbox / "roster.csv").read_text("utf-8"))
+    assert "ISIDORE EXEMPLE" in names and any(n.startswith("FICTIF") for n in names)
+    publish.check_public('{"objectif": "Rien que des numéros : n° 12"}', names)
+    for fuite in ('{"objectif": "Surveiller EXEMPLE Isidore"}', '{"titre": "Joueur 03 en forme"}'):
+        with pytest.raises(vault.VaultError):
+            publish.check_public(fuite, names)
