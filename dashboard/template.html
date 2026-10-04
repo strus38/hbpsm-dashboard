@@ -181,7 +181,7 @@ nav.tabs[hidden]{display:none}
 .sel12 span.rot{border-style:dashed}
 .sel12 span.unsure{opacity:.7}
 .sel12 small{color:var(--muted);font-size:.72rem}
-.plan{display:grid;grid-template-columns:minmax(150px,1.4fr) repeat(var(--n),minmax(92px,1fr)) 46px;font-size:.86rem;align-items:center;min-width:620px}
+.plan{display:grid;grid-template-columns:minmax(190px,1.6fr) repeat(var(--n),minmax(92px,1fr)) 46px;font-size:.86rem;align-items:center;min-width:620px}
 .plan>div{padding:4px;border-bottom:1px solid var(--rule)}
 .plan .h{font-size:.74rem;color:var(--muted);text-align:center;line-height:1.35}
 .plan .h b{color:var(--heading);font-size:.84rem}
@@ -193,6 +193,10 @@ nav.tabs[hidden]{display:none}
 .cell.in{background:var(--track);border-color:var(--track);color:#fff}
 .cell.i{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .cell.a{border-color:transparent;background:color-mix(in srgb,var(--loss) 14%,transparent);color:var(--loss)}
+.cell.rest{border-style:dashed;border-color:var(--track);color:var(--track);background:transparent}
+.plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
+.plan .low{color:var(--loss);font-weight:700}
+.how{display:grid;gap:3px;margin:4px 0 12px;padding:10px 12px;border-left:3px solid var(--accent-trait);background:var(--surface);border-radius:6px}
 .cell.man{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--accent-trait)}
 .legend-plan{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .legend-plan .cell{display:inline-grid;width:26px;height:20px;margin:0 2px 0 8px;cursor:default;font-size:.78rem}
@@ -263,8 +267,11 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, adv:null, tab:"semaine", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:3, convM:null};
+let S = {postes:{}, absents:{}, adv:null, tab:"semaine", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+// avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
+const normRule = () => { if(S.regle === 3) S.regle = 1; };
+normRule();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fr = n => n == null ? "–" : String(n).replace(".", ",");
@@ -333,14 +340,15 @@ const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rh
 const shortName = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[w.length-1] : w[0]; };
 let PLAN = null;   // calculée à chaque rendu : quelques dizaines d'opérations
 
+// Rotation, réglée par l'entraîneur (S.regle) : chacun joue au moins S.regle des matchs où il est
+// disponible. Elle se fait d'abord sur les matchs les plus abordables (victoire estimée la plus
+// haute), jamais sur un match clé, au plus ROT_CHAMP joueurs de champ et ROT_GB gardien changés par
+// match ; sort celui qui a le plus joué sur la période, à égalité le moins bien noté.
+const ruleOf = n => Math.min(Number(S.regle) || 0, n);
 function planning(){
   const H = horizon(), size = D.meta.effectif || 12, nGK = D.meta.gardiens ?? 2;
-  const club = D.equipes[D.meta.club], dates = ((club && club.matches) || []).map(x => x.date).sort();
-  const lastReal = dates[dates.length-1];
-  const last = {};   // dernier match où le joueur figure : -1 = le dernier match joué
-  for(const p of D.joueurs) last[p.cle] = p.journal.some(j => j.date === lastReal) ? -1 : -2;
-  const rule = Number(S.regle) || 0;
-  return H.map((m, k) => {
+  // 1. pour chaque match, les mieux notés parmi les disponibles, vos choix d'abord
+  const P = H.map((m, k) => {
     const pool = D.joueurs.filter(p => availOf(p, m) !== "a" && pinOf(p, m) !== "out");
     const pinned = pool.filter(p => pinOf(p, m) === "in");
     const sure = pool.filter(p => availOf(p, m) === "d" && !pinned.includes(p)).sort((a, b) => val(b, m) - val(a, m));
@@ -352,25 +360,41 @@ function planning(){
       return take;
     };
     // un gardien manquant laisse sa place à un joueur de champ : la feuille reste à 12, le manque est signalé
-    let gks = pick(true, nGK), field = pick(false, size - gks.length);
-    const rotated = [];
-    if(rule && !m.cle){   // rotation guidée : priorité à ceux qui attendent depuis le plus longtemps
-      const swap = (team, gk, max) => {
-        const wait = p => k - last[p.cle] - 1;
-        const due = sure.filter(p => isGK(p) === gk && !team.includes(p) && wait(p) >= rule - 1)
-          .sort((a, b) => wait(b) - wait(a) || val(b, m) - val(a, m));
-        for(const p of due.slice(0, max)){
-          const out = team.filter(q => !pinned.includes(q) && wait(q) < rule - 1 && !rotated.includes(q))
-            .sort((a, b) => val(a, m) - val(b, m))[0];
-          if(!out) break;
-          team[team.indexOf(out)] = p; rotated.push(p);
+    const gks = pick(true, nGK), field = pick(false, size - gks.length);
+    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}};
+  });
+  // 2. la rotation, sur l'ensemble des matchs
+  const quota = ruleOf(H.length);
+  const apps = p => P.filter(r => r.gks.includes(p) || r.field.includes(p)).length;
+  const need = p => Math.min(quota, H.filter(m => availOf(p, m) === "d" && pinOf(p, m) !== "out").length);
+  if(quota){
+    const easy = P.filter(r => !r.m.cle).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
+      || (a.m.enjeu ?? 0) - (b.m.enjeu ?? 0) || a.k - b.k);
+    for(const gk of [true, false]){
+      const cap = gk ? ROT_GB : ROT_CHAMP, team = r => gk ? r.gks : r.field, used = {};
+      for(let moved = true; moved;){
+        moved = false;
+        const owed = D.joueurs.filter(p => isGK(p) === gk && apps(p) < need(p))
+          .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || val(b, H[0]) - val(a, H[0]));
+        for(const p of owed){
+          for(const r of easy){
+            if((used[r.k] || 0) >= cap || !r.sure.includes(p) || team(r).includes(p)) continue;
+            const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q))
+              .sort((a, b) => apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+            if(!out) continue;
+            team(r)[team(r).indexOf(out)] = p;
+            r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
+            used[r.k] = (used[r.k] || 0) + 1; moved = true;
+            break;
+          }
         }
-      };
-      swap(field, false, ROT_CHAMP); swap(gks, true, ROT_GB);
+      }
     }
+  }
+  // 3. force et risque de chaque feuille
+  const out = P.map(({m, k, gks, field, rotated, resting, why}) => {
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
-    for(const p of sel) last[p.cle] = k;
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
     const best = (gk, n) => D.joueurs.filter(p => isGK(p) === gk).map(p => val(p, m)).sort((a, b) => b - a).slice(0, n);
     const typeVal = [...best(true, nGK), ...best(false, size - nGK)].reduce((a, b) => a + b, 0) || 1;
@@ -381,10 +405,11 @@ function planning(){
     const ok = sel.length === size && gks.length === nGK;
     const level = !ok ? "hi" : impact == null ? "ok" : impact < 1 ? "ok" : impact < 3 ? "mid" : "hi";
     const regulars = D.joueurs.filter(p => p.m > 0).sort((a, b) => val(b, m) - val(a, m)).slice(0, size);
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
+  return Object.assign(out, {quota, apps, need});
 }
 const RISK = {ok:"risque faible", mid:"risque modéré", hi:"risque élevé"};
 const riskTag = r => '<span class="risk '+r.level+'">'+(r.ok ? RISK[r.level] : "feuille incomplète")+'</span>';
@@ -416,7 +441,7 @@ function viewSemaine(){
   const conv = S.convoque[m.id];
   h += '<h2>Les 12 pour ce match</h2><div class="panel">'+squadChips(r)
     + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : "Convocation pas encore envoyée.")
-    + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
+    + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+" ; au repos : "+r.resting.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
     + '<div class="edit noprint"><button class="btn" data-tab="planif">Ajuster dans la planification</button><button class="btn ghost" data-tab="convoc">Préparer la convocation</button></div></div>';
   if(r.ok && r.sel.some(p => poste(p))) h += courtSVG(startSeven(r));
   h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b>'+esc(x.m.adversaire)+'</b>'
@@ -463,36 +488,56 @@ function viewPlanif(){
   const P = PLAN;
   if(!P.length) return '<header class="top"><h1>Planification</h1></header>'+emptyPanel();
   let h = '<header class="top"><p class="when">'+P.length+' prochains matchs · 12 joueurs dont 2 gardiens par match</p><h1>Planification</h1></header>';
+  const n = P.length, q = P.quota;
   h += '<div class="edit noprint"><label class="small muted" for="regle">Rotation</label><select id="regle">'
-    + [[3,"guidée : chacun au moins 1 match sur 3"],[2,"guidée : chacun au moins 1 match sur 2"],[0,"libre : force et risque seulement"]]
+    + [[1,"chacun joue au moins 1 des "+n+" matchs"],[2,"chacun joue au moins 2 des "+n+" matchs"],[0,"libre : les mieux notés à chaque match"]]
       .map(([v,t]) => '<option value="'+v+'"'+(Number(S.regle)===v?" selected":"")+'>'+t+'</option>').join("")+'</select>'
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>';
+  h += '<div class="how small"><b>Comment la feuille est proposée.</b> '
+    + '<span>1. Pour chaque match, les '+P[0].size+' mieux notés parmi les disponibles ('+P[0].nGK+' gardiens), vos choix d\'abord.</span>'
+    + (q ? '<span>2. Rotation : chacun joue au moins '+q+' des '+n+' matchs. Elle se fait d\'abord sur les matchs les plus abordables (victoire estimée la plus haute), jamais sur un match clé, '
+         + 'avec au plus '+ROT_CHAMP+' joueurs de champ et '+ROT_GB+' gardien changés par match.</span>'
+         + '<span>3. Laisse sa place celui qui a le plus joué sur ces '+n+' matchs (à égalité, le moins bien noté) : le repos tourne aussi chez les titulaires, gardiens compris.</span>'
+       : '<span>2. Pas de rotation automatique : à vous de faire tourner d\'un clic.</span>')
+    + '<span class="muted">Survolez une case pour savoir pourquoi.</span></div>';
   h += '<div class="panel scroll"><div class="plan" style="--n:'+P.length+'"><div></div>'
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'+matchLine(r.m)+'<br>'
       + (r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br>'
-      + (r.m.cle ? '<span class="tag key">Match clé</span>' : 'enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu))+'</div>').join("")
+      + (r.m.cle ? '<span class="tag key">Match clé</span>' : 'enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu))
+      + (q ? '<br><span class="rotn">'+(r.m.cle ? "sans rotation" : r.rotated.length ? r.rotated.length+" rotation"+(r.rotated.length>1?"s":"") : "sans rotation")+'</span>' : '')+'</div>').join("")
     + '<div class="h">retenu</div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
     for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
-      h += '<div class="who"><b>'+esc(p.num ?? "")+'</b> '+esc(p.nom)+(p.m ? "" : rated(p) ? ' <small class="muted">note '+esc(p.note_base)+'</small>' : ' <small class="muted">sans note</small>')+'</div>';
+      const tag = p.m ? "" : rated(p) ? ' <small class="muted" title="Pas encore aligné cette saison : note provisoire, d\'après la saison '+esc(p.passe ? p.passe.saison : "passée")+'">25-26</small>'
+        : ' <small class="muted" title="Jamais aligné : note par défaut, à vous de juger">sans note</small>';
+      h += '<div class="who" title="'+esc(p.nom)+'"><b>'+esc(p.num ?? "")+'</b> '+esc(p.nom)+tag+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
-        const cls = av === "a" ? "a" : sel ? "in" : av === "i" ? "i" : "";
-        const sym = av === "a" ? "✕" : sel ? (r.rotated.includes(p) ? "↻" : av === "i" ? "?" : "✓") : av === "i" ? "?" : "";
-        const what = av === "a" ? "absent" : sel ? (r.rotated.includes(p) ? "retenu par rotation" : "retenu") : av === "i" ? "incertain" : "disponible, non retenu";
-        h += '<div><button class="cell '+cls+(man?" man":"")+(r.rotated.includes(p)?" rot":"")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+what+'">'+sym+'</button></div>';
+        const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle];
+        const cls = av === "a" ? "a" : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
+        const sym = av === "a" ? "✕" : sel ? (rot ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
+        const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "";
+        const what = av === "a" ? "absent"
+          : pin === "in" ? "retenu : votre choix"
+          : pin === "out" ? "écarté : votre choix"
+          : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom
+          : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom
+          : sel ? (av === "i" ? "retenu, mais incertain" : "retenu : parmi les mieux notés disponibles pour ce match")
+          : av === "i" ? "incertain" : "disponible, non retenu";
+        h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym+'</button></div>';
       }
-      h += '<div class="muted small" style="text-align:center">'+P.filter(r => r.sel.includes(p)).length+'/'+P.length+'</div>';
+      const a = P.apps(p), low = q && a < P.need(p);
+      h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
   h += '<div class="who muted small">Avec ces choix</div>' + P.map(r => '<div class="h"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + 'force '+Math.round(100*r.force)+' %<br>victoire '+pct(r.pAdj)+'<br>'+riskTag(r)
     + (r.impact != null && r.impact >= 0.5 ? '<br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small>' : '')
     + '<br><button class="link" data-reset="'+esc(r.m.id)+'">réinitialiser</button></div>').join("") + '<div></div></div></div>';
-  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> rotation <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent</p>';
+  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent</p>';
   h += '<p class="note">Force : valeur des 12 retenus rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos choix restent sur cet ordinateur.</p>';
   h += '<div class="edit noprint"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button><label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
@@ -791,7 +836,7 @@ function importPlan(file){
     const box = JSON.parse(text);
     if(box.format !== "hbpsm-planning") throw new Error("format");
     for(const k of PLAN_KEYS) if(box[k] !== undefined) S[k] = box[k];
-    save(); render(true);
+    normRule(); save(); render(true);
   }).catch(() => alert("Ce fichier n'est pas un planning du tableau de bord."));
 }
 document.addEventListener("click", ev => {

@@ -66,9 +66,13 @@ La page suit la semaine de l'entraîneur :
 | Saison | chances de finir premier, matchs à gagner, axes de travail, séance à importer, classements |
 
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
-(notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur. En rotation
-guidée, hors match clé, elle fait entrer jusqu'à 3 joueurs de champ et 1 gardien qui attendent
-depuis le plus longtemps, pour que chacun joue au moins 1 match sur 3 (ou 1 sur 2). La force
+(notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur. Puis la rotation,
+sur les 4 matchs à la fois : chacun joue au moins 1 des 4 matchs (ou 2, ou rotation libre, au
+choix de l'entraîneur). Elle se fait d'abord sur les matchs les plus abordables (victoire
+estimée la plus haute), jamais sur un match clé, avec au plus 3 joueurs de champ et 1 gardien
+changés par match ; laisse sa place celui qui a le plus joué sur la période (à égalité, le moins
+bien noté), si bien que le repos tourne aussi chez les titulaires et les gardiens. Chaque case
+dit pourquoi au survol ; un minimum impossible à tenir est signalé en rouge. La force
 alignée rapporte la valeur des 12 retenus à celle de l'équipe type ; la victoire estimée part
 de celle calculée sur GitHub (équipe au complet) et baisse avec la force ; le risque multiplie
 cette baisse par l'enjeu du match pour la saison.

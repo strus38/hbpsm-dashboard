@@ -132,8 +132,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 - Organisation de la page (demande de l'auteur, 04/10/2026, pour l'entraîneur qui convoque les
   12 joueurs après l'entraînement du vendredi) : Semaine, Planification (4 prochains matchs),
   Convocation, Joueurs, Adversaires, Saison. Feuille : 12 joueurs dont 2 gardiens
-  (`effectif_feuille`, `gardiens_feuille`). Rotation guidée par défaut (au moins 1 match sur 3,
-  hors match clé, 3 joueurs de champ et 1 gardien au plus par match). Gymnase des 4 prochains
+  (`effectif_feuille`, `gardiens_feuille`). Rotation (refaite le 05/10/2026, l'ancienne,
+  match par match, tombait sur les matchs difficiles et ne reposait jamais le 1er gardien) :
+  chacun joue au moins 1 des 4 matchs par défaut (`S.regle` = 1, 2 ou 0 = libre), d'abord sur
+  les matchs les plus abordables, jamais sur un match clé, 3 joueurs de champ et 1 gardien au
+  plus par match ; sort celui qui a le plus joué sur la période. Gymnase des 4 prochains
   matchs du club lu sur la page de la rencontre ; heure de rendez-vous saisie par l'entraîneur.
   Disponibilités, choix et rendez-vous restent dans le navigateur de l'entraîneur (`S` dans
   `localStorage`), avec export / import en fichier ; jamais publiés.

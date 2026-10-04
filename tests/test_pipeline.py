@@ -357,6 +357,17 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.evaluate("(() => { const g = planning()[0].gks[0]; S.absents[g.cle] = true; })()")
         assert page.evaluate(sheet + "(0)") == [12, 1, 0, 1]  # un seul gardien disponible : signalé
         page.evaluate("S.absents = {}")
+        # rotation : jamais sur un match clé, d'abord sur les matchs les plus abordables ; chaque entrant
+        # prend la place d'un joueur au repos, et chacun joue au moins 1 des 4 matchs
+        rot = page.evaluate("""(() => { S.regle = 1; const P = planning();
+          const easy = P.filter(r => !r.m.cle).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50));
+          return {cle: P.filter(r => r.m.cle).map(r => r.rotated.length), ordre: easy.map(r => r.rotated.length),
+                  paires: P.every(r => r.rotated.length === r.resting.length && r.sel.length === 12),
+                  manque: D.joueurs.filter(p => P.apps(p) < P.need(p)).length,
+                  libre: (S.regle = 0, planning().every(r => !r.rotated.length))}; })()""")
+        page.evaluate("S.regle = 1")
+        assert all(n == 0 for n in rot["cle"]) and rot["paires"] and rot["libre"]
+        assert sum(rot["ordre"]) > 0 and rot["ordre"] == sorted(rot["ordre"], reverse=True) and rot["manque"] == 0
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
         page.click("nav.tabs button[data-tab=planif]")
         first = page.locator("button.cell.in").first
