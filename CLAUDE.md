@@ -71,8 +71,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 
 ## Points ouverts
 
-- Règle de montée AURA (deuxième phase, nombre de montants) : non trouvée. L'onglet Saison
-  modélise la première place de la poule en cours ; `objectif.rang` est réglable.
+- Règlement AURA 2026-2027 (Règlements particuliers, aura-handball.fr/wp-content/uploads/2026/08/
+  Reglements_Particuliers_26-27.pdf) : 2e division en 8 secteurs ; « les 2 meilleures équipes
+  éligibles de chaque secteur » montent en 1re division ; pas de descente. Poules 71 et 72 = un
+  secteur (déduit de la numérotation). Deuxième phase au calendrier (avril à juin 2027), formule
+  publiée vers février-mars ; aucun play-off 71/72 écrit. Précédent 2025-2026 : poule haute avec les
+  4 premiers de chaque poule. Objectif de 1re phase réglé à 3 (choix de l'auteur, `objectif.rang`) ;
+  l'onglet Saison montre aussi les chances de chaque rang final. À revoir quand la formule paraîtra.
+- Départage (RG FFHB 3.3, repris par l'AURA) : points, puis points et différence de buts des
+  confrontations directes (répétés), différence générale, buts marqués (`rank_teams`). Non
+  modélisés : buts à l'extérieur des confrontations directes, nombre de licenciés.
 - L'effectif fourni compte 20 noms ; il en manque au moins un.
 - Les postes ne sont pas dans l'effectif : l'entraîneur les saisit dans la page.
 - Le temps de jeu n'existe pas sur la feuille de match : matchs disputés, temps passé à

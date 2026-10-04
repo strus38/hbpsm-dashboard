@@ -215,7 +215,7 @@ def test_course_au_classement(sandbox):
     demo(sandbox)
     s = an.analyze("2026-10-04")["saison"]
     assert s["statut"] == "en_cours" and s["restants"] == len(s["matchs"]) == 7
-    assert 0 <= s["proba"] <= s["proba_tout"] <= 100
+    assert 0 <= s["proba"] <= s["proba_tout"] <= 100 and abs(sum(s["rangs"]) - 100) < 1
     assert s["pts_max"] == s["pts"] + 3 * s["restants"]
     assert 1 <= sum(m["cle"] for m in s["matchs"]) <= 3
     for m in s["matchs"]:
@@ -514,3 +514,14 @@ def test_gymnase_des_prochains_matchs(monkeypatch):
     again = {"1": fx(1, "Club", "55")}
     collect.add_venues(again, fixtures, ours)  # même salle qu'au passage précédent : pas de nouvelle page
     assert pages == ["u1"] and again["1"]["salle"]["nom"] == "GYMNASE DU PARC"
+
+
+def test_departage_reglementaire():
+    """Égalité de points : confrontations directes d'abord, différence générale ensuite (règlement AURA)."""
+    # X et Y à 4 points : X a battu Y d'un but, Y a une bien meilleure différence générale
+    order = an.rank_teams(["X", "Y", "W", "V"], [("X", "Y", 21, 20), ("Y", "W", 40, 10), ("X", "V", 15, 20)])
+    assert order.index("X") < order.index("Y")
+    # égalité à trois en cercle : différence de buts des confrontations directes
+    assert an.rank_teams(["A", "B", "C"], [("A", "B", 20, 25), ("A", "C", 30, 10), ("B", "C", 20, 22)]) == ["A", "B", "C"]
+    # sans confrontation directe : différence générale, puis buts marqués
+    assert an.rank_teams(["P", "Q", "R"], [("P", "R", 30, 20), ("Q", "R", 25, 20)]) == ["P", "Q", "R"]

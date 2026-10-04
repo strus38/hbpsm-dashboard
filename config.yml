@@ -19,9 +19,11 @@ gardiens_feuille: 2
 # true = garde quelques captures dans raw/sample pour régler les extracteurs
 # (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
 echantillons_debug: true
-# Objectif de la saison : rang visé dans la poule du club (1 = finir premier)
+# Objectif de la première phase : rang visé dans la poule du club. Règlement AURA 2026-2027 :
+# 2 montées par secteur (poules 71 et 72), format de la phase 2 publié vers février 2027.
+# 3 = se qualifier pour une phase 2 réunissant les 3 premiers de chaque poule (choix de l'auteur).
 objectif:
-  rang: 1
+  rang: 3
 # Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
 entrainement:
   equipe: "Seniors garçons"

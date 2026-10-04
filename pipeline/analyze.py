@@ -104,6 +104,49 @@ def known_teams(fixtures, officials):
     return teams
 
 
+def rank_teams(teams, results, last=None):
+    """Ordre de classement selon le règlement (Ligue AURA 2026-2027, règlements généraux FFHB 3.3) :
+    points ; entre équipes à égalité, points puis différence de buts des confrontations directes,
+    répétés tant qu'il reste des égalités ; puis différence de buts générale, buts marqués.
+    results : [(domicile, extérieur, buts domicile, buts extérieur)] ; last : départage final
+    (le nom, ou un tirage dans les simulations). Non pris en compte : buts à l'extérieur dans les
+    confrontations directes, nombre de licenciés."""
+    pts, diff, bp = defaultdict(int), defaultdict(int), defaultdict(int)
+    for h, a, gh, ga in results:
+        pts[h] += POINTS[outcome(gh, ga)]
+        pts[a] += POINTS[outcome(ga, gh)]
+        diff[h] += gh - ga
+        diff[a] += ga - gh
+        bp[h] += gh
+        bp[a] += ga
+    last = last or (lambda t: t)
+
+    def split(group):
+        if len(group) < 2:
+            return list(group)
+        inside = set(group)
+        hp, hd = defaultdict(int), defaultdict(int)
+        for h, a, gh, ga in results:
+            if h in inside and a in inside:
+                hp[h] += POINTS[outcome(gh, ga)]
+                hp[a] += POINTS[outcome(ga, gh)]
+                hd[h] += gh - ga
+                hd[a] += ga - gh
+        out = []
+        for _, sub in itertools.groupby(sorted(group, key=lambda t: (-hp[t], -hd[t])), key=lambda t: (hp[t], hd[t])):
+            sub = list(sub)
+            if 1 < len(sub) < len(group):
+                out += split(sub)  # la règle reprend entre les seules équipes encore à égalité
+            else:
+                out += sorted(sub, key=lambda t: (-diff[t], -bp[t], last(t)))
+        return out
+
+    order = []
+    for _, group in itertools.groupby(sorted(teams, key=lambda t: -pts[t]), key=lambda t: pts[t]):
+        order += split(list(group))
+    return order
+
+
 def standings(matches, teams=()):
     table = {t: dict(equipe=t, pts=0, j=0, v=0, n=0, d=0, bp=0, bc=0, forme=[]) for t in teams}
     for m in sorted(matches, key=lambda x: x.get("date") or ""):
@@ -117,11 +160,11 @@ def standings(matches, teams=()):
             row["bp"] += gf
             row["bc"] += ga
             row["forme"].append(res)
-    rows = list(table.values())
-    for r in rows:
+    for r in table.values():
         r["diff"] = r["bp"] - r["bc"]
         r["forme"] = r["forme"][-5:]
-    rows.sort(key=lambda r: (-r["pts"], -r["diff"], -r["bp"], r["equipe"]))
+    results = [(m["home"]["name"], m["away"]["name"], m["home"]["score"], m["away"]["score"]) for m in matches]
+    rows = [table[t] for t in rank_teams(list(table), results)]
     for i, r in enumerate(rows, 1):
         r["rang"] = i
     return rows
@@ -469,30 +512,30 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         ma = avg * att[f["away"]] * dfn[f["home"]] * 0.96
         return (max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5))))
 
+    already = [(m["home"]["name"], m["away"]["name"], m["home"]["score"], m["away"]["score"]) for m in played]
+
     def season(force_win=False):
-        pts = {t: r["pts"] for t, r in table.items()}
-        diff = {t: r["diff"] for t, r in table.items()}
-        res = {}
+        sim, res = list(already), {}
         for f in rest:
             gh, ga = play(f)
             if force_win and club in (f["home"], f["away"]):
                 if (gh <= ga) == (f["home"] == club) or gh == ga:
                     hi, lo = max(gh, ga) + (gh == ga), min(gh, ga)
                     gh, ga = (hi, lo) if f["home"] == club else (lo, hi)
-            pts[f["home"]] += POINTS[outcome(gh, ga)]
-            pts[f["away"]] += POINTS[outcome(ga, gh)]
-            diff[f["home"]] += gh - ga
-            diff[f["away"]] += ga - gh
+            sim.append((f["home"], f["away"], gh, ga))
             if club in (f["home"], f["away"]):
                 res[f["id"]] = outcome(gh, ga) if f["home"] == club else outcome(ga, gh)
-        order = sorted(pts, key=lambda t: (-pts[t], -diff[t], rng.random()))
-        return order.index(club) + 1 <= target, res
+        draw = {t: rng.random() for t in teams}  # dernier recours : tirage au sort
+        rank = rank_teams(list(teams), sim, draw.get).index(club) + 1
+        return rank <= target, res, rank
 
     ok_total = 0
+    ranks = Counter()
     stat = {f["id"]: dict(v=0, v_ok=0, o=0, o_ok=0) for f in mine}
     for _ in range(sims):
-        ok, res = season()
+        ok, res, rank = season()
         ok_total += ok
+        ranks[rank] += 1
         for fid, r in res.items():
             s = stat[fid]
             if r == "V":
@@ -504,6 +547,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
     n_all = max(300, sims // 4)
     base["proba"] = round(100 * ok_total / sims)
     base["proba_tout"] = round(100 * sum(season(True)[0] for _ in range(n_all)) / n_all)
+    # chances de chaque rang final : juste quelle que soit la formule de la phase suivante
+    base["rangs"] = [round(100 * ranks[r] / sims, 1) for r in range(1, len(teams) + 1)]
     for f in mine:
         s = stat[f["id"]]
         dom = f["home"] == club

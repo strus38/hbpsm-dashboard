@@ -223,6 +223,11 @@ nav.tabs[hidden]{display:none}
 .chip.avenir{border-color:var(--track);color:var(--link)}
 .detail{padding:0 12px 12px}
 @media print{header.club,nav.tabs,.noprint,.note{display:none!important}body,.panel{background:#fff;border:0}main{max-width:none}}
+.ranks{display:grid;grid-template-columns:repeat(auto-fit,minmax(36px,1fr));gap:6px;align-items:end;height:110px;margin-top:12px}
+.ranks div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:3px;font-size:.74rem;color:var(--muted)}
+.ranks i{display:block;width:70%;border-radius:3px 3px 0 0;background:var(--draw)}
+.ranks i.goal{background:var(--accent-trait)}
+.ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 </style>
 </head>
@@ -398,7 +403,7 @@ function viewSemaine(){
   h += '<div class="hero"><div class="kpis">'
     + '<div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
     + '<div><b class="num">'+pct(r.pAdj)+'</b><span>victoire estimée avec cette équipe'+(m.p_victoire != null && r.pAdj !== m.p_victoire ? " ("+m.p_victoire+" % au complet)" : "")+'</span></div>'
-    + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de finir '+ord((D.saison||{}).cible || 1)+' en jeu</span></div>'
+    + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de '+objectif((D.saison||{}).cible)+' en jeu</span></div>'
     + '</div><p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
     + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")+'</p></div>';
   const conv = S.convoque[m.id];
@@ -411,7 +416,7 @@ function viewSemaine(){
     + (x.m.cle ? ' <span class="tag key">Match clé</span>' : '')+'<p class="small" style="margin:6px 0 0">'+riskTag(x)+' victoire '+pct(x.pAdj)+'</p></div>').join("")+'</div>';
   const s = D.saison;
   if(s && s.statut === "en_cours") h += '<h2>La saison</h2><div class="panel"><div class="kpis"><div><b class="num">'+ord(s.rang)+'</b><span>rang actuel</span></div>'
-    + '<div><b class="num">'+s.proba+' %</b><span>chances de finir '+ord(s.cible)+'</span></div><div><b class="num">'+s.restants+'</b><span>matchs restants</span></div></div></div>';
+    + '<div><b class="num">'+s.proba+' %</b><span>chances de '+objectif(s.cible)+'</span></div><div><b class="num">'+s.restants+'</b><span>matchs restants</span></div></div></div>';
   if(D.meta.club_feuilles < 3) h += '<p class="note">Avec '+D.meta.club_feuilles+' feuille'+(D.meta.club_feuilles>1?"s":"")+' de match lue'+(D.meta.club_feuilles>1?"s":"")+', les notes, la force alignée et les chances de victoire sont des tendances, pas des certitudes.</p>';
   return h;
 }
@@ -651,16 +656,25 @@ function viewAdv(){
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";
+const objectif = c => (c || 1) > 1 ? "finir dans les " + c + " premiers" : "finir 1er";
+function rankBars(s){   // chances de chaque rang final, l'objectif en jaune
+  if(!s.rangs) return "";
+  const max = Math.max(...s.rangs, 1);
+  return '<div class="ranks" role="img" aria-label="Chances de chaque rang final : '+s.rangs.map((v, i) => ord(i+1)+' '+v+' %').join(', ')+'">'
+    + s.rangs.map((v, i) => '<div><span class="v">'+Math.round(v)+' %</span><i class="'+(i < s.cible ? "goal" : "")+'" style="height:'+Math.max(2, 70 * v / max)+'px"></i><span>'+ord(i+1)+'</span></div>').join("")
+    + '</div><p class="small muted" style="margin-top:4px">Rang final de la première phase, sur 10 000 saisons simulées.</p>';
+}
 function viewSaison(){
   const s = D.saison;
-  let h = '<header class="top"><p class="when">'+(s ? "Poule "+esc(s.poule)+", objectif : finir "+ord(s.cible) : "Objectif de la saison")+'</p><h1>Saison</h1></header>';
+  let h = '<header class="top"><p class="when">'+(s ? "Poule "+esc(s.poule)+", objectif : "+objectif(s.cible) : "Objectif de la saison")+'</p><h1>Saison</h1></header>';
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   if(!s) h += '<div class="panel"><p>La course au classement s\'affiche dès qu\'un match du club et le calendrier de la poule sont connus.</p></div>';
   else {
     h += '<div class="kpis"><div><b class="num">'+ord(s.rang)+'</b><span>rang actuel</span></div><div><b class="num">'+s.pts+'</b><span>'+(s.retard>0 ? "points, à "+s.retard+" du 1er" : "points, en tête")+'</span></div><div><b class="num">'+(s.statut==="calendrier_inconnu" ? "–" : s.restants)+'</b><span>matchs restants</span></div></div>';
     if(s.statut !== "en_cours") h += '<div class="panel"><p>'+(s.statut==="termine" ? "Plus de match à jouer dans cette phase." : "Le calendrier des matchs restants n\'a pas encore été lu sur le site de la fédération.")+'</p></div>';
     else {
-      h += '<div class="panel"><p class="muted small">Chances estimées de finir '+ord(s.cible)+'</p><p class="big">'+s.proba+' %</p>'
+      h += '<div class="panel"><p class="muted small">Chances estimées de '+objectif(s.cible)+'</p><p class="big">'+s.proba+' %</p>'
+        + rankBars(s)
         + '<p style="margin-top:8px">En gagnant tous les matchs restants : <b>'+s.proba_tout+' %</b>. Maximum possible : '+s.pts_max+' points.</p></div>';
       h += '<h2>Matchs à gagner</h2><div class="panel">' + s.matchs.map(m => {
         const lo = Math.min(m.sinon ?? 0, m.si_victoire ?? 0), hi = Math.max(m.sinon ?? 0, m.si_victoire ?? 0);
@@ -668,9 +682,9 @@ function viewSaison(){
           + '<br><span class="small muted">J'+esc(m.journee ?? "?")+", "+esc(fmtDate(m.date, m.provisoire))+", "+(m.domicile?"domicile":"extérieur")+", adversaire "+ord(m.rang_adv)+'</span></div>'
           + '<div class="gain">'+(m.enjeu==null?"–":(m.enjeu>0?"+":"")+m.enjeu)+'<small>points de chance</small></div></div>'
           + '<div class="range" aria-hidden="true"><i style="left:'+lo+'%;width:'+Math.max(1.5,hi-lo)+'%"></i></div>'
-          + '<p class="small muted" style="margin:0">Finir '+ord(s.cible)+' : '+(m.si_victoire ?? "–")+' % en cas de victoire, '+(m.sinon ?? "–")+' % sinon. Victoire estimée à '+m.p_victoire+' %.</p></div>';
+          + '<p class="small muted" style="margin:0">'+objectif(s.cible).replace(/^f/, "F")+' : '+(m.si_victoire ?? "–")+' % en cas de victoire, '+(m.sinon ?? "–")+' % sinon. Victoire estimée à '+m.p_victoire+' %.</p></div>';
       }).join("") + '</div>';
-      h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées à la différence de buts. Pénalités et règles de la phase suivante non prises en compte.</p>';
+      h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées comme le règlement : confrontations directes, puis différence de buts. Règlement AURA : 2 montées par secteur (poules 71 et 72), au terme d\'une deuxième phase dont la formule sera publiée vers février.</p>';
     }
   }
   h += '<h2>À travailler à l\'entraînement</h2><div class="panel">';
