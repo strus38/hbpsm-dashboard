@@ -20,6 +20,7 @@ Feuille de match : FDM + chemin tiré de son code (WAGWUHC -> W/A/G/W/WAGWUHC.pd
 import datetime as dt
 import gzip
 import html
+import http.client
 import json
 import os
 import re
@@ -37,13 +38,35 @@ OUBLI = 21      # jours après lesquels une rencontre sans feuille n'est plus re
 BLOCK_RE = re.compile(r"<smartfire-component\s+name=(['\"])([\w-]+)\1\s+attributes=\"([^\"]*)\"")
 
 
-def fetch(url):
+class Ralenti(OSError):
+    """Le site demande de ralentir (HTTP 429) : attendre `wait` secondes, ou reprendre plus tard."""
+
+    def __init__(self, wait):
+        super().__init__(f"le site demande de ralentir ({wait} s)")
+        self.wait = wait
+
+
+def fetch(url, tries=3):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        body = resp.read()
-        if resp.headers.get("Content-Encoding") == "gzip":
-            body = gzip.decompress(body)
-    return body
+    for attempt in range(tries):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                body = resp.read()
+                if resp.headers.get("Content-Encoding") == "gzip":
+                    body = gzip.decompress(body)
+            return body
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429:
+                raise
+            try:
+                wait = int(exc.headers.get("Retry-After") or 60)
+            except ValueError:  # une date plutôt qu'un nombre de secondes
+                wait = 60
+            raise Ralenti(wait) from None
+        except (ConnectionResetError, http.client.IncompleteRead):  # coupure en cours de transfert
+            if attempt == tries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
 
 
 def blocks(text):
@@ -228,6 +251,9 @@ def crawl_poule(poule, known, old, now, is_ours=None):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(body)
                 sheets += 1
+        except Ralenti:  # les feuilles restantes attendront le prochain passage
+            print("[collecte] le serveur des feuilles demande de ralentir : suite au prochain passage", file=sys.stderr)
+            break
         except (urllib.error.URLError, OSError) as exc:  # feuille pas encore déposée : au prochain passage
             print(f"[collecte] feuille {fx['id']}: {exc}", file=sys.stderr)
         time.sleep(PAUSE)

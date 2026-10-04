@@ -12,6 +12,9 @@ Forme de la feuille FDME relevée en 2026-2027 :
            sort à l'envers (« tnavecer bulC »).
   page 2+  déroulé sur deux colonnes : « mm:ss  sh - sa  Action NOM Prénom », sans numéro ni
            équipe : on les retrouve par le nom dans le tableau, ou par le score pour un but.
+Feuille des saisons précédentes (2025-2026 et avant), lue elle aussi : mêmes tableaux, mais
+les mots collés (« DUPONTjean », « ButJRN°51DUPONTjean ») ; le déroulé y donne l'équipe
+(JR recevant, JV visiteur) et le numéro du joueur.
 Les numéros de licence ne sont jamais conservés, ni les commotions (donnée de santé).
 """
 import json
@@ -33,6 +36,7 @@ ACTIONS = [  # (début de l'action, type) — du plus précis au plus général 
     ("DISQUALIFICATION", "red"), ("CARTON ROUGE", "red"), ("CARTON BLEU", "blue"),
     ("TEMPS MORT", "timeout"), ("COMMOTION", None),
 ]
+OLD_RE = re.compile(r"^(.+?)J([RV])N°(\d{1,2})(.*)$")  # « ButJRN°51DUPONTjean », ancienne feuille
 HEADERS = {"num": ("N", "NO", "NUM"), "name": ("NOM",), "goals": ("BUTS",), "pen_goals": ("7M",),
            "shots": ("TIRS",), "saves": ("ARRETS", "ARRET"), "yellow": ("AV",),
            "two_min": ("2", "2MN", "2 MN"), "red": ("DIS", "DISQ")}
@@ -41,6 +45,18 @@ HEADERS = {"num": ("N", "NO", "NUM"), "name": ("NOM",), "goals": ("BUTS",), "pen
 def mask(text):
     """Masque les suites de 6 chiffres ou plus (numéros de licence)."""
     return re.sub(r"\d{6,}", "######", text or "")
+
+
+def split_name(name):
+    """« DUPONTjean » (ancienne feuille, nom et prénom collés) -> « DUPONT jean »."""
+    return re.sub(r"([A-ZÀ-Ý'-]{2,})([a-zà-ÿ])", r"\1 \2", name or "")
+
+
+def match_action(label):
+    """Type d'action d'après le début du libellé, avec ou sans espaces (ancienne feuille)."""
+    compact = label.replace(" ", "")
+    return next(((pat, typ) for pat, typ in ACTIONS if label.startswith(pat)
+                 or compact.startswith(pat.replace(" ", ""))), None)
 
 
 def mark(value):
@@ -68,14 +84,23 @@ def parse_events(text, unknown=None):
             t = 0
             for part in clock.split(":"):
                 t = t * 60 + int(part)
-            label = norm(rest)
-            hit = next(((pat, typ) for pat, typ in ACTIONS if label.startswith(pat)), None)
+            old = OLD_RE.match(rest.strip())
+            label = norm(old.group(1) if old else rest)
+            hit = match_action(label)
             if not hit and unknown is not None and label:
                 unknown[label.split()[0]] = unknown.get(label.split()[0], 0) + 1
             if not hit or hit[1] is None or t > 5400:  # prolongations comprises
                 continue
-            actor = " ".join(mask(rest).split()[len(hit[0].split()):]) or None
-            events.append(dict(t=t, type=hit[1], score=[int(sh), int(sa)], actor=actor))
+            event = dict(t=t, type=hit[1], score=[int(sh), int(sa)])
+            if old:  # l'ancienne feuille donne l'équipe et le numéro
+                event.update(actor=split_name(" ".join(mask(old.group(4)).split())) or None,
+                             side="home" if old.group(2) == "R" else "away", num=int(old.group(3)))
+            elif hit[1] == "timeout":  # « Temps mort Visiteur », ou « TempsMortd'EquipeVisiteur » (ancienne)
+                compact = label.replace(" ", "")
+                event["actor"] = "Visiteur" if "VISITEUR" in compact else "Recevant" if "RECEVANT" in compact else None
+            else:
+                event["actor"] = " ".join(mask(rest).split()[len(hit[0].split()):]) or None
+            events.append(event)
     events.sort(key=lambda e: e["t"])
     return events
 
@@ -105,7 +130,7 @@ def parse_tables(tables):
                 j = cols.get(field)
                 return row[j] if j is not None and j < len(row) else None
             num = str(cell("num") or "").strip()
-            name = " ".join(mask(str(cell("name") or "")).replace("#", " ").split())
+            name = split_name(" ".join(mask(str(cell("name") or "")).replace("#", " ").split()))
             if not re.fullmatch(r"\d{1,2}", num) or len(name) < 3:
                 continue
             teams[-1]["players"].append(dict(
@@ -146,8 +171,8 @@ def attribute(events, players):
     prev = [0, 0]
     out = []
     for e in events:
-        side, num = None, None
-        key = match_name(e["actor"], index) if e["actor"] else None
+        side, num = e.get("side"), e.get("num")
+        key = match_name(e["actor"], index) if e["actor"] and num is None else None
         if key:
             side, num = index[key]
         elif e["type"] == "timeout":

@@ -11,6 +11,8 @@ Fichiers versionnés, dans publie/ :
   HBPSM-tableau-de-bord.html  la page, sans donnée : elle lit hbpsm.enc et le déchiffre
   seance-prochaine.hbt.json   séance du prochain entraînement, en clair et sans nom de joueur
                               (vérifié avant publication) : HANDBALL-training la lit sans phrase
+  historique.enc              saisons passées (pipeline.history), chiffrées ; réécrit seulement
+                              quand elles changent, c'est-à-dire presque jamais
 """
 import datetime as dt
 import hashlib
@@ -29,6 +31,7 @@ PAGE_NAME = "HBPSM-tableau-de-bord.html"
 # Séance du prochain entraînement, publiée EN CLAIR pour l'application HANDBALL-training : elle ne
 # porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.
 SEANCE_NAME = "seance-prochaine.hbt.json"
+HISTORY_NAME = "historique.enc"
 VERIF = 600  # secondes entre deux vérifications du manifeste par la page ouverte
 
 
@@ -51,6 +54,11 @@ def collect_state():
     return state
 
 
+def history_state():
+    """Saisons passées collectées : {saison: contenu}."""
+    return {p.stem: json.loads(p.read_text("utf-8")) for p in sorted((DATA / "historique").glob("*.json"))}
+
+
 def restore():
     secret = vault.passphrase()  # vérifié d'emblée : inutile de collecter si l'on ne peut pas publier
     path = PUBLIE / "etat.enc"
@@ -64,6 +72,10 @@ def restore():
     for mid, match in (state.get("matches") or {}).items():
         write_json(MATCHES / f"{mid}.json", match)
     print(f"[état] {len(state.get('matches') or {})} rencontres reprises")
+    if (PUBLIE / HISTORY_NAME).exists():
+        for saison, content in vault.decrypt(read_json(PUBLIE / HISTORY_NAME), secret).items():
+            write_json(DATA / "historique" / f"{saison}.json", content)
+        print("[état] saisons passées reprises")
     return 0
 
 
@@ -103,7 +115,9 @@ def seal(today=None):
     _, seance = build_exports(data, scratch, today)
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
-    digest = hashlib.sha256(json.dumps([state, roster_text, app_version()], sort_keys=True,
+    hist = history_state()
+    hist_digest = hashlib.sha256(json.dumps(hist, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), hist_digest], sort_keys=True,
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()
@@ -115,13 +129,16 @@ def seal(today=None):
     (PUBLIE / PAGE_NAME).write_text(render(None, cfg), "utf-8")
     if changed or not (PUBLIE / SEANCE_NAME).exists():
         (PUBLIE / SEANCE_NAME).write_text(public_seance, "utf-8")
+    if hist and (previous.get("historique") != hist_digest or not (PUBLIE / HISTORY_NAME).exists()):
+        write_json(PUBLIE / HISTORY_NAME, vault.encrypt(hist, secret))
     if changed:
         now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         payload = dict(v=1, genere=now, data=data, seance_hbt=seance)
         write_json(PUBLIE / "hbpsm.enc", vault.encrypt(payload, secret))
         write_json(PUBLIE / "etat.enc", vault.encrypt(state, secret))
         write_json(PUBLIE / "manifeste.json", dict(format="hbpsm-manifeste", v=1, maj=now,
-                                                   empreinte=digest, app=cfg["app"]))
+                                                   empreinte=digest, app=cfg["app"],
+                                                   historique=hist_digest if hist else None))
     release = changed and data["meta"]["matchs"] > 0
     out = os.environ.get("GITHUB_OUTPUT")
     if out:

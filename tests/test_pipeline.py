@@ -525,3 +525,117 @@ def test_departage_reglementaire():
     assert an.rank_teams(["A", "B", "C"], [("A", "B", 20, 25), ("A", "C", 30, 10), ("B", "C", 20, 22)]) == ["A", "B", "C"]
     # sans confrontation directe : différence générale, puis buts marqués
     assert an.rank_teams(["P", "Q", "R"], [("P", "R", 30, 20), ("Q", "R", 25, 20)]) == ["P", "Q", "R"]
+
+
+def test_saison_passee_collectee(sandbox, monkeypatch):
+    """Une saison passée se collecte une fois : poules où jouaient le club ou ses adversaires
+    d'aujourd'hui, feuilles de leurs matchs, déroulé gardé pour les seuls matchs du club."""
+    pytest.importorskip("reportlab")
+    from pipeline import history
+    from tests import mock_site
+    src = sandbox / "source"
+    out = demo_data.generate(data_dir=src, matches_dir=src / "matches")
+    truth = {p.stem: json.loads(p.read_text("utf-8")) for p in (src / "matches").glob("*.json")}
+    site = sandbox / "site"
+    rel = mock_site.build(site, list(truth.values()), out["fixtures"], "71")
+    server, base = serve(site, Quiet)
+    monkeypatch.setattr(collect, "FDM", base + "fdm/")
+    monkeypatch.setattr(collect, "PAUSE", 0)
+    config = common.load_config()
+    monkeypatch.setattr(history, "SHEET_PAUSE", 0)
+    is_ours = lambda t: common.is_club(t, config)
+    try:
+        season = history.collect_season("2025-2026", base + rel, {"Équipe fictive Alpha"}, is_ours)
+        assert not any(m["source"]["fdme"] for m in season["matches"])  # les feuilles viennent ensuite
+        assert history.fetch_sheets(season, sandbox / "h.json", is_ours) == 0
+    finally:
+        server.shutdown()
+    played = [m for m in season["matches"] if m["played"]]
+    assert set(season["poules"]) == {"POULE 71"} and len(played) == 9  # la poule 99 (injoignable) est sautée
+    ours = [m for m in played if demo_data.CLUB in (m["home"]["name"], m["away"]["name"])]
+    assert ours and all(m["events"] for m in ours)
+    assert all(not m["events"] for m in played if m not in ours)
+    assert all(m["saison"] == "2025-2026" and m["source"]["fdme"] for m in played
+               if {m["home"]["name"], m["away"]["name"]} & {demo_data.CLUB, "Équipe fictive Alpha"})
+
+
+def test_saison_passee_exploitee(sandbox):
+    """La saison passée donne une note provisoire aux joueurs de l'effectif pas encore alignés,
+    le bilan et la continuité des adversaires, et la force de départ dans la simulation."""
+    club = demo_data.CLUB
+    pl = lambda name, num, goals=0, shots=None, saves=0: dict(num=num, name=name, goals=goals, pen_goals=0, shots=shots,
+                                                              saves=saves, yellow=0, two_min=0, red=0)
+    def match(i, home, away, sh, sa, ph, pa, saison=None, poule="71"):
+        m = dict(id=str(i), poule=poule, journee=1, date=f"2026-0{i}-01T20:00" if not saison else f"2025-1{i % 3}-0{i}T20:00",
+                 played=True, home=dict(name=home, score=sh, ht=None), away=dict(name=away, score=sa, ht=None),
+                 players=dict(home=ph, away=pa), events=[], source=dict(fdme=True))
+        if saison:
+            m.update(saison=saison, phase="POULE 5A")
+        return m
+    ours_now = [pl("GARDIEN Alpha", 1, saves=10), pl("TIREUR Basile", 7, 6, 9), pl("AILIER Corentin", 9, 4, 6)]
+    them_now = [pl("ADVERSE Firmin", 4, 5, 8), pl("ADVERSE Gaspard", 5, 3, 5), pl("NOUVEAU Hector", 6, 2, 4)]
+    common.write_json(sandbox / "data" / "matches" / "1.json", match(1, club, "Club Bravo", 12, 10, ours_now, them_now))
+    past = [match(i, "HANDBALL PAYS DE ST MARCELLIN", "CLUB BRAVO", 30, 20 + i,
+                  [pl("GARDIEN Alpha", 1, saves=12), pl("TIREUR Basile", 7, 8, 12), pl("ABSENT Isidore", 11, 9, 11),
+                   pl("PARTI Octave", 13, 5, 7)],
+                  [pl("ADVERSE Firmin", 4, 10, 15), pl("ADVERSE Gaspard", 5, 6, 9), pl("ANCIEN Leon", 8, 4, 6)],
+                  saison="2025-2026", poule="5A") for i in (1, 2)]
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json", dict(saison="2025-2026", poules={
+        "POULE 5A": dict(id="1", equipes=[], classement=dict(entetes=["Pos.", "Équipe", "Pts"], lignes=[
+            ["1", "HANDBALL PAYS DE ST MARCELLIN", "6"], ["2", "CLUB BRAVO", "2"]]))}, matches=past))
+    roster = {common.name_key(n): dict(nom=n, poste="", disponible=True)
+              for n in ("Alpha Gardien", "Basile Tireur", "Corentin Ailier", "Isidore Absent")}
+    d = an.analyze("2026-01-02", roster=roster)
+    by = {p["nom"]: p for p in d["joueurs"]}
+    assert by["Isidore Absent"]["m"] == 0 and by["Isidore Absent"]["scores"]["equilibre"] is not None
+    assert by["Isidore Absent"]["passe"]["buts"] == 18 and by["Isidore Absent"]["note_base"] == "2025-2026"
+    assert "PARTI Octave" not in by and by["Corentin Ailier"]["passe"] is None
+    assert by["Basile Tireur"]["passe"]["m"] == 2 and by["Basile Tireur"]["note_base"] == "saison et 2025-2026"
+    bravo = d["equipes"]["Club Bravo"]["passe"]
+    assert (bravo["j"], bravo["d"], bravo["rangs"][0]["rang"]) == (2, 2, 2)
+    assert bravo["continuite"] == dict(deja=2, sur=3) and len(bravo["face_a_face"]) == 2
+    assert bravo["buteurs"][0]["nom"] == "ADVERSE Firmin" and bravo["buteurs"][0]["present"] is True
+    assert any(b["nom"] == "ANCIEN Leon" and b["present"] is False for b in bravo["buteurs"])
+
+
+def test_saison_passee_publiee_chiffree(sandbox, monkeypatch):
+    """La saison passée part chiffrée dans historique.enc, revient à la reprise, et n'est pas réécrite
+    tant qu'elle ne change pas."""
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", poules={}, matches=[dict(home=dict(name="Fictif 201"))]))
+    publish.seal("2026-10-04")
+    enc = sandbox / "publie" / publish.HISTORY_NAME
+    assert enc.exists() and "Fictif 201" not in enc.read_text("utf-8")
+    before = enc.read_text("utf-8")
+    publish.seal("2026-10-04")
+    assert enc.read_text("utf-8") == before
+    import shutil
+    shutil.rmtree(sandbox / "data")
+    publish.restore()
+    back = json.loads((sandbox / "data" / "historique" / "2025-2026.json").read_text("utf-8"))
+    assert back["matches"][0]["home"]["name"] == "Fictif 201"
+
+
+def test_feuilles_ralenties(sandbox, monkeypatch):
+    """Le serveur des feuilles demande de ralentir : on attend dans le budget, sinon on reprend plus tard."""
+    from pipeline import history
+    season = dict(saison="2025-2026", matches=[dict(id=str(i), poule="5A", journee=1, date="2025-10-04", saison="2025-2026",
+                  phase="POULE 5A", home=dict(name="A", score=20, ht=None), away=dict(name="B", score=18, ht=None),
+                  players={"home": [], "away": []}, events=[], source=dict(fdme=False, pdf=f"u{i}", utile=True))
+                  for i in range(3)])
+    calls, naps = [], []
+    def fetch(url):
+        calls.append(url)
+        raise collect.Ralenti(600)
+    monkeypatch.setattr(collect, "fetch", fetch)
+    monkeypatch.setattr(collect.time, "sleep", naps.append)
+    left = history.fetch_sheets(season, sandbox / "h.json", lambda t: False, budget=60)
+    assert left == 3 and calls == ["u0"] and naps == []  # 600 s dépassent le budget : on s'arrête net
+    assert json.loads((sandbox / "h.json").read_text("utf-8"))["matches"][0]["source"]["pdf"] == "u0"
+    tries = iter([collect.Ralenti(5), b"pas un pdf", b"pas un pdf", b"pas un pdf"])
+    monkeypatch.setattr(collect, "fetch", lambda url: (lambda x: (_ for _ in ()).throw(x) if isinstance(x, Exception) else x)(next(tries)))
+    history.fetch_sheets(season, sandbox / "h.json", lambda t: False, budget=60)
+    assert naps[0] == 5  # délai demandé respecté, puis reprise

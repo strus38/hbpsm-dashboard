@@ -137,10 +137,32 @@ les notes sont des tendances.
 
 ## Objectif de saison et matchs clés
 
-L'onglet Saison estime les chances d'atteindre le rang visé (`objectif.rang`) en simulant les
-matchs restants de la poule, et donne pour chaque match du club l'écart de chances entre une
-victoire et un autre résultat : les trois plus gros écarts sont les matchs clés. Le modèle ignore
-les pénalités et le règlement de la phase suivante.
+L'onglet Saison estime les chances d'atteindre le rang visé (`objectif.rang`, 3 : se qualifier
+pour la deuxième phase) en simulant les matchs restants de la poule, montre les chances de chaque
+rang final, et donne pour chaque match du club l'écart de chances entre une victoire et un autre
+résultat : les trois plus gros écarts sont les matchs clés. Égalités départagées comme le
+règlement (confrontations directes, puis différence de buts). Règlement AURA 2026-2027 : 2
+montées par secteur (poules 71 et 72), au terme d'une deuxième phase dont la formule sera
+publiée vers février ; le modèle ignore les pénalités.
+
+## Saison passée
+
+`historique` dans `config.yml` désigne les saisons passées au même niveau (2025-2026).
+`python -m pipeline.history` les collecte une fois : les poules où jouaient le club et ses
+adversaires d'aujourd'hui, puis les feuilles de leurs matchs. Le serveur des feuilles limite le
+débit (HTTP 429) : elles arrivent par reprises successives, une toutes les 4 secondes, en
+respectant le délai demandé, dans un budget de 15 minutes par passage (la collecte hebdomadaire
+la relance jusqu'à ce qu'elle soit complète). Le résultat est publié chiffré dans
+`publie/historique.enc`, réécrit seulement s'il change.
+
+Ce qu'elle apporte :
+- les notes des joueurs partent de la saison passée (un match de l'an dernier compte pour la
+  moitié d'un match de cette saison) ; un joueur de l'effectif pas encore aligné reçoit une note
+  provisoire ; un joueur parti n'est pas repris ;
+- pour chaque adversaire déjà vu : bilan et classement, confrontations avec le club, joueurs de
+  cette saison déjà là l'an dernier, devenir de ses meilleurs buteurs ;
+- dans la simulation, la force de départ d'une équipe connue est celle de la saison passée,
+  d'autant plus que son effectif est resté, au lieu de la moyenne de la poule.
 
 ## Lien avec l'application de préparation des entraînements
 

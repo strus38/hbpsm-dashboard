@@ -90,7 +90,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   une vraie feuille : la colonne « Dis » du tableau fait foi ; le libellé du déroulé est supposé
   « Disqualification » ou « Carton rouge ». Un libellé inconnu apparaît dans
   `rapport_extraction.json` (`actions_inconnues`, premier mot seulement) et dans le journal.
-- Avec très peu de matchs joués, notes, matchs clés et axes de travail sont presque vides.
+- Avec très peu de matchs joués, notes, matchs clés et axes de travail sont presque vides : la
+  saison 2025-2026 (`pipeline/history.py`, demande de l'auteur) sert de point de départ. HBPSM y
+  était en poule 5A puis 5 haute ; Bièvre, Tain 2, Pilat 2, St Donat dans les mêmes poules ;
+  Domène, Pontois, Usvizille en poule 7 ; Meylan 2, Drac Isère, Sablons, Nord Drôme sans
+  historique à ce niveau. Feuilles 2025-2026 : ancien format (mots collés, « ButJRN°51NOMprénom »,
+  équipe et numéro donnés), lu par `parse_fdme`.
+- Le serveur des feuilles (fdm.fdme.ffhandball.fr) répond 429 après une trentaine de feuilles à
+  1 s d'intervalle (04/10/2026) : `collect.Ralenti` ; une feuille toutes les 4 s pour
+  l'historique, attente du Retry-After, budget de 15 min par passage, reprise au suivant.
 - Horaire pas encore fixé : la date est celle du début du week-end de la journée, marquée
   « à confirmer » (`date_provisoire`). La comparaison avec l'heure courante se fait en heure
   locale du PC ou du runner (UTC sur GitHub) : sans conséquence, une feuille absente répond 404.

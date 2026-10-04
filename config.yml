@@ -24,6 +24,11 @@ echantillons_debug: true
 # 3 = se qualifier pour une phase 2 réunissant les 3 premiers de chaque poule (choix de l'auteur).
 objectif:
   rang: 3
+# Saisons passées au même niveau : point de départ des notes, effectifs et confrontations des
+# adversaires (collectées une fois par python -m pipeline.history)
+historique:
+  - saison: "2025-2026"
+    competition: "https://www.ffhandball.fr/competitions/saison-2025-2026-21/regional/2eme-division-masculine-p16-aura-27886/"
 # Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
 entrainement:
   equipe: "Seniors garçons"

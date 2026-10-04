@@ -33,7 +33,7 @@ env:
 jobs:
   collecte:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -57,6 +57,9 @@ jobs:
           URL_71: ${{ inputs.url_poule_71 }}
           URL_72: ${{ inputs.url_poule_72 }}
         run: python -m pipeline.collect || echo "::warning::Collecte incomplète, voir le journal"
+
+      - name: Saisons passées (collectées une fois, puis reprises de historique.enc)
+        run: python -m pipeline.history || echo "::warning::Saison passée non collectée, voir le journal"
 
       - name: Lecture des feuilles de match
         run: python -m pipeline.parse_fdme

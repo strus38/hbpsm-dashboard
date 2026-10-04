@@ -12,7 +12,7 @@ import statistics
 from collections import Counter, defaultdict
 
 from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
-                     norm, read_json)
+                     norm, read_json, same_team)
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
 PLANS = {
@@ -261,9 +261,75 @@ def team_profiles(matches, teams_by_poule=None):
             out.setdefault(team, dict(
                 equipe=team, poule=poule, j=0, bp_moy=None, bc_moy=None, forme=[], matches=[],
                 mt1_bp=None, mt2_bp=None, mt1_bc=None, mt2_bc=None, jaunes_moy=None, deux_min_moy=None,
-                rouges=None, buteurs=[], arrets_pct=None, gardiens=[],
+                rouges=None, buteurs=[], arrets_pct=None, gardiens=[], passe=None,
                 periodes_bp=None, periodes_bc=None))
     return out
+
+
+def load_history():
+    """Saisons passées collectées par pipeline.history, de la plus ancienne à la plus récente ; seuls
+    les matchs joués, avec leurs deux équipes et leur score, sont gardés."""
+    ok = lambda m: all((m.get(side) or {}).get("name") and (m.get(side) or {}).get("score") is not None
+                       for side in ("home", "away"))
+    seasons = []
+    for path in sorted((DATA / "historique").glob("*.json")):
+        season = read_json(path)
+        season["matches"] = [m for m in season.get("matches") or [] if ok(m)]
+        seasons.append(season)
+    return seasons
+
+
+def history_profiles(seasons, profiles, matches, config):
+    """Ce que la saison passée dit des équipes d'aujourd'hui : bilan et classement, confrontations
+    avec le club, part de l'effectif de cette saison déjà là, devenir des meilleurs buteurs.
+    Renvoie aussi, pour la simulation, la force relative de chaque équipe et sa continuité."""
+    priors = {}
+    same = lambda a, b: same_team(a, b) or (is_club(a, config) and is_club(b, config))
+    for prof in profiles.values():
+        prof.setdefault("passe", None)
+    for season in seasons[-1:]:  # la saison la plus récente
+        played = season.get("matches") or []
+        if not played:
+            continue
+        avg = sum(m["home"]["score"] + m["away"]["score"] for m in played) / (2 * len(played))
+        for team, prof in profiles.items():
+            mine = [(m, side) for m in played for side in ("home", "away") if same(m[side]["name"], team)]
+            if not mine:
+                continue
+            other = lambda side: "away" if side == "home" else "home"
+            res = [outcome(m[side]["score"], m[other(side)]["score"]) for m, side in mine]
+            bp = sum(m[side]["score"] for m, side in mine)
+            bc = sum(m[other(side)]["score"] for m, side in mine)
+            rangs = []
+            for label, poule in (season.get("poules") or {}).items():
+                for row in ((poule.get("classement") or {}).get("lignes") or []):
+                    if same(row[1], team):
+                        rangs.append(dict(poule=label, rang=int(row[0]) if str(row[0]).isdigit() else None,
+                                          equipes=len(poule["classement"]["lignes"])))
+            face = [dict(date=m.get("date"), phase=m.get("phase"), dom=side == "home",
+                         score=f"{m[side]['score']}-{m[other(side)]['score']}",
+                         res=outcome(m[side]["score"], m[other(side)]["score"]))
+                    for m, side in mine if is_club(m[other(side)]["name"], config) and not is_club(team, config)]
+            last = {name_key(pl["name"]) for m, side in mine for pl in (m.get("players") or {}).get(side, [])}
+            now = {name_key(pl["name"]) for m in matches for side in ("home", "away") if m[side]["name"] == team
+                   for pl in (m.get("players") or {}).get(side, [])}
+            scorers = Counter()
+            names = {}
+            for m, side in mine:
+                for pl in (m.get("players") or {}).get(side, []):
+                    scorers[name_key(pl["name"])] += pl.get("goals") or 0
+                    names[name_key(pl["name"])] = (pl["name"], pl.get("num"))
+            buteurs = [dict(nom=names[k][0], num=names[k][1], buts=b, present=(k in now) if now else None)
+                       for k, b in scorers.most_common(3) if b]
+            cont = dict(deja=len(now & last), sur=len(now)) if now and last else None
+            prof["passe"] = dict(saison=season["saison"], j=len(mine), v=res.count("V"), n=res.count("N"),
+                                 d=res.count("D"), bp_moy=round(bp / len(mine), 1), bc_moy=round(bc / len(mine), 1),
+                                 rangs=rangs, face_a_face=face, continuite=cont, buteurs=buteurs,
+                                 feuilles=sum(1 for m, side in mine if (m.get("players") or {}).get(side)))
+            # continuité inconnue (pas encore de feuille cette saison) : la saison passée compte à moitié
+            c = cont["deja"] / cont["sur"] if cont else 0.5
+            priors[team] = ((bp / len(mine)) / avg, (bc / len(mine)) / avg, c)
+    return priors
 
 
 def fr(x):
@@ -302,20 +368,24 @@ def load_roster():
     return roster
 
 
-def club_players(matches, config, roster):
-    """Agrège les statistiques individuelles du club et calcule les notes."""
-    club_matches = []
+HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
+
+
+def club_matches_of(matches, config):
+    """[(match, côté du club, adversaire, buts pour, buts contre)] dans l'ordre des dates."""
+    out = []
     for m in sorted(matches, key=lambda x: x.get("date") or ""):
         for side, team, opp, gf, ga in sides(m):
             if is_club(team, config):
-                club_matches.append((m, side, opp, gf, ga))
-    n_total = len(club_matches)
-    with_sheet = [c for c in club_matches if c[0].get("players", {}).get(c[1])]
-    n_sheet = len(with_sheet)
-    players = {}
-    any_events = False
+                out.append((m, side, opp, gf, ga))
+    return out
+
+
+def player_stats(with_sheet, weight_of):
+    """Statistiques par joueur sur des matchs du club avec feuille ; weight_of(i) : poids de forme."""
+    players, any_events = {}, False
     for idx, (m, side, opp, gf, ga) in enumerate(with_sheet):
-        weight = DECAY ** (n_sheet - 1 - idx)
+        weight = weight_of(idx)
         events = m.get("events") or []
         any_events = any_events or bool(events)
         clutch = Counter()
@@ -331,7 +401,7 @@ def club_players(matches, config, roster):
                 buckets[e["num"]].add(min(5, int(e["t"] // 600)))
         conceded, estimated = keepers_conceded(m, side)
         for p in m["players"][side]:
-            key = norm(p.get("name")) or f"N{p.get('num')}"
+            key = name_key(p.get("name")) or f"N{p.get('num')}"
             rec = players.setdefault(key, dict(
                 cle=key, nom=p.get("name") or f"n° {p.get('num')}", nums=Counter(),
                 m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux_min=0,
@@ -368,38 +438,71 @@ def club_players(matches, config, roster):
                                        rouges=p.get("red") or 0,
                                        arrets=p.get("saves") or 0, pris=pris,
                                        pct=save_pct(p["saves"], pris) if pris is not None else None))
+    return players, any_events
+
+
+EMPTY = dict(m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux_min=0, rouges=0,
+             w_buts=0.0, w=0.0, pris=0, cadres=0, nums=Counter())
+
+
+def club_players(matches, config, roster, history=()):
+    """Statistiques individuelles du club et notes. La saison passée (history : matchs) sert de
+    point de départ : ses matchs comptent pour HIST dans la forme, le tir, la discipline, les
+    arrêts et l'assiduité ; l'impact et les fins de match restent ceux de la saison en cours,
+    l'équipe autour du joueur ayant changé. Un joueur de la saison passée absent de l'effectif
+    n'est pas repris."""
+    club_matches = club_matches_of(matches, config)
+    with_sheet = [c for c in club_matches if c[0].get("players", {}).get(c[1])]
+    n_sheet = len(with_sheet)
+    players, any_events = player_stats(with_sheet, lambda i: DECAY ** (n_sheet - 1 - i))
+    past_ws = [c for c in club_matches_of(history, config) if c[0].get("players", {}).get(c[1])]
+    n_past = len(past_ws)
+    past, _ = player_stats(past_ws, lambda i: HIST * DECAY ** (n_sheet + n_past - 1 - i))
+    saison_passee = max((c[0].get("saison") or "" for c in past_ws), default="") or None
+    for key, h in past.items():  # joueurs de la saison passée encore dans l'effectif
+        if key not in players and match_name(h["nom"], roster):
+            players[key] = dict(EMPTY, cle=key, nom=h["nom"], nums=Counter(), clutch=0, diffs=[], journal=[],
+                                tranches=0, m_deroule=0, estime=False)
     all_diffs = [gf - ga for _, _, _, gf, ga in with_sheet]
-    max_form = max((r["w_buts"] / r["w"] for r in players.values()), default=0) or 1
-    max_clutch = max((r["clutch"] / r["m"] for r in players.values()), default=0) or 1
-    max_saves = max((r["arrets"] / r["m"] for r in players.values()), default=0) or 1
+    blend = lambda r, h, k: r[k] + HIST * h[k]
+    hist_of = lambda r: past.get(r["cle"], EMPTY)
+    form = lambda r, h: (r["w_buts"] + h["w_buts"]) / (r["w"] + h["w"]) if r["w"] + h["w"] else 0
+    max_form = max((form(r, hist_of(r)) for r in players.values()), default=0) or 1
+    max_clutch = max((r["clutch"] / r["m"] for r in players.values() if r["m"]), default=0) or 1
+    max_saves = max((blend(r, hist_of(r), "arrets") / blend(r, hist_of(r), "m")
+                     for r in players.values() if blend(r, hist_of(r), "m")), default=0) or 1
     out = []
     seen = set()
     for r in players.values():
+        h = hist_of(r)
         rkey = match_name(r["nom"], roster)
         seen.add(rkey)
         ros = roster.get(rkey, {})
         if ros.get("nom"):
             r["nom"] = ros["nom"]  # l'orthographe de l'effectif fait foi à l'affichage
         poste = ros.get("poste", "")
-        gk = "GB" in poste.split("/") or (not poste and r["arrets"] > r["buts"] and r["arrets"] > 0)
-        m = r["m"]
+        saves, goals = blend(r, h, "arrets"), blend(r, h, "buts")
+        gk = "GB" in poste.split("/") or (not poste and saves > goals and saves > 0)
+        m, mw = r["m"], blend(r, h, "m")
         without = n_sheet - m
-        rest = (sum(all_diffs) - sum(r["diffs"])) / without if without else None
+        rest = (sum(all_diffs) - sum(r["diffs"])) / without if without and m else None
         raw_imp = (sum(r["diffs"]) / m - rest) if rest is not None else 0.0
-        shrink = min(m, without) / (min(m, without) + 2) if without else 0.0
+        shrink = min(m, without) / (min(m, without) + 2) if without and m else 0.0
         impact = raw_imp * shrink
-        penal = (r["deux_min"] + 3 * r["rouges"] + 0.3 * r["jaunes"]) / m
+        penal = (blend(r, h, "deux_min") + 3 * blend(r, h, "rouges") + 0.3 * blend(r, h, "jaunes")) / mw
+        tirs = blend(r, h, "tirs")
         # % d'arrêts lissé vers 30 % (10 tirs fictifs), ramené sur l'échelle 15 % -> 0, 45 % -> 1
-        pct_lisse = (r["cadres"] - r["pris"] + 3) / (r["cadres"] + 10)
+        cadres, pris = blend(r, h, "cadres"), blend(r, h, "pris")
+        pct_lisse = (cadres - pris + 3) / (cadres + 10)
         comps = dict(
-            att=(r["w_buts"] / r["w"]) / max_form,
-            eff=(r["tirs_connus"] + 2.5) / (r["tirs"] + 5) if r["tirs"] else 0.5,
+            att=form(r, h) / max_form,
+            eff=(blend(r, h, "tirs_connus") + 2.5) / (tirs + 5) if tirs else 0.5,
             disc=max(0.0, 1 - penal / 2),
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
-            clutch=(r["clutch"] / m) / max_clutch if any_events else 0.5,
-            assid=m / n_sheet if n_sheet else 0,
+            clutch=(r["clutch"] / m) / max_clutch if any_events and m else 0.5,
+            assid=mw / (n_sheet + HIST * n_past) if n_sheet + n_past else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
-            gk_vol=(r["arrets"] / m) / max_saves if gk else 0,
+            gk_vol=(saves / mw) / max_saves if gk else 0,
         )
         scores = {}
         for plan, w in PLANS.items():
@@ -408,9 +511,15 @@ def club_players(matches, config, roster):
             else:
                 val = sum(w[k] * comps[k] for k in w)
             scores[plan] = round(100 * val)
+        passe = dict(saison=saison_passee, m=h["m"], buts=h["buts"], pen=h["pen"], tirs=h["tirs"] or None,
+                     reussite=round(100 * h["tirs_connus"] / h["tirs"]) if h["tirs"] else None,
+                     arrets=h["arrets"], pct_arrets=save_pct(h["cadres"] - h["pris"], h["pris"]),
+                     jaunes=h["jaunes"], deux_min=h["deux_min"], rouges=h["rouges"]) if h["m"] else None
+        nums = r["nums"] + h["nums"]
         out.append(dict(
             # clé stable : un poste saisi avant le premier match reste attaché au joueur
-            cle="R:" + rkey if rkey else r["cle"], nom=r["nom"], num=r["nums"].most_common(1)[0][0],
+            cle="R:" + rkey if rkey else r["cle"], nom=r["nom"],
+            num=(r["nums"] or nums).most_common(1)[0][0] if nums else None,
             poste=poste, gardien=gk, disponible=ros.get("disponible", True),
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
@@ -420,11 +529,12 @@ def club_players(matches, config, roster):
             tirs_subis=r["cadres"] or None, pct_arrets=save_pct(r["cadres"] - r["pris"], r["pris"]),
             pris_estime=r["estime"],
             jaunes=r["jaunes"], deux_min=r["deux_min"], rouges=r["rouges"],
-            buts_moy=round(r["buts"] / m, 1),
-            forme_buts=round(r["w_buts"] / r["w"], 1),
+            buts_moy=round(r["buts"] / m, 1) if m else 0,
+            forme_buts=round(form(r, h), 1),
             impact=round(impact, 1), decisifs=r["clutch"],
             comps={k: round(v, 2) for k, v in comps.items()},
-            scores=scores, journal=r["journal"]))
+            scores=scores, journal=r["journal"], passe=passe,
+            note_base="saison" if m and not h["m"] else "saison et " + saison_passee if m else saison_passee))
     out.sort(key=lambda p: -p["scores"]["equilibre"])
     # joueurs de l'effectif jamais inscrits sur une feuille : listés, sans note
     for rkey, ros in sorted(roster.items(), key=lambda kv: norm(kv[1].get("nom") or kv[0])):
@@ -437,7 +547,7 @@ def club_players(matches, config, roster):
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
             comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
-            scores={plan: None for plan in PLANS}, journal=[]))
+            scores={plan: None for plan in PLANS}, journal=[], passe=None, note_base=None))
     return out, club_matches, with_sheet
 
 
@@ -468,7 +578,7 @@ def pairs(with_sheet):
     return out
 
 
-def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=()):
+def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None):
     """Course au classement : chances d'atteindre le rang visé et enjeu de chaque match.
 
     Chaque match restant est simulé à partir des moyennes de buts marqués et
@@ -502,9 +612,20 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         return base
     total_j = sum(r["j"] for r in table.values()) or 1
     avg = sum(r["bp"] for r in table.values()) / total_j
-    k = 3  # poids de la moyenne de poule, en matchs
-    att = {t: ((r["bp"] + k * avg) / (r["j"] + k)) / avg for t, r in table.items()}
-    dfn = {t: ((r["bc"] + k * avg) / (r["j"] + k)) / avg for t, r in table.items()}
+    priors = priors or {}
+
+    def rate(t, scored):
+        """Buts marqués (ou encaissés) attendus, relatifs à la moyenne : les matchs joués, ramenés vers
+        une valeur de départ — la moyenne de poule, ou le niveau de la saison passée d'autant plus
+        que l'effectif est resté (continuité c), pesant 3 à 5 matchs."""
+        r, prior = table[t], priors.get(t)
+        c = prior[2] if prior else 0.0
+        rel = 1 + ((prior[0] if scored else prior[1]) - 1) * c if prior else 1.0
+        k = 3 + 2 * c
+        return ((r["bp" if scored else "bc"] + k * avg * rel) / (r["j"] + k)) / avg
+
+    att = {t: rate(t, True) for t in table}
+    dfn = {t: rate(t, False) for t in table}
     rng = random.Random(seed)
 
     def play(f):
@@ -667,10 +788,13 @@ def analyze(today=None, roster=None):
         by_poule[str(m.get("poule"))].append(m)
     teams = known_teams(fixtures, official)
     profiles = team_profiles(matches, teams)
+    seasons = load_history()
+    priors = history_profiles(seasons, profiles, matches, config)
     for team, prof in profiles.items():
         plan, why = recommend_plan(prof, profiles)
         prof["plan"], prof["plan_raison"] = plan, why
-    players, club_matches, with_sheet = club_players(matches, config, roster)
+    players, club_matches, with_sheet = club_players(matches, config, roster,
+                                                     history=(seasons[-1].get("matches") or []) if seasons else ())
 
     club_name = next((t for t in profiles if is_club(t, config)), None)
     upcoming = sorted((f for f in fixtures if f.get("score_home") is None
@@ -693,7 +817,8 @@ def analyze(today=None, roster=None):
     n_fdme = sum(1 for m in matches if (m.get("players") or {}).get("home"))
     club_poule = profiles[club_name]["poule"] if club_name else None
     target = int((config.get("objectif") or {}).get("rang", 1))
-    saison = (outlook(matches, fixtures, club_name, club_poule, target, known=teams.get(str(club_poule), ()))
+    saison = (outlook(matches, fixtures, club_name, club_poule, target, known=teams.get(str(club_poule), ()),
+                      priors=priors)
               if club_name else None)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
@@ -703,7 +828,8 @@ def analyze(today=None, roster=None):
                   demo=any((m.get("source") or {}).get("demo") for m in matches),
                   matchs=len(matches), feuilles=n_fdme, effectif=squad,
                   gardiens=int(config.get("gardiens_feuille", 2)),
-                  club_matchs=len(club_matches), club_feuilles=len(with_sheet)),
+                  club_matchs=len(club_matches), club_feuilles=len(with_sheet),
+                  historique=[x.get("saison") for x in seasons]),
         prochain=nxt,
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p))
                 for p in sorted(set(by_poule) | set(teams))},

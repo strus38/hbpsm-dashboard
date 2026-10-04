@@ -222,6 +222,7 @@ nav.tabs[hidden]{display:none}
 .chip.cr{border-color:var(--loss);color:var(--loss)}
 .chip.avenir{border-color:var(--track);color:var(--link)}
 .detail{padding:0 12px 12px}
+.passe{margin:6px 0 0}
 @media print{header.club,nav.tabs,.noprint,.note{display:none!important}body,.panel{background:#fff;border:0}main{max-width:none}}
 .ranks{display:grid;grid-template-columns:repeat(auto-fit,minmax(36px,1fr));gap:6px;align-items:end;height:110px;margin-top:12px}
 .ranks div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:3px;font-size:.74rem;color:var(--muted)}
@@ -316,7 +317,12 @@ const horizon = () => {
   return D.prochain ? [Object.assign({p_victoire:null, enjeu:null, cle:false, rang_adv:null}, D.prochain)] : [];
 };
 const planOf = m => (D.equipes[m.adversaire] && D.equipes[m.adversaire].plan) || "equilibre";
-const val = (p, m) => p.m > 0 ? (p.scores[planOf(m)] ?? NON_NOTE) : NON_NOTE;
+const rated = p => p.scores && p.scores.equilibre != null;
+const val = (p, m) => rated(p) ? (p.scores[planOf(m)] ?? NON_NOTE) : NON_NOTE;
+// saison passée, en une ligne : « 2025-2026 : 14 matchs, 52 buts (61 %) »
+const passeLine = p => !p.passe ? "" : p.passe.saison+" : "+p.passe.m+" match"+(p.passe.m>1?"s":"")+", "
+  + (isGK(p) ? (p.passe.pct_arrets != null ? p.passe.pct_arrets+" % d'arrêts" : p.passe.arrets+" arrêts")
+             : p.passe.buts+" buts"+(p.passe.tirs ? " ("+p.passe.reussite+" %)" : ""));
 const availOf = (p, m) => !dispo(p) ? "a" : ((S.dm[m.id] || {})[p.cle] || "d");
 const pinOf = (p, m) => (S.pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
@@ -405,7 +411,8 @@ function viewSemaine(){
     + '<div><b class="num">'+pct(r.pAdj)+'</b><span>victoire estimée avec cette équipe'+(m.p_victoire != null && r.pAdj !== m.p_victoire ? " ("+m.p_victoire+" % au complet)" : "")+'</span></div>'
     + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de '+objectif((D.saison||{}).cible)+' en jeu</span></div>'
     + '</div><p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
-    + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")+'</p></div>';
+    + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")
+    + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
   const conv = S.convoque[m.id];
   h += '<h2>Les 12 pour ce match</h2><div class="panel">'+squadChips(r)
     + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : "Convocation pas encore envoyée.")
@@ -468,8 +475,8 @@ function viewPlanif(){
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
-    for(const p of list.sort((a, b) => (b.m > 0) - (a.m > 0) || val(b, P[0].m) - val(a, P[0].m))){
-      h += '<div class="who"><b>'+esc(p.num ?? "")+'</b> '+esc(p.nom)+(p.m ? "" : ' <small class="muted">sans note</small>')+'</div>';
+    for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
+      h += '<div class="who"><b>'+esc(p.num ?? "")+'</b> '+esc(p.nom)+(p.m ? "" : rated(p) ? ' <small class="muted">note '+esc(p.note_base)+'</small>' : ' <small class="muted">sans note</small>')+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -552,12 +559,13 @@ function playerCard(p, plan, refs){
   const gk = isGK(p), planned = PLAN.filter(r => r.sel.includes(p)).length;
   const chips = [p.jaunes ? '<span class="chip cj">'+p.jaunes+' CJ</span>' : '', p.deux_min ? '<span class="chip">'+p.deux_min+' × 2 min</span>' : '',
     p.rouges ? '<span class="chip cr">'+p.rouges+' CR</span>' : ''].join("") || (p.m ? '<span class="chip">aucune sanction</span>' : '');
-  return '<div class="pc'+(dispo(p)?"":" out")+'"><div class="pc-head">'+ring(p.m ? p.scores[plan] : null)
+  return '<div class="pc'+(dispo(p)?"":" out")+'"><div class="pc-head">'+ring(rated(p) ? p.scores[plan] : null)
     + '<div><b>'+esc(p.num != null ? p.num+" · " : "")+esc(p.nom)+'</b><br><span class="small muted">'+(poste(p) ? esc(POSTE_NOM[poste(p).split("/")[0]] || poste(p)) : (gk ? "Gardien" : "poste non renseigné"))
-    + ' · '+(p.m ? p.m+" match"+(p.m>1?"s":"")+" sur "+p.m_total : "pas encore aligné")+'</span></div></div>'
+    + ' · '+(p.m ? p.m+" match"+(p.m>1?"s":"")+" sur "+p.m_total : rated(p) ? "pas encore aligné, note "+esc(p.note_base) : "pas encore aligné")+'</span></div></div>'
     + (p.m ? spark(p.journal.map(j => gk ? j.arrets : j.buts), gk) : "")
     + (gk ? bar(p.pct_arrets, refs.gk, "Arrêts sur tirs cadrés"+(p.pris_estime ? " (estimé)" : ""))
           : bar(p.reussite, refs.tir, "Réussite au tir"+(p.tirs ? " · "+p.buts+"/"+p.tirs : "")))
+    + (p.passe ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
     + '<div class="chips">'+chips+'<span class="chip avenir">retenu '+planned+'/'+PLAN.length+' à venir</span></div></div>';
 }
 function viewJoueurs(){
@@ -568,7 +576,7 @@ function viewJoueurs(){
   const gkRefs = Object.values(D.equipes).map(e => e.arrets_pct).filter(x => x != null);
   const refs = {tir: tirs ? Math.round(100 * field.reduce((a, p) => a + p.buts, 0) / tirs) : null,
                 gk: gkRefs.length ? Math.round(gkRefs.reduce((a, b) => a + b, 0) / gkRefs.length) : null};
-  const sorted = list => list.sort((a, b) => (b.m > 0) - (a.m > 0) || (b.scores[plan] ?? 0) - (a.scores[plan] ?? 0));
+  const sorted = list => list.sort((a, b) => rated(b) - rated(a) || (b.scores[plan] ?? 0) - (a.scores[plan] ?? 0));
   let h = '<header class="top"><p class="when">Notes sur 100, pondération équilibrée · réf. = moyenne de l\'équipe (tir) ou des gardiens des deux poules</p><h1>Joueurs</h1></header>';
   for(const [title, list] of [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]]){
     h += '<h2>'+title+'</h2><div class="pcs">'+sorted(list).map(p => '<details data-cle="'+esc(p.cle)+'"'+(OPEN.has(p.cle)?" open":"")+'><summary>'+playerCard(p, plan, refs)+'</summary>'+playerDetail(p, plan)+'</details>').join("")+'</div>';
@@ -582,7 +590,8 @@ function playerDetail(p, plan){
   const comps = Object.keys(COMP_NOM).filter(k => gk ? GK_COMPS.includes(k) : !k.startsWith("gk"));
   let h = '<div class="detail"><div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'"><option value="">non renseigné</option>'+POSTES.map(k=>'<option value="'+k+'"'+(poste(p)===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("")+'</select></label>'
     + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Absent pour plusieurs semaines":"De retour : disponible")+'</button></div>';
-  if(!p.m) return h + '<p class="small muted">Pas encore de feuille de match lue cette saison : pas de note. Il peut compléter une feuille ou entrer dans la rotation.</p></div>';
+  if(!p.m) return h + '<p class="small muted">'+(rated(p) ? 'Pas encore aligné cette saison : note provisoire tirée de la saison '+esc(p.note_base)+' ('+esc(passeLine(p))+').'
+    : 'Pas encore de feuille de match lue : pas de note. Il peut compléter une feuille ou entrer dans la rotation.')+'</p></div>';
   h += '<p class="small">'+esc(reasons(p))+'</p>'
     + comps.map(k=>'<div class="comp"><span>'+COMP_NOM[k]+'</span><span class="track"><i style="width:'+Math.round(100*p.comps[k])+'%"></i></span><span class="num">'+Math.round(100*p.comps[k])+'</span></div>').join("")
     + '<div class="scroll" style="margin:10px 0 4px"><table><thead><tr><th>Date</th><th>Adversaire</th><th>Score</th>'
@@ -630,6 +639,20 @@ function common(adv){
   if(rows.length) h += '<div class="scroll"><table><thead><tr><th>Adversaire commun</th><th>'+esc(D.meta.club_court)+'</th><th>Eux</th></tr></thead><tbody>'+rows.join("")+'</tbody></table></div>';
   return h ? '<h2>Repères communs</h2><div class="panel">'+h+'</div>' : "";
 }
+function pastBlock(e){   // ce que la saison passée dit de cet adversaire
+  const x = e.passe;
+  if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
+  const rangs = x.rangs.map(r => ord(r.rang)+" de la poule "+esc(r.poule)+" ("+r.equipes+" équipes)").join(", ");
+  let h = '<h2>Saison '+esc(x.saison)+'</h2><div class="panel">'
+    + '<div class="kpis"><div><b class="num">'+x.v+'-'+x.n+'-'+x.d+'</b><span>victoires, nuls, défaites</span></div>'
+    + '<div><b class="num">'+fr(x.bp_moy)+'</b><span>buts marqués par match</span></div><div><b class="num">'+fr(x.bc_moy)+'</b><span>buts encaissés par match</span></div>'
+    + (x.continuite ? '<div><b class="num">'+x.continuite.deja+'/'+x.continuite.sur+'</b><span>joueurs de cette saison déjà là</span></div>' : "")+'</div>'
+    + (rangs ? '<p class="small">'+rangs+'.</p>' : "");
+  if(x.face_a_face.length) h += '<p><b>Contre '+esc(D.meta.club_court)+'</b> : '+x.face_a_face.map(f => '<span class="form"><i class="'+(f.res==="V"?"D":f.res==="D"?"V":"N")+'">'+(f.res==="V"?"D":f.res==="D"?"V":"N")+'</i></span> '+esc(f.score.split("-").reverse().join("-"))+(f.dom?" (ext.)":" (dom.)")).join(" · ")+'</p>';
+  if(x.buteurs.length) h += '<p class="small">Meilleurs buteurs : '+x.buteurs.map(b => esc(b.nom)+(b.num != null ? " (n° "+esc(b.num)+")" : "")+", "+b.buts+" buts"+(b.present === true ? ", toujours là" : b.present === false ? ", pas revu cette saison" : "")).join(" ; ")+'.</p>';
+  if(!x.continuite) h += '<p class="small muted">Continuité de l\'effectif : à voir dès leur première feuille de match cette saison.</p>';
+  return h + '</div>';
+}
 function viewAdv(){
   const {adv, names} = opponent();
   if(!adv) return '<header class="top"><h1>Adversaires</h1></header>'+emptyPanel();
@@ -652,7 +675,7 @@ function viewAdv(){
     + e.gardiens.map(g=>'<li class="row"><span class="jersey">'+esc(g.num ?? "–")+'</span><span class="who"><b>'+esc(g.nom)+'</b><br><span class="why">'
       + g.arrets+' arrêts'+(g.pris!=null?', '+g.pris+' buts pris'+(g.estime?' (estimé)':''):'')+' en '+g.m+' match'+(g.m>1?"s":"")+'</span></span>'
       + '<span class="score">'+(g.pct!=null?g.pct+' %':'–')+'</span></li>').join("")+'</ul>';
-  return h + '</div>' + common(adv);
+  return h + '</div>' + pastBlock(e) + common(adv);
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";

@@ -44,6 +44,21 @@ def match_name(name, keys):
     return hits[0] if len(hits) == 1 else None
 
 
+TEAM_WORDS = {"HB", "HBC", "HANDBALL", "CLUB", "RTE", "ENTENTE", "DIV", "DIV2"}
+
+
+def team_key(name):
+    """Mots qui distinguent une équipe, sans préfixe de division ni mot générique."""
+    n = re.sub(r"^P\d+[MF]?\s*(DIV\d*)?\s*", "", norm(name))
+    return frozenset(w for w in n.split() if w not in TEAM_WORDS)
+
+
+def same_team(a, b):
+    """Même équipe sous deux écritures : mêmes mots distinctifs, ou l'une contenue dans l'autre."""
+    ka, kb = team_key(a), team_key(b)
+    return bool(ka and kb) and (ka == kb or (len(ka & kb) >= 2 and (ka <= kb or kb <= ka)))
+
+
 def is_club(name, config):
     n = norm(name)
     return any(norm(m) in n for m in config["club"]["motifs"])
