@@ -196,6 +196,9 @@ nav.tabs[hidden]{display:none}
 .cell.rest{border-style:dashed;border-color:var(--track);color:var(--track);background:transparent}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
+.plan .pst{font-size:.7rem;color:var(--muted)}
+.plan .cov{display:inline-block;margin:1px 2px;padding:0 5px;border-radius:9px;background:color-mix(in srgb,var(--track) 12%,transparent);color:var(--track);font-weight:700;white-space:nowrap}
+.plan .cov.low{background:color-mix(in srgb,var(--loss) 14%,transparent);color:var(--loss)}
 .fia{font-size:.74rem;letter-spacing:0;color:var(--track);white-space:nowrap;cursor:help}
 .how{display:grid;gap:3px;margin:4px 0 12px;padding:10px 12px;border-left:3px solid var(--accent-trait);background:var(--surface);border-radius:6px}
 .cell.man{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--accent-trait)}
@@ -249,7 +252,7 @@ nav.tabs[hidden]{display:none}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "bc898903b87d", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "6992e651ff96", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -359,6 +362,29 @@ function fia(p){
 // n'est pas tenu pour les gardiens, les deux sont changés sur un match à votre portée (victoire
 // estimée d'au moins ROT_GB2 %).
 const ruleOf = n => Math.min(Number(S.regle) || 0, n);
+// Postes clefs (config.yml) : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un
+// des postes du groupe ; un joueur à deux postes (« ARG/DC ») ne tient qu'une place.
+const KEYS = () => D.meta.postes_clefs || [];
+const postesOf = p => poste(p).split("/").filter(Boolean);
+const canPlay = (p, g) => postesOf(p).some(x => g.postes.includes(x));
+function coverage(team){   // places de chaque groupe tenues par l'équipe (couplage, chaque joueur sur une place)
+  const keys = KEYS(), slots = [];
+  keys.forEach((g, i) => { for(let j = 0; j < g.min; j++) slots.push(i); });
+  const owner = slots.map(() => null);
+  const place = (p, seen) => {
+    for(let s = 0; s < slots.length; s++){
+      if(seen[s] || !canPlay(p, keys[slots[s]])) continue;
+      seen[s] = true;
+      if(owner[s] === null || place(owner[s], seen)){ owner[s] = p; return true; }
+    }
+    return false;
+  };
+  for(const p of team) place(p, slots.map(() => false));
+  return keys.map((g, i) => ({nom: g.nom, postes: g.postes, min: g.min, n: owner.filter((o, s) => o && slots[s] === i).length}));
+}
+const filled = team => coverage(team).reduce((a, c) => a + c.n, 0);
+const samePoste = (a, b) => { const s = postesOf(a).filter(x => postesOf(b).includes(x)); return s.length ? " (même poste : "+s.join("/")+")" : ""; };
+const covered = team => coverage(team).every(c => c.n >= c.min);
 function planning(){
   const H = horizon(), size = D.meta.effectif || 12, nGK = D.meta.gardiens ?? 2;
   // 1. pour chaque match, les mieux notés parmi les disponibles, vos choix d'abord
@@ -369,8 +395,14 @@ function planning(){
     const unsure = pool.filter(p => availOf(p, m) === "i" && !pinned.includes(p)).sort((a, b) => val(b, m) - val(a, m));
     const pick = (gk, n) => {
       const take = [...pinned.filter(p => isGK(p) === gk)];
-      for(const p of sure) if(take.length < n && isGK(p) === gk) take.push(p);
-      for(const p of unsure) if(take.length < n && isGK(p) === gk) take.push(p);
+      const cands = [...sure, ...unsure].filter(p => isGK(p) === gk);
+      // joueurs de champ : d'abord les postes clefs, le mieux noté qui tient une place de plus
+      while(!gk && take.length < n && !covered(take)){
+        const c = cands.find(p => !take.includes(p) && filled([...take, p]) > filled(take));
+        if(!c) break;
+        take.push(c);
+      }
+      for(const p of cands) if(take.length < n && !take.includes(p)) take.push(p);
       return take;
     };
     // un gardien manquant laisse sa place à un joueur de champ : la feuille reste à 12, le manque est signalé
@@ -394,8 +426,11 @@ function planning(){
         for(const p of owed){
           for(const r of easy){
             if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
-            const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q))
-              .sort((a, b) => apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+            // poste pour poste quand c'est possible, sans jamais découvrir un poste clef
+            const like = q => postesOf(q).some(x => postesOf(p).includes(x));
+            const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q)
+                && (gk || filled(team(r).map(x => x === q ? p : x)) >= filled(team(r))))
+              .sort((a, b) => like(b) - like(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
             team(r)[team(r).indexOf(out)] = p;
             r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
@@ -418,19 +453,22 @@ function planning(){
     const pAdj = base == null ? null : Math.max(3, Math.min(97, Math.round(base - (1 - force) * 60)));
     const impact = base == null || m.enjeu == null ? null : Math.max(0, (base - pAdj) / 100 * m.enjeu);
     const ok = sel.length === size && gks.length === nGK;
-    const level = !ok ? "hi" : impact == null ? "ok" : impact < 1 ? "ok" : impact < 3 ? "mid" : "hi";
+    const postes = coverage(field), postesOk = postes.every(c => c.n >= c.min);
+    const level = !ok || !postesOk ? "hi" : impact == null ? "ok" : impact < 1 ? "ok" : impact < 3 ? "mid" : "hi";
     const regulars = D.joueurs.filter(p => p.m > 0).sort((a, b) => val(b, m) - val(a, m)).slice(0, size);
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, postes, postesOk,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
   return Object.assign(out, {quota, apps, need});
 }
 const RISK = {ok:"risque faible", mid:"risque modéré", hi:"risque élevé"};
-const riskTag = r => '<span class="risk '+r.level+'">'+(r.ok ? RISK[r.level] : "feuille incomplète")+'</span>';
+const riskTag = r => '<span class="risk '+r.level+'">'+(!r.ok ? "feuille incomplète" : !r.postesOk ? "poste clef non couvert" : RISK[r.level])+'</span>';
+const manquePostes = r => r.postes.filter(c => c.n < c.min).map(c => (c.min - c.n)+" "+(c.min - c.n > 1 ? c.nom : c.nom.replace(/s$/, "")));
 function advice(r){
   const m = r.m;
   if(!r.ok) return "Il manque "+(r.missingGK > 0 ? r.missingGK+" gardien"+(r.missingGK>1?"s":"") : r.missing+" joueur"+(r.missing>1?"s":""))+" disponible"+((r.missingGK>1||r.missing>1)?"s":"")+" pour la feuille.";
+  if(!r.postesOk) return "Postes clefs non couverts : il manque "+manquePostes(r).join(" et ")+". Rendez disponible un joueur de ce poste, ou indiquez dans l'onglet Joueurs qui peut y jouer (2e poste).";
   if(m.cle) return "Match clé pour la saison : alignez l'équipe la plus forte, sans rotation.";
   if(m.p_victoire != null && m.p_victoire >= 65) return "Adversaire à votre portée : vous pouvez faire tourner l'effectif sans grand risque.";
   if(m.p_victoire != null && m.p_victoire < 45) return "Adversaire plus fort : chaque titulaire compte, rotation à limiter.";
@@ -509,10 +547,11 @@ function viewPlanif(){
       .map(([v,t]) => '<option value="'+v+'"'+(Number(S.regle)===v?" selected":"")+'>'+t+'</option>').join("")+'</select>'
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>';
   h += '<div class="how small"><b>Comment la feuille est proposée.</b> '
-    + '<span>1. Pour chaque match, les '+P[0].size+' mieux notés parmi les disponibles ('+P[0].nGK+' gardiens), vos choix d\'abord.</span>'
+    + '<span>1. Pour chaque match, les '+P[0].size+' mieux notés parmi les disponibles, vos choix d\'abord, avec toujours '+P[0].nGK+' gardiens'
+    + KEYS().map(g => ', au moins '+g.min+' '+g.nom+' ('+g.postes.join(", ")+')').join("")+' ; un joueur à deux postes compte pour l\'un ou l\'autre.</span>'
     + (q ? '<span>2. Rotation : chacun joue au moins '+q+' des '+n+' matchs. Elle se fait d\'abord sur les matchs les plus abordables (victoire estimée la plus haute), jamais sur un match clé, '
          + 'avec au plus '+ROT_CHAMP+' joueurs de champ et '+ROT_GB+' gardien changés par match ; les 2 gardiens si le minimum l\'exige, sur un match à votre portée (victoire estimée d\'au moins '+ROT_GB2+' %).</span>'
-         + '<span>3. Laisse sa place celui qui a le plus joué sur ces '+n+' matchs (à égalité, le moins bien noté) : le repos tourne aussi chez les titulaires, gardiens compris.</span>'
+         + '<span>3. Le remplacement se fait poste pour poste quand c\'est possible, sans jamais découvrir un poste clef ; laisse sa place celui qui a le plus joué sur ces '+n+' matchs (à égalité, le moins bien noté) : le repos tourne aussi chez les titulaires, gardiens compris.</span>'
        : '<span>2. Pas de rotation automatique : à vous de faire tourner d\'un clic.</span>')
     + '<span class="muted">Survolez une case pour savoir pourquoi.</span></div>';
   const fragile = D.joueurs.filter(p => p.fiabilite && ["fragile", "aucune"].includes(p.fiabilite.niveau)).length;
@@ -531,7 +570,8 @@ function viewPlanif(){
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
     for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
-      h += '<div class="who" title="'+esc(p.nom)+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' '+esc(p.nom)+'</div>';
+      h += '<div class="who" title="'+esc(p.nom+(poste(p) ? " · "+poste(p) : ""))+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' '+esc(p.nom)
+        + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -542,8 +582,8 @@ function viewPlanif(){
         const what = av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
-          : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom
-          : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom
+          : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom+samePoste(p, other)
+          : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom+samePoste(p, other)
           : sel ? (av === "i" ? "retenu, mais incertain" : "retenu : parmi les mieux notés disponibles pour ce match")
           : av === "i" ? "incertain" : "disponible, non retenu";
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym+'</button></div>';
@@ -552,6 +592,9 @@ function viewPlanif(){
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
+  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + P.map(r => '<div class="h small">'
+      + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus">'+esc(c.nom)+' '+c.n+'/'+c.min+'</span>').join(" ")
+      + '</div>').join("") + '<div></div>';
   h += '<div class="who muted small">Avec ces choix</div>' + P.map(r => '<div class="h"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + 'force '+Math.round(100*r.force)+' %<br>victoire '+pct(r.pAdj)+'<br>'+riskTag(r)
     + (r.impact != null && r.impact >= 0.5 ? '<br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small>' : '')
@@ -652,7 +695,10 @@ function viewJoueurs(){
 function playerDetail(p, plan){
   const gk = isGK(p);
   const comps = Object.keys(COMP_NOM).filter(k => gk ? GK_COMPS.includes(k) : !k.startsWith("gk"));
-  let h = '<div class="detail"><div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'"><option value="">non renseigné</option>'+POSTES.map(k=>'<option value="'+k+'"'+(poste(p)===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("")+'</select></label>'
+  const [p1 = "", p2 = ""] = postesOf(p);
+  const choix = (cur, none) => '<option value="">'+none+'</option>'+POSTES.map(k=>'<option value="'+k+'"'+(cur===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("");
+  let h = '<div class="detail"><div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'" data-rang="1">'+choix(p1, "non renseigné")+'</select></label>'
+    + '<label class="small muted">2e poste <select data-poste="'+esc(p.cle)+'" data-rang="2">'+choix(p2, "aucun")+'</select></label>'
     + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Absent pour plusieurs semaines":"De retour : disponible")+'</button></div>';
   if(!p.m) return h + '<p class="small muted">'+(rated(p) ? 'Pas encore aligné cette saison : note provisoire tirée de la saison '+esc(p.note_base)+' ('+esc(passeLine(p))+').'
     : 'Pas encore de feuille de match lue : pas de note. Il peut compléter une feuille ou entrer dans la rotation.')+'</p></div>';
@@ -877,7 +923,12 @@ document.addEventListener("change", ev => {
   else if(t.id === "regle"){ S.regle = Number(t.value); save(); render(true); }
   else if(t.id === "rdv"){ S.rdv[t.dataset.match] = t.value; save(); render(true); }
   else if(t.id === "import-plan" && t.files[0]){ importPlan(t.files[0]); }
-  else if(t.dataset.poste !== undefined){ S.postes[t.dataset.poste] = t.value; save(); render(true); }
+  else if(t.dataset.poste !== undefined){
+    const cle = t.dataset.poste, cur = postesOf(D.joueurs.find(x => x.cle === cle) || {cle});
+    cur[Number(t.dataset.rang || 1) - 1] = t.value;
+    S.postes[cle] = [...new Set(cur.filter(Boolean))].join("/");
+    save(); render(true);
+  }
 });
 document.addEventListener("toggle", ev => {
   const d = ev.target; if(!d.dataset || !d.dataset.cle) return;
