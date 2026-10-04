@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HBPSM — préparation du prochain match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Couleurs du club, reprises du profil HBPSM de HANDBALL-training (clubs/hbpsm/profil.json).
+     Elles ont un RÔLE : la STRUCTURE (bleu marine) tient l'ossature — bandeau, titres, boutons,
+     liens, terrain ; l'ACCENT (jaune) marque ce qui est actif ou mis en avant, toujours avec un
+     texte foncé : un texte clair sur le jaune est illisible. */
+  --structure-900:#0b2a52; --structure-800:#103866; --structure-700:#16487f; --structure-500:#1f6fbd;
+  --structure-100:#e4eefa; --structure-050:#f2f7fd;
+  --accent:#ffc72c; --accent-clair:#fff3d1; --accent-fonce:#d99e00;
+  /* neutres et états, comme dans HANDBALL-training */
+  --bg:#f5f7fa; --surface:#FFFFFF; --ink:#16202e; --muted:#5a6a7d; --rule:#d8dfe8;
+  --win:#1c7a45; --loss:#b3261e; --draw:#7d8589;
+  /* rôles dérivés : ce que chaque élément utilise */
+  --heading:var(--structure-900); --link:var(--structure-700); --focus:var(--structure-500);
+  --court:var(--structure-700); --court-deep:var(--structure-900); --chalk:#F5F7F4;
+  --on-accent:var(--structure-900); --accent-trait:var(--accent-fonce); --us-bg:var(--accent-clair);
+  --bar-for:var(--structure-500); --track:var(--structure-500);
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+/* Sombre : le même bleu marine sert de fond, le jaune garde son rôle. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#071a31; --surface:#0d2747; --ink:#e8eff8; --muted:#9db1c9; --rule:#1d3d63;
+    --heading:#FFFFFF; --link:#8cc2f5; --focus:#5aa0e6; --court:#16487f; --court-deep:#0b2a52;
+    --accent-trait:var(--accent); --us-bg:#16487f;
+    --bar-for:#5aa0e6; --track:#5aa0e6; --win:#4fb980; --loss:#ec7a66; --draw:#9aa3a7;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#071a31; --surface:#0d2747; --ink:#e8eff8; --muted:#9db1c9; --rule:#1d3d63;
+  --heading:#FFFFFF; --link:#8cc2f5; --focus:#5aa0e6; --court:#16487f; --court-deep:#0b2a52;
+  --accent-trait:var(--accent); --us-bg:#16487f;
+  --bar-for:#5aa0e6; --track:#5aa0e6; --win:#4fb980; --loss:#ec7a66; --draw:#9aa3a7;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
+main{max-width:760px;margin:0 auto;padding:0 16px 96px}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.05;margin:0;color:var(--heading)}
+h1{font-size:2.1rem;letter-spacing:.01em}
+h2{font-size:1.45rem;margin:28px 0 10px}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0 0 8px}
+.muted{color:var(--muted)} .small{font-size:.86rem}
+.num{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.club{background:var(--structure-900);color:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.club div{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.club b{font:700 1.25rem var(--display);letter-spacing:.03em;color:var(--accent)}
+.club span{font-size:.86rem;color:var(--structure-100)}
+.club .etat{margin-left:auto;font-size:.78rem}
+.demo a{color:var(--on-accent)}
+header.top{padding:18px 0 6px}
+header.top .when{font-family:var(--display);font-weight:600;font-size:1.15rem;color:var(--muted)}
+.demo{background:var(--accent);color:var(--on-accent);padding:8px 12px;border-radius:6px;margin:12px 0 0;font-weight:600;font-size:.9rem}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px}
+.panel + .panel{margin-top:12px}
+select,button{font:inherit;color:inherit}
+select{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;max-width:100%}
+.seg{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{flex:1;border:0;background:none;padding:9px 6px;font-weight:600;cursor:pointer;border-left:1px solid var(--rule)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
+button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.court{background:var(--court);border-radius:10px;overflow:hidden;margin:12px 0}
+.court svg{display:block;width:100%;height:auto}
+.court .line{stroke:var(--chalk);stroke-width:2;fill:none}
+.court .zone{fill:var(--accent)}
+.court .tok circle{fill:var(--chalk)}
+.court .tok .n{font:700 17px var(--display);fill:var(--court-deep);text-anchor:middle}
+.court .tok .nm{font:600 11.5px var(--body);fill:#fff;text-anchor:middle}
+.court .tok .ps{font:600 10px var(--body);fill:var(--accent);text-anchor:middle}
+.court .tok.gb .nm,.court .tok.gb .ps{fill:var(--court-deep)}
+.court .tok.vide circle{fill:none;stroke:var(--chalk);stroke-dasharray:4 4}
+ul.plain{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.row:first-child{border-top:0}
+.row .jersey{font:700 1.25rem var(--display);text-align:center;color:var(--link)}
+.row .who{min-width:0}
+.row .who b{font-weight:600}
+.row .why{color:var(--muted);font-size:.84rem;overflow-wrap:anywhere}
+.row .score{font:700 1.5rem var(--display);font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:99px;border:1px solid var(--rule);margin-left:6px;vertical-align:1px}
+.tag.start{background:var(--structure-700);color:#fff;border-color:var(--structure-700)}
+.out{opacity:.5}
+.link{background:none;border:0;padding:0;color:var(--link);text-decoration:underline;cursor:pointer;font-size:.84rem}
+.form{display:inline-flex;gap:4px;vertical-align:middle}
+.form i{width:20px;height:20px;border-radius:4px;display:grid;place-items:center;font:700 .72rem var(--body);font-style:normal;color:#fff}
+.V{background:var(--win)} .D{background:var(--loss)} .N{background:var(--draw)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:10px 0}
+.kpis.k3{grid-template-columns:repeat(3,1fr)}
+.kpis div{border:1px solid var(--rule);border-radius:8px;padding:8px}
+.kpis .num{font-size:1.6rem;display:block;line-height:1}
+.kpis span{font-size:.78rem;color:var(--muted)}
+.kpis .num.half{font-size:1.2rem;white-space:nowrap;line-height:1.35}
+.bars{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:end;height:92px;margin-top:8px}
+.bars div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:2px;font-size:.7rem;color:var(--muted)}
+.bars .pair{display:flex;gap:2px;align-items:flex-end;height:64px}
+.bars .pair i{width:11px;border-radius:2px 2px 0 0;display:block}
+.bars .f,.legend .f{background:var(--bar-for)} .bars .a,.legend .a{background:var(--draw)}
+.legend{font-size:.78rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:7px 6px;text-align:right;border-top:1px solid var(--rule);white-space:nowrap;font-variant-numeric:tabular-nums}
+th{font-weight:600;color:var(--muted);border-top:0;font-size:.78rem}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}
+table.duo th:nth-child(2),table.duo td:nth-child(2){text-align:right}
+td.team{white-space:normal;min-width:150px}
+tr.us td{font-weight:600;background:var(--us-bg)}
+tr.us td:first-child{box-shadow:inset 3px 0 var(--accent)}
+details{border-top:1px solid var(--rule)}
+details:first-of-type{border-top:0}
+summary{list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+.comp{display:grid;grid-template-columns:96px 1fr 34px;gap:8px;align-items:center;font-size:.84rem;margin:4px 0}
+.comp .track{height:8px;background:var(--rule);border-radius:4px;overflow:hidden}
+.comp .track i{display:block;height:100%;background:var(--track)}
+.edit{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.res{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;padding:8px 0;border-top:1px solid var(--rule);align-items:center;font-size:.92rem}
+.res:first-child{border-top:0}
+.res .sc{font:700 1.2rem var(--display);text-align:center;min-width:64px}
+.res .r{text-align:right}
+.res .meta{grid-column:1/-1;font-size:.76rem;color:var(--muted);margin-top:-4px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--rule);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav.tabs button{flex:1;max-width:160px;border:0;background:none;padding:12px 2px 10px;font:600 1rem var(--display);letter-spacing:.02em;color:var(--muted);cursor:pointer;border-top:3px solid transparent}
+nav.tabs button[aria-selected="true"]{color:var(--heading);border-top-color:var(--accent)}
+section[hidden]{display:none}
+.stake{padding:12px 0;border-top:1px solid var(--rule)}
+.stake:first-child{border-top:0}
+.stake .head{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline}
+.stake .gain{font:700 1.5rem var(--display);font-variant-numeric:tabular-nums}
+.stake .gain small{font:500 .72rem var(--body);color:var(--muted);display:block;text-align:right;margin-top:-4px}
+.stake .range{position:relative;height:10px;background:var(--rule);border-radius:5px;margin:10px 0 6px}
+.stake .range i{position:absolute;top:0;bottom:0;background:var(--track);border-radius:5px}
+.stake.key .range i{background:var(--accent-trait)}
+.tag.key{background:var(--accent);color:var(--on-accent);border-color:var(--accent-fonce)}
+.big{font:700 3.2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.axis{padding:10px 0;border-top:1px solid var(--rule)}
+.axis:first-child{border-top:0}
+.btn:hover{background:var(--structure-800)}
+.btn{display:inline-block;background:var(--structure-700);color:#fff;text-decoration:none;font-weight:600;padding:10px 14px;border:0;border-radius:8px;margin-top:10px;cursor:pointer}
+.btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.facts{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.88rem;margin:10px 0}
+.facts dt{color:var(--muted)} .facts dd{margin:0;text-align:right;font-weight:600}
+.gate{max-width:420px;margin:12vh auto 0}
+.gate input{width:100%;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:11px 12px;margin:10px 0 0}
+.gate input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.gate .err{color:var(--loss);font-weight:600;margin-top:10px}
+.status{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+.status a,.status button{color:var(--link)}
+nav.tabs[hidden]{display:none}
+.note{border-left:3px solid var(--accent);padding:6px 0 6px 10px;margin:12px 0;font-size:.88rem;color:var(--muted)}
+@media (min-width:620px){h1{font-size:2.6rem}}
+</style>
+</head>
+<body>
+<header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
+<main id="app"></main>
+<nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
+  <button role="tab" data-tab="match" aria-selected="true">Match</button>
+  <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
+  <button role="tab" data-tab="duos" aria-selected="false">Duos</button>
+  <button role="tab" data-tab="saison" aria-selected="false">Saison</button>
+  <button role="tab" data-tab="poules" aria-selected="false">Poules</button>
+</nav>
+<script id="data" type="application/json">null</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "1670d779f280", "club": "HBPSM", "verif": 600}</script>
+<script>
+"use strict";
+let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
+const CFG = JSON.parse(document.getElementById("cfg").textContent);
+const VAULT = "hbpsm:coffre", PASS = "hbpsm:phrase";
+// Tout le calcul est fait par la collecte sur GitHub : la page lit le résultat chiffré, ne refait
+// que la composition d'équipe (absences et postes saisis ici), et revient voir s'il y a du nouveau.
+const VERIF = Math.max(1, Number(CFG.verif) || 600) * 1000;
+let GENERE = null, CHECKED = null, ONLINE = false, CHECKING = false, NEWER = false;
+const POSTES = ["GB","ALG","ARG","DC","ARD","ALD","PIV"];
+const POSTE_NOM = {GB:"Gardien",ALG:"Ailier gauche",ARG:"Arrière gauche",DC:"Demi-centre",ARD:"Arrière droit",ALD:"Ailier droit",PIV:"Pivot"};
+const PLAN_NOM = {equilibre:"Équilibré",attaque:"Attaque",rigueur:"Rigueur"};
+const COMP_NOM = {att:"Buts récents",eff:"Efficacité",disc:"Discipline",imp:"Impact équipe",clutch:"Fins de match",assid:"Assiduité",gk:"Arrêts"};
+const KEY = "hbpsm:v1";
+const OPEN = new Set();
+let S = {postes:{}, absents:{}, plan:null, adv:null, tab:"match", poule:null};
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fr = n => n == null ? "–" : String(n).replace(".", ",");
+const isUs = t => t === D.meta.club;
+const poste = p => (S.postes[p.cle] ?? p.poste ?? "");
+const isGK = p => poste(p) ? poste(p).split("/").includes("GB") : p.gardien;
+const dispo = p => S.absents[p.cle] === undefined ? p.disponible !== false : !S.absents[p.cle];
+
+function fmtDate(iso, provisoire){
+  if(!iso) return "date à confirmer";
+  const d = new Date(iso.length <= 10 ? iso + "T12:00" : iso);
+  if(isNaN(d)) return iso;
+  const day = d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+  if(provisoire) return "week-end du " + day + " (date à confirmer)";
+  return iso.length > 10 ? day + " à " + iso.slice(11,16).replace(":","h") : day;
+}
+// les trois sanctions de la feuille, à ne pas confondre : avertissement, 2 minutes, disqualification
+const sanctions = p => [p.jaunes ? p.jaunes+" CJ" : "", p.deux_min ? p.deux_min+" × 2 min" : "",
+  p.rouges ? p.rouges+" CR" : ""].filter(Boolean).join(", ") || "aucune sanction";
+const forme = f => '<span class="form" aria-label="Forme : '+f.join(" ")+'">'+f.map(r=>'<i class="'+r+'">'+r+'</i>').join("")+'</span>';
+
+function opponent(){
+  const names = Object.keys(D.equipes).filter(t => !isUs(t)).sort();
+  let adv = S.adv && D.equipes[S.adv] ? S.adv : (D.prochain && D.prochain.adversaire);
+  if(!adv || !names.includes(adv)){ adv = (D.prochain && D.prochain.adversaire) || names[0] || null; }
+  return {adv, names};
+}
+function currentPlan(adv){
+  const rec = (adv && D.equipes[adv] && D.equipes[adv].plan) || "equilibre";
+  return {plan: S.plan || rec, rec};
+}
+function reasons(p){
+  const out = [];
+  if(isGK(p)){ if(p.arrets) out.push(fr((p.arrets/p.m).toFixed(1))+" arrêts/match"); }
+  else if(p.buts) out.push(fr(p.forme_buts)+" buts/match récents");
+  if(p.decisifs) out.push(p.decisifs+" but"+(p.decisifs>1?"s":"")+" en fin de match serré");
+  if(p.impact >= 1) out.push("équipe à +"+fr(p.impact)+" avec lui");
+  if(p.impact <= -1) out.push("équipe à "+fr(p.impact)+" avec lui");
+  if(p.deux_min) out.push(fr((p.deux_min/p.m).toFixed(1))+" × 2 min/match");
+  if(p.rouges) out.push(p.rouges+" carton"+(p.rouges>1?"s":"")+" rouge"+(p.rouges>1?"s":""));
+  if(!p.deux_min && !p.rouges && p.m >= 2) out.push("aucune exclusion");
+  out.push(p.m+" match"+(p.m>1?"s":""));
+  return out.join(", ");
+}
+function lineup(plan){
+  const pool = D.joueurs.filter(p => p.m > 0 && dispo(p)).map(p => ({p, s:p.scores[plan]})).sort((a,b)=>b.s-a.s);
+  const withPoste = pool.filter(x => poste(x.p)).length;
+  const used = new Set(), start = {};
+  if(withPoste >= 4){
+    for(const pos of POSTES){
+      const c = pool.find(x => !used.has(x.p.cle) && poste(x.p).split("/").includes(pos));
+      if(c){ start[pos] = c; used.add(c.p.cle); }
+    }
+    for(const pos of POSTES){
+      if(start[pos]) continue;
+      const c = pool.find(x => !used.has(x.p.cle) && (pos === "GB" ? isGK(x.p) : !isGK(x.p) && !poste(x.p)));
+      if(c){ start[pos] = c; used.add(c.p.cle); }
+    }
+  }
+  const size = D.meta.effectif || 12;
+  const rest = pool.filter(x => !used.has(x.p.cle));
+  const bench = [];
+  const gk2 = rest.find(x => isGK(x.p));
+  const gkCount = Object.values(start).filter(x => isGK(x.p)).length;
+  if(gk2 && gkCount < 2) bench.push(gk2);
+  for(const x of rest){ if(bench.length + used.size >= size) break; if(!bench.includes(x)) bench.push(x); }
+  bench.sort((a,b)=>b.s-a.s);
+  return {start, bench, hasCourt: withPoste >= 4, out: D.joueurs.filter(p => p.m > 0 && !dispo(p)),
+          left: rest.filter(x => !bench.includes(x))};
+}
+function shortName(n){
+  const parts = String(n).trim().split(/\s+/);
+  const up = parts.filter(w => w.length > 1 && /[A-ZÀ-Ý]/.test(w) && w === w.toUpperCase());
+  const s = (up.length && up.length < parts.length ? up.join(" ") : parts.slice(0,2).join(" "));
+  return s.length > 13 ? s.slice(0,12) + "." : s;
+}
+function courtSVG(start){
+  const pos = {GB:[170,34],ALG:[44,64],ALD:[296,64],PIV:[170,112],ARG:[70,178],DC:[170,204],ARD:[270,178]};
+  let tok = "";
+  for(const k of POSTES){
+    const [x,y] = pos[k], c = start[k];
+    const name = c ? esc(shortName(c.p.nom)) : "à pourvoir";
+    tok += '<g class="tok'+(c?"":" vide")+(k==="GB"?" gb":"")+'" transform="translate('+x+','+y+')"><circle r="15"/>'
+      + '<text class="n" y="6">'+(c ? esc(c.p.num ?? "") : "")+'</text>'
+      + '<text class="nm" y="30">'+name+'</text><text class="ps" y="43">'+k+'</text></g>';
+  }
+  return '<div class="court"><svg viewBox="0 0 340 262" role="img" aria-label="Sept de départ proposé sur le demi-terrain">'
+    + '<path class="zone" d="M70 6 A100 100 0 0 0 270 6 Z" opacity=".9"/>'
+    + '<path class="line" d="M70 6 A100 100 0 0 0 270 6"/>'
+    + '<path class="line" d="M20 6 A150 150 0 0 0 320 6" stroke-dasharray="7 7"/>'
+    + '<path class="line" d="M4 6 H336 M150 6 V0 H190 V6 M163 76 H177"/>'
+    + '<path class="line" d="M4 6 V258 H336 V6" opacity=".55"/>' + tok + '</svg></div>';
+}
+function playerRow(x, starter){
+  const p = x.p || x, s = x.s;
+  return '<li class="row'+(dispo(p)?"":" out")+'"><span class="jersey">'+esc(p.num ?? "–")+'</span>'
+    + '<span class="who"><b>'+esc(p.nom)+'</b>'+(starter?'<span class="tag start">'+starter+'</span>':(poste(p)?'<span class="tag">'+esc(poste(p))+'</span>':""))
+    + '<br><span class="why">'+esc(reasons(p))+'</span><br>'
+    + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Marquer absent":"Remettre disponible")+'</button></span>'
+    + '<span class="score">'+(s ?? "")+'</span></li>';
+}
+function periods(e){
+  if(!e.periodes_bp) return "";
+  const max = Math.max(1, ...e.periodes_bp, ...e.periodes_bc);
+  const lab = ["0-10","10-20","20-30","30-40","40-50","50-60"];
+  return '<h3 style="margin-top:14px">Buts par tranche de 10 minutes</h3><div class="bars">'
+    + lab.map((l,i)=>'<div><span class="pair"><i class="f" style="height:'+(64*e.periodes_bp[i]/max)+'px"></i><i class="a" style="height:'+(64*e.periodes_bc[i]/max)+'px"></i></span>'+l+'</div>').join("")
+    + '</div><p class="legend"><i class="f" style="margin-left:0"></i>marqués<i class="a"></i>encaissés (moyenne par match)</p>';
+}
+function common(adv){
+  const us = D.equipes[D.meta.club], them = D.equipes[adv];
+  if(!us || !them) return "";
+  const rows = [];
+  for(const m of us.matches){
+    const t = them.matches.filter(x => x.adv === m.adv);
+    for(const x of t) rows.push('<tr><td class="team">'+esc(m.adv)+'</td><td>'+m.res+" "+m.bp+"-"+m.bc+'</td><td>'+x.res+" "+x.bp+"-"+x.bc+'</td></tr>');
+  }
+  const direct = us.matches.filter(m => m.adv === adv).map(m => m.res+" "+m.bp+"-"+m.bc+(m.dom?" (dom.)":" (ext.)"));
+  let h = "";
+  if(direct.length) h += '<p>Déjà joué cette saison : <b>'+direct.join(", ")+'</b>.</p>';
+  if(rows.length) h += '<div class="scroll"><table><thead><tr><th>Adversaire commun</th><th>'+esc(D.meta.club_court)+'</th><th>Eux</th></tr></thead><tbody>'+rows.join("")+'</tbody></table></div>';
+  return h ? '<h2>Repères communs</h2><div class="panel">'+h+'</div>' : "";
+}
+function viewMatch(){
+  const {adv, names} = opponent();
+  const played = D.joueurs.filter(p => p.m > 0);
+  if(!played.length && !names.length) return empty();
+  const {plan, rec} = currentPlan(adv);
+  const L = lineup(plan), e = adv ? D.equipes[adv] : null, n = D.prochain;
+  const isNext = n && n.adversaire === adv;
+  let h = '<header class="top"><p class="when">'+(isNext ? "Journée "+esc(n.journee ?? "?")+", "+esc(fmtDate(n.date, n.provisoire))+", "+(n.domicile?"à domicile":"à l'extérieur") : (n ? "Simulation contre un autre adversaire" : "Prochain match pas encore connu : choisis l'adversaire"))+'</p>'
+    + '<h1>'+esc(D.meta.club_court)+' contre '+esc(adv || "…")+'</h1></header>';
+  if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration. Les vrais résultats arrivent après la première collecte.</p>';
+  h += '<div class="edit"><label class="small muted" for="adv">Adversaire</label><select id="adv">'+names.map(t=>'<option'+(t===adv?" selected":"")+'>'+esc(t)+'</option>').join("")+'</select></div>';
+  h += '<h2>Équipe proposée</h2><div class="seg" role="group" aria-label="Priorité">'
+    + Object.keys(PLAN_NOM).map(k=>'<button data-plan="'+k+'" aria-pressed="'+(k===plan)+'">'+PLAN_NOM[k]+(k===rec?" ★":"")+'</button>').join("")+'</div>'
+    + '<p class="small muted" style="margin-top:8px">★ conseillé : '+esc(e ? e.plan_raison : "pas de profil adverse.")+'</p>';
+  if(!played.length){
+    h += '<div class="panel"><p>Aucune feuille de match du club n\'a encore été lue. Dès qu\'une feuille est disponible, la proposition apparaît ici.</p></div>';
+  } else {
+    if(L.hasCourt) h += courtSVG(L.start);
+    else h += '<p class="note">Pour placer un sept de départ sur le terrain, indique le poste d\'au moins quatre joueurs dans l\'onglet Joueurs.</p>';
+    const starters = POSTES.filter(k=>L.start[k]).map(k=>playerRow(L.start[k], k)).join("");
+    h += '<div class="panel"><ul class="plain">'+starters+L.bench.map(x=>playerRow(x)).join("")+'</ul></div>';
+    if(L.left.length || L.out.length){
+      h += '<h3 style="margin:16px 0 6px">Hors feuille</h3><div class="panel"><ul class="plain">'
+        + L.left.map(x=>playerRow(x)).join("")+L.out.map(p=>playerRow({p, s:p.scores[plan]})).join("")+'</ul></div>';
+    }
+    const kept = L.bench.length + Object.keys(L.start).length;
+    h += '<p class="note">Note sur 100 calculée sur '+D.meta.club_feuilles+' feuille'+(D.meta.club_feuilles>1?"s":"")+' de match du club, '+kept+' joueurs retenus. En dessous de cinq matchs, lis-la comme une tendance, pas comme un verdict.</p>';
+  }
+  if(e){
+    h += '<h2>'+esc(adv)+'</h2><div class="panel"><p>Poule '+esc(e.poule)+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
+      + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
+      + (e.mt1_bp!=null ? '<div><b class="num half">'+fr(e.mt1_bp)+" - "+fr(e.mt1_bc)+'</b><span>1re mi-temps</span></div><div><b class="num half">'+fr(e.mt2_bp)+" - "+fr(e.mt2_bc)+'</b><span>2e mi-temps</span></div>' : "")
+      + '</div><h3 style="margin-top:12px">Discipline</h3><div class="kpis k3">'
+      + '<div><b class="num">'+fr(e.deux_min_moy)+'</b><span>exclusions de 2 min</span></div>'
+      + '<div><b class="num">'+fr(e.jaunes_moy)+'</b><span>cartons jaunes</span></div>'
+      + '<div><b class="num">'+(e.rouges ?? "–")+'</b><span>cartons rouges</span></div>'
+      + '</div><p class="small muted">Moyennes par match ; cartons rouges : total de la saison.</p>'+periods(e);
+    if(e.buteurs.length) h += '<h3 style="margin-top:14px">Joueurs à surveiller</h3><ul class="plain">'
+      + e.buteurs.map(b=>'<li class="row"><span class="jersey">'+esc(b.num ?? "–")+'</span><span class="who"><b>'+esc(b.nom)+'</b><br><span class="why">'+b.buts+' buts en '+b.m+' match'+(b.m>1?"s":"")+(b.pen?", dont "+b.pen+" sur 7 m":"")+'</span></span><span class="score">'+fr(b.moy)+'</span></li>').join("")+'</ul>';
+    h += '</div>' + common(adv);
+  }
+  return h;
+}
+function viewJoueurs(){
+  if(!D.joueurs.length) return '<header class="top"><h1>Joueurs</h1></header>'+emptyPanel();
+  const waiting = D.joueurs.filter(p => !p.m);
+  const {adv} = opponent(), {plan} = currentPlan(adv);
+  let h = '<header class="top"><p class="when">Pondération : '+PLAN_NOM[plan]+'</p><h1>Joueurs</h1></header>';
+  const list = D.joueurs.filter(p => p.m > 0).sort((a,b)=>b.scores[plan]-a.scores[plan]);
+  h += list.length ? '<div class="panel">' : '<div class="panel"><p>Aucune feuille de match du club n\'a encore été lue.</p>';
+  for(const p of list){
+    const comps = Object.keys(COMP_NOM).filter(k => isGK(p) ? ["gk","imp","assid"].includes(k) : k !== "gk");
+    h += '<details data-cle="'+esc(p.cle)+'"'+(OPEN.has(p.cle)?" open":"")+'><summary><div class="row'+(dispo(p)?"":" out")+'" style="border:0"><span class="jersey">'+esc(p.num ?? "–")+'</span><span class="who"><b>'+esc(p.nom)+'</b>'+(poste(p)?'<span class="tag">'+esc(poste(p))+'</span>':"")
+      + '<br><span class="why">'+p.m+' match'+(p.m>1?"s":"")+' sur '+p.m_total+', '+p.buts+' buts'+(p.pen?" ("+p.pen+" pen.)":"")+(p.arrets?", "+p.arrets+" arrêts":"")+', '+sanctions(p)+'</span></span><span class="score">'+p.scores[plan]+'</span></div></summary>'
+      + '<div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'"><option value="">non renseigné</option>'+POSTES.map(k=>'<option value="'+k+'"'+(poste(p)===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("")+'</select></label>'
+      + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Marquer absent":"Remettre disponible")+'</button></div>'
+      + '<dl class="facts"><dt>Matchs disputés</dt><dd>'+p.m+' sur '+p.m_total+'</dd>'
+      + '<dt>Présence au jeu (actions relevées)</dt><dd>'+(p.presence==null?"non disponible":fr(p.presence)+' tranches de 10 min sur 6')+'</dd>'
+      + '<dt>Cartons jaunes</dt><dd>'+p.jaunes+'</dd>'
+      + '<dt>Exclusions de 2 minutes</dt><dd>'+p.deux_min+' ('+p.min_deux+' min sur le banc)</dd>'
+      + '<dt>Cartons rouges</dt><dd>'+p.rouges+'</dd></dl>'
+      + comps.map(k=>'<div class="comp"><span>'+COMP_NOM[k]+'</span><span class="track"><i style="width:'+Math.round(100*p.comps[k])+'%"></i></span><span class="num">'+Math.round(100*p.comps[k])+'</span></div>').join("")
+      + '<div class="scroll" style="margin:10px 0 14px"><table><thead><tr><th>Date</th><th>Adversaire</th><th>Score</th><th>Buts</th><th title="Cartons jaunes">CJ</th><th title="Exclusions de 2 minutes">2 min</th><th title="Cartons rouges">CR</th><th>Arrêts</th></tr></thead><tbody>'
+      + p.journal.map(j=>'<tr><td>'+esc(fmtDate((j.date||"").slice(0,10)))+'</td><td class="team">'+esc(j.adv)+'</td><td>'+j.res+" "+j.score+'</td><td>'+j.buts+'</td><td>'+(j.jaunes||"")+'</td><td>'+(j.deux_min||"")+'</td><td>'+(j.rouges||"")+'</td><td>'+j.arrets+'</td></tr>').join("")
+      + '</tbody></table></div></details>';
+  }
+  h += '</div>';
+  if(waiting.length){
+    h += '<h2>Pas encore alignés</h2><div class="panel"><ul class="plain">' + waiting.map(p =>
+      '<li class="row'+(dispo(p)?"":" out")+'" style="grid-template-columns:1fr auto"><span class="who"><b>'+esc(p.nom)+'</b><br>'
+      + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Marquer absent":"Remettre disponible")+'</button></span>'
+      + '<select data-poste="'+esc(p.cle)+'" aria-label="Poste de '+esc(p.nom)+'"><option value="">poste</option>'+POSTES.map(k=>'<option value="'+k+'"'+(poste(p)===k?" selected":"")+'>'+k+'</option>').join("")+'</select></li>').join("")
+      + '</ul></div><p class="small muted" style="margin-top:6px">Joueurs de l\'effectif sans feuille de match lue cette saison : ils ne sont pas notés et n\'entrent pas dans l\'équipe proposée.</p>';
+  }
+  h += '<p class="note">Le temps de jeu ne figure pas sur la feuille de match. La présence au jeu compte les tranches de dix minutes où le joueur a une action relevée (but, tir, arrêt, sanction) : un indice, pas un chronométrage.</p><p class="note">Les postes et les absences que tu saisis ici restent sur cet appareil. Pour les partager, renseigne le fichier roster.csv du dépôt.</p>';
+  return h;
+}
+function viewDuos(){
+  let h = '<header class="top"><p class="when">Résultats de l\'équipe quand deux joueurs sont sur la même feuille</p><h1>Duos</h1></header>';
+  if(!D.duos.length) return h + '<div class="panel"><p>Il faut au moins deux matchs avec feuille pour comparer les associations.</p></div>';
+  const tbl = rows => '<div class="scroll"><table class="duo"><thead><tr><th>Duo</th><th>M</th><th>V-N-D</th><th>Écart</th><th>Buts</th></tr></thead><tbody>'
+    + rows.map(r=>'<tr><td class="team">'+esc(r.a)+'<br>'+esc(r.b)+'</td><td>'+r.m+'</td><td>'+r.v+"-"+r.n+"-"+r.d+'</td><td>'+(r.diff_moy>0?"+":"")+fr(r.diff_moy)+'</td><td>'+fr(r.buts_moy)+'</td></tr>').join("")+'</tbody></table></div>';
+  h += '<h2>Associations qui gagnent</h2><div class="panel">'+tbl(D.duos.slice(0,10))+'</div>';
+  if(D.duos.length > 12) h += '<h2>Associations à revoir</h2><div class="panel">'+tbl(D.duos.slice(-6).reverse())+'</div>';
+  h += '<p class="note">La feuille de match dit qui était inscrit, pas qui était sur le terrain en même temps. Écart = différence de buts moyenne de l\'équipe sur les matchs communs. Buts = buts marqués à deux par match.</p>';
+  return h;
+}
+const ord = n => n === 1 ? "1er" : n + "e";
+function viewSaison(){
+  const s = D.saison;
+  let h = '<header class="top"><p class="when">'+(s ? "Poule "+esc(s.poule)+", objectif : finir "+ord(s.cible) : "Objectif de la saison")+'</p><h1>Saison</h1></header>';
+  if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
+  if(!s) h += '<div class="panel"><p>La course au classement s\'affiche dès qu\'un match du club et le calendrier de la poule sont connus.</p></div>';
+  else {
+    h += '<div class="kpis"><div><b class="num">'+ord(s.rang)+'</b><span>rang actuel</span></div><div><b class="num">'+s.pts+'</b><span>'+(s.retard>0 ? "points, à "+s.retard+" du 1er" : "points, en tête")+'</span></div><div><b class="num">'+(s.statut==="calendrier_inconnu" ? "–" : s.restants)+'</b><span>matchs restants</span></div></div>';
+    if(s.statut !== "en_cours") h += '<div class="panel"><p>'+(s.statut==="termine" ? "Plus de match à jouer dans cette phase." : "Le calendrier des matchs restants n\'a pas encore été lu sur le site de la fédération.")+'</p></div>';
+    else {
+      h += '<div class="panel"><p class="muted small">Chances estimées de finir '+ord(s.cible)+'</p><p class="big">'+s.proba+' %</p>'
+        + '<p style="margin-top:8px">En gagnant tous les matchs restants : <b>'+s.proba_tout+' %</b>. Maximum possible : '+s.pts_max+' points.</p></div>';
+      h += '<h2>Matchs à gagner</h2><div class="panel">' + s.matchs.map(m => {
+        const lo = Math.min(m.sinon ?? 0, m.si_victoire ?? 0), hi = Math.max(m.sinon ?? 0, m.si_victoire ?? 0);
+        return '<div class="stake'+(m.cle?" key":"")+'"><div class="head"><div><b>'+esc(m.adversaire)+'</b>'+(m.cle?'<span class="tag key">Match clé</span>':"")
+          + '<br><span class="small muted">J'+esc(m.journee ?? "?")+", "+esc(fmtDate(m.date, m.provisoire))+", "+(m.domicile?"domicile":"extérieur")+", adversaire "+ord(m.rang_adv)+'</span></div>'
+          + '<div class="gain">'+(m.enjeu==null?"–":(m.enjeu>0?"+":"")+m.enjeu)+'<small>points de chance</small></div></div>'
+          + '<div class="range" aria-hidden="true"><i style="left:'+lo+'%;width:'+Math.max(1.5,hi-lo)+'%"></i></div>'
+          + '<p class="small muted" style="margin:0">Finir '+ord(s.cible)+' : '+(m.si_victoire ?? "–")+' % en cas de victoire, '+(m.sinon ?? "–")+' % sinon. Victoire estimée à '+m.p_victoire+' %.</p></div>';
+      }).join("") + '</div>';
+      h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées à la différence de buts. Pénalités et règles de la phase suivante non prises en compte.</p>';
+    }
+  }
+  h += '<h2>À travailler à l\'entraînement</h2><div class="panel">';
+  if(!D.axes || !D.axes.length) h += '<p>'+(D.meta.club_matchs < 2 ? "Les axes de travail apparaîtront après quelques matchs : il faut de quoi comparer le club aux autres équipes." : "Aucun écart marqué par rapport aux autres équipes pour l\'instant.")+'</p>';
+  else h += D.axes.map(a => '<div class="axis"><b>'+esc(a.titre)+'</b><span class="tag">'+esc(a.libelle)+'</span><br><span class="small muted">'+esc(a.constat)+'</span></div>').join("");
+  h += D.meta.demo ? '<p class="small muted" style="margin-top:10px">Sur le site publié, un bouton télécharge ici la séance à importer dans l\'application de préparation des entraînements.</p>'
+    : '<button class="btn" data-dl="seance">Télécharger la séance à importer</button><p class="small muted" style="margin-top:8px">Dans l\'application de préparation des entraînements : Importer, puis choisir ce fichier. La séance arrive avec ces constats en objectif, sans exercice.</p>';
+  h += '</div>';
+  return h;
+}
+function viewPoules(){
+  const ids = Object.keys(D.poules);
+  if(!ids.length) return '<header class="top"><h1>Poules</h1></header>'+emptyPanel();
+  const cur = ids.includes(S.poule) ? S.poule : ids[0], P = D.poules[cur];
+  let h = '<header class="top"><p class="when">Saison '+esc(D.meta.saison)+'</p><h1>Poule '+esc(cur)+'</h1></header>'
+    + '<div class="seg" role="group" aria-label="Poule">'+ids.map(i=>'<button data-poule="'+i+'" aria-pressed="'+(i===cur)+'">Poule '+i+'</button>').join("")+'</div>'
+    + '<h2>Classement</h2><div class="panel scroll"><table><thead><tr><th>#</th><th>Équipe</th><th>Pts</th><th>J</th><th>V</th><th>N</th><th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>Forme</th></tr></thead><tbody>'
+    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+'"><td>'+r.rang+'</td><td class="team">'+esc(r.equipe)+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td>'+r.v+'</td><td>'+r.n+'</td><td>'+r.d+'</td><td>'+r.bp+'</td><td>'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
+    + '</tbody></table></div><p class="small muted" style="margin-top:6px">Classement recalculé depuis les scores : victoire 3 points, nul 2, défaite 1.'
+    + (P.officiel_lu && !(P.ecarts||[]).length ? " Identique au classement de la fédération." : "")+'</p>';
+  const ecart = x => esc(x.equipe)+" "+x.officiel+" points au lieu de "+x.calcule;
+  const late = (P.ecarts||[]).filter(x=>x.retard), odd = (P.ecarts||[]).filter(x=>!x.retard);
+  if(late.length) h += '<p class="note">Le classement de la fédération n\'intègre pas encore tous les résultats : '
+    + late.map(ecart).join(" ; ")+'.</p>';
+  if(odd.length) h += '<p class="note">Le classement de la fédération diffère (pénalité ou forfait probable) : '
+    + odd.map(ecart).join(" ; ")+'.</p>';
+  const res = D.resultats.filter(r => r.poule === cur);
+  h += '<h2>Résultats</h2><div class="panel">'+(res.length ? res.map(r=>'<div class="res"><span class="r">'+esc(r.dom)+'</span><span class="sc">'+r.sd+" - "+r.se+'</span><span>'+esc(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate((r.date||"").slice(0,10)))+(r.feuille?"":", feuille non lue")+'</span></div>').join("") : "<p>Aucun résultat pour l'instant.</p>")+'</div>';
+  const next = D.a_venir.filter(r => r.poule === cur).slice(0,8);
+  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res"><span class="r">'+esc(r.dom)+'</span><span class="sc muted">–</span><span>'+esc(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+'</span></div>').join("")+'</div>';
+  h += '<p class="small muted" style="margin-top:14px">Mis à jour le '+esc(D.meta.genere)+'. '+D.meta.feuilles+' feuille'+(D.meta.feuilles>1?"s":"")+' lue'+(D.meta.feuilles>1?"s":"")+' sur '+D.meta.matchs+' match'+(D.meta.matchs>1?"s":"")+' joué'+(D.meta.matchs>1?"s":"")+'.</p>';
+  if(GENERE) h += '<p class="status"><span id="source">'+esc(sourceText())+'</span> <button class="link" data-lock="1">Oublier la phrase secrète sur cet ordinateur</button></p>';
+  return h;
+}
+const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte hebdomadaire » dans l\'onglet Actions du dépôt.</p></div>';
+const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
+const VIEWS = {match:viewMatch, joueurs:viewJoueurs, duos:viewDuos, saison:viewSaison, poules:viewPoules};
+function render(keepScroll){
+  const y = window.scrollY;
+  document.getElementById("club-nom").textContent = D.meta.club_court || CFG.club || "HBPSM";
+  document.getElementById("club-titre").textContent = "Tableau de bord" + (D.meta.saison ? " · saison " + D.meta.saison : "");
+  const newer = NEWER && CFG.versions ? '<p class="demo">Une version plus récente de ce fichier existe. <a href="'
+    + esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a></p>' : "";
+  document.getElementById("app").innerHTML = newer + VIEWS[S.tab]();
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
+  window.scrollTo(0, keepScroll ? y : 0);
+}
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("button"); if(!t) return;
+  if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
+  else if(t.dataset.plan){ S.plan = t.dataset.plan; save(); render(true); }
+  else if(t.dataset.poule){ S.poule = t.dataset.poule; save(); render(true); }
+  else if(t.dataset.dl && D.seance_hbt){
+    const url = URL.createObjectURL(new Blob([JSON.stringify(D.seance_hbt, null, 2)], {type:"application/json"}));
+    const a = Object.assign(document.createElement("a"), {href:url, download:"seance-prochaine.hbt.json"});
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  else if(t.dataset.abs){ const p = D.joueurs.find(x => x.cle === t.dataset.abs); S.absents[p.cle] = dispo(p); save(); render(true); }
+});
+document.addEventListener("change", ev => {
+  const t = ev.target;
+  if(t.id === "adv"){ S.adv = t.value; S.plan = null; save(); render(true); }
+  else if(t.dataset.poste !== undefined){ S.postes[t.dataset.poste] = t.value; save(); render(true); }
+});
+document.addEventListener("toggle", ev => {
+  const d = ev.target; if(!d.dataset || !d.dataset.cle) return;
+  d.open ? OPEN.add(d.dataset.cle) : OPEN.delete(d.dataset.cle);
+}, true);
+if(!VIEWS[S.tab]) S.tab = "match";
+
+const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function openVault(env, phrase){
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(phrase.trim()), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(env.sel), iterations:env.iterations, hash:"SHA-256"},
+    material, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(env.nonce)}, key, b64(env.donnees));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+const stored = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+function gate(message, busy){
+  document.querySelector("nav.tabs").hidden = true;
+  document.getElementById("app").innerHTML = '<div class="gate"><h1>'+esc(CFG.club || "Tableau de bord")+'</h1>'
+    + '<p class="muted" style="margin-top:8px">Les résultats sont chiffrés. Saisis la phrase secrète donnée par le club : elle reste sur cet ordinateur.</p>'
+    + '<label class="small muted" for="phrase" style="display:block;margin-top:14px">Phrase secrète</label>'
+    + '<input id="phrase" type="password" autocomplete="current-password"'+(busy?" disabled":"")+'>'
+    + '<button class="btn" id="unlock"'+(busy?" disabled":"")+'>'+(busy?"Ouverture…":"Ouvrir le tableau de bord")+'</button>'
+    + (message ? '<p class="err" role="alert">'+esc(message)+'</p>' : "") + '</div>';
+  const input = document.getElementById("phrase");
+  if(input && !busy) input.focus();
+}
+const hhmm = d => d.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+function sourceText(){
+  const g = new Date(GENERE);
+  return "Données du " + (isNaN(g) ? GENERE : g.toLocaleString("fr-FR", {dateStyle:"medium", timeStyle:"short"}))
+    + (ONLINE ? ", dernière vérification à " + hhmm(CHECKED) + " (toutes les " + Math.round(VERIF / 60000 || 1) + " min)."
+              : ", copie gardée sur cet ordinateur (hors connexion" + (CHECKED ? ", dépôt injoignable à " + hhmm(CHECKED) : "") + ").");
+}
+function status(){
+  const etat = document.getElementById("club-etat"), src = document.getElementById("source");
+  if(etat) etat.textContent = !GENERE ? "" : ONLINE ? "à jour · " + hhmm(CHECKED) : "hors connexion";
+  if(src && GENERE) src.textContent = sourceText();
+}
+async function fetchVault(){
+  const r = await fetch(CFG.src + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+function show(box){
+  D = Object.assign(box.data, {seance_hbt: box.seance_hbt});
+  GENERE = box.genere;
+}
+// Le manifeste (quelques octets) dit la date des dernières données publiées : on ne télécharge
+// et ne déchiffre le coffre que s'il a changé, puis on redessine sans perdre onglet ni réglages.
+async function check(){
+  const phrase = stored(PASS);
+  if(CHECKING || !GENERE || !phrase || !CFG.manifeste) return;
+  CHECKING = true;
+  try {
+    const m = await (await fetch(CFG.manifeste + "?t=" + Date.now(), {cache:"no-store"})).json();
+    CHECKED = new Date(); ONLINE = true;
+    if(m.app && m.app !== CFG.app && !NEWER){ NEWER = true; render(true); }  // la page elle-même a évolué
+    if(m.maj && m.maj !== GENERE){
+      const env = await fetchVault();
+      let box;
+      try { box = await openVault(env, phrase); }
+      catch (e) { try { localStorage.removeItem(PASS); } catch (x) {} D = null; GENERE = null;
+                  gate("Les données ont été chiffrées avec une nouvelle phrase secrète : demande-la au club."); return; }
+      if(box.genere !== GENERE){
+        try { localStorage.setItem(VAULT, JSON.stringify(env)); } catch (e) {}
+        show(box);
+        render(true);
+      }
+    }
+  } catch (e) { CHECKED = new Date(); ONLINE = false; }
+  finally { CHECKING = false; status(); }
+}
+setInterval(check, VERIF);
+document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - (CHECKED || 0) > 60000) check(); });
+window.addEventListener("online", check);
+async function start(phrase){
+  if(!window.crypto || !window.crypto.subtle){ gate("Ce navigateur ne sait pas déchiffrer les données. Essaie avec Chrome, Edge ou Firefox récents."); return; }
+  if(!phrase){ gate(""); return; }
+  gate("", true);
+  let env = null, fresh = false;
+  try { env = await fetchVault(); fresh = true; } catch (e) {}
+  if(!env){ try { env = JSON.parse(stored(VAULT) || "null"); } catch (e) {} }
+  if(!env){ gate("Impossible de joindre les données, et aucune copie n'existe encore sur cet ordinateur. Vérifie la connexion."); return; }
+  let box;
+  try { box = await openVault(env, phrase); }
+  catch (e) { try { localStorage.removeItem(PASS); } catch (x) {} gate("Phrase secrète incorrecte."); return; }
+  try { localStorage.setItem(PASS, phrase.trim()); if(fresh) localStorage.setItem(VAULT, JSON.stringify(env)); } catch (e) {}
+  show(box);
+  CHECKED = new Date(); ONLINE = fresh;
+  document.querySelector("nav.tabs").hidden = false;
+  render(false);
+  status();
+  check();  // le manifeste dit aussi si la page elle-même a une version plus récente
+}
+document.addEventListener("click", ev => {
+  if(ev.target.id === "unlock") start(document.getElementById("phrase").value);
+  else if(ev.target.dataset && ev.target.dataset.lock){ try { localStorage.removeItem(PASS); localStorage.removeItem(VAULT); } catch (e) {} D = null; GENERE = null; status(); gate(""); }
+});
+document.addEventListener("keydown", ev => { if(ev.key === "Enter" && ev.target.id === "phrase") start(ev.target.value); });
+if(D){ document.querySelector("nav.tabs").hidden = false; render(false); }
+else start(stored(PASS));
+</script>
+</body>
+</html>
