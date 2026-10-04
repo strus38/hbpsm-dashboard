@@ -44,6 +44,7 @@ def sandbox(tmp_path, monkeypatch):
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, val)
     monkeypatch.setattr(publish, "ROOT", tmp_path)
+    monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
         json.loads(p.read_text("utf-8")) for p in sorted((data / "matches").glob("*.json"))])
     return tmp_path
@@ -342,8 +343,16 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.click("#unlock")
         page.wait_for_selector("header.top h1")
         assert "HBPSM contre" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        # feuille de 12 joueurs dont 2 gardiens, même quand un gardien est absent
+        sheet = "(() => { const L = lineup('equilibre'); const all = [...Object.values(L.start), ...L.bench];"\
+                " return [all.length, all.filter(x => isGK(x.p)).length, L.missing, L.missingGK]; })()"
+        assert page.evaluate(sheet) == [12, 2, 0, 0]
+        page.evaluate("(() => { const g = lineup('equilibre').start.GB.p; S.absents[g.cle] = true; })()")
+        assert page.evaluate(sheet) == [12, 1, 0, 1]  # un seul gardien disponible : signalé, la feuille reste à 12
+        page.evaluate("S.absents = {}")
         page.click("nav.tabs button[data-tab=joueurs]")
-        assert "× 2 min" in page.inner_text("main")
+        main = page.inner_text("main")
+        assert "× 2 min" in main and "tirs (" in main and "% d'arrêts" in main
         page.click("nav.tabs button[data-tab=poules]")
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18
@@ -424,3 +433,32 @@ def test_trois_sanctions(sandbox):
     us, them = d["equipes"][demo_data.CLUB], d["equipes"]["Club B"]
     assert (us["jaunes_moy"], us["deux_min_moy"], us["rouges"]) == (1.0, 2.0, 0)
     assert (them["jaunes_moy"], them["deux_min_moy"], them["rouges"]) == (0.0, 0.0, 1)
+
+
+def test_gardiens_et_tirs(sandbox):
+    """Buts pris et % d'arrêts des gardiens, tirs et réussite des joueurs, pour le club et l'adversaire."""
+    save = lambda t, num: dict(t=t, side="home", type="save", num=num, score=[0, 0])
+    goal = lambda t: dict(t=t, side="away", type="goal", num=4, score=[0, 0])
+    match = dict(home=dict(score=10), away=dict(score=5), players={"home": [
+        dict(num=1, saves=2), dict(num=16, saves=2), dict(num=7, saves=0)], "away": []},
+        events=[goal(300), save(600, 1), goal(900), save(1200, 1), goal(1700),
+                goal(1900), save(2000, 16), save(2500, 16), goal(3000)])
+    # avant le premier arrêt d'une mi-temps : le prochain gardien de cette mi-temps
+    assert an.keepers_conceded(match, "home") == ({1: 3, 16: 2}, True)
+    match["players"]["home"] = [dict(num=1, saves=4)]
+    assert an.keepers_conceded(match, "home") == ({1: 5}, False)
+    match["players"]["home"], match["events"] = [dict(num=1, saves=2), dict(num=16, saves=2)], []
+    assert an.keepers_conceded(match, "home") == ({}, True)  # deux gardiens sans déroulé : inconnu
+    common.write_json(sandbox / "data" / "matches" / "1.json", dict(
+        id="1", poule="71", journee=1, date="2026-10-03T21:00", played=True,
+        home=dict(name=demo_data.CLUB, score=6, ht=3), away=dict(name="Club B", score=3, ht=2),
+        players=parse_fdme.parse_tables([FEUILLE]), events=[], source=dict(fdme=True)))
+    d = an.analyze("2026-10-04")
+    gk = next(p for p in d["joueurs"] if p["nom"] == "GARDIEN Alpha")
+    assert gk["gardien"] and (gk["arrets"], gk["pris"], gk["tirs_subis"], gk["pct_arrets"]) == (9, 3, 12, 75)
+    assert gk["journal"][0]["pct"] == 75 and not gk["pris_estime"]
+    jean = next(p for p in d["joueurs"] if p["nom"] == "DUPONT Jean")
+    assert (jean["buts"], jean["tirs"], jean["reussite"]) == (4, 5, 80) and jean["journal"][0]["tirs"] == 5
+    them = d["equipes"]["Club B"]
+    assert them["arrets_pct"] == 25 and them["gardiens"][0]["num"] == 16 and them["gardiens"][0]["pris"] == 6
+    assert next(b for b in them["buteurs"] if b["num"] == 4)["reussite"] == 60

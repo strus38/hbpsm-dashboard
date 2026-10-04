@@ -96,8 +96,8 @@ def simulate(rng, mid, poule, journee, date, home, away, squads, strength):
         else:
             events.append(dict(t=t, side=side, type="miss",
                                num=shooter["num"], score=list(score)))
-            if rng.random() < 0.6:
-                gk = sheet[other][0]
+            if rng.random() < 0.6:  # un gardien par mi-temps, comme sur les vraies feuilles
+                gk = sheet[other][0] if t < 1800 else sheet[other][1]
                 stats[other][gk["num"]]["saves"] += 1
                 events.append(dict(t=t, side=other, type="save",
                                    num=gk["num"], score=list(score)))

@@ -34,6 +34,41 @@ def sides(match):
             ("away", a["name"], h["name"], a["score"], h["score"])]
 
 
+def keepers_conceded(match, side):
+    """Buts pris par chaque gardien d'une équipe sur un match : ({numéro: buts}, estimé ?).
+
+    La feuille donne les arrêts de chaque gardien, pas ses buts pris : elle ne dit pas qui était
+    dans les buts. Un seul gardien a fait des arrêts : il prend tous les buts. Sinon, un but est
+    pour le gardien du dernier arrêt de la même mi-temps, à défaut du prochain arrêt de cette
+    mi-temps, sinon de l'arrêt le plus proche. Sans déroulé, plusieurs gardiens : inconnu ({})."""
+    other = "away" if side == "home" else "home"
+    keepers = [p for p in (match.get("players") or {}).get(side, []) if p.get("saves")]
+    against = match[other].get("score")
+    if not keepers or against is None:
+        return {}, False
+    if len(keepers) == 1:
+        return {keepers[0]["num"]: against}, False
+    events = match.get("events") or []
+    saves = [e for e in events if e["type"] == "save" and e["side"] == side and e.get("num") is not None]
+    goals = [e for e in events if e["type"] in ("goal", "pen_goal") and e["side"] == other]
+    if not saves or not goals:
+        return {}, True
+    half = lambda t: t > 1800
+    out = {p["num"]: 0 for p in keepers}
+    for g in goals:
+        same = [s for s in saves if half(s["t"]) == half(g["t"])]
+        before = [s for s in same if s["t"] <= g["t"]]
+        after = [s for s in same if s["t"] > g["t"]]
+        pick = before[-1] if before else after[0] if after else min(saves, key=lambda s: abs(s["t"] - g["t"]))
+        out[pick["num"]] = out.get(pick["num"], 0) + 1
+    return out, True
+
+
+def save_pct(saves, conceded):
+    """Pourcentage d'arrêts sur les tirs cadrés subis (arrêts + buts pris), arrondi."""
+    return round(100 * saves / (saves + conceded)) if saves + conceded else None
+
+
 def official_table(official, column=("PTS", "POINTS", "PT")):
     """Lit le classement affiché par la fédération : {équipe: valeur de la colonne}, au mieux."""
     if not official or not official.get("lignes"):
@@ -95,8 +130,9 @@ def standings(matches, teams=()):
 def team_profiles(matches, teams_by_poule=None):
     """Profil de chaque équipe des deux poules (repérage des adversaires)."""
     acc = defaultdict(lambda: dict(matches=[], scorers=defaultdict(
-        lambda: dict(buts=0, pen=0, m=0, num=None)), jaunes=0, deux_min=0, rouges=0,
-        periods_for=[0] * 6, periods_against=[0] * 6, has_events=0))
+        lambda: dict(buts=0, pen=0, m=0, num=None, tirs=0, tirs_buts=0)), jaunes=0, deux_min=0, rouges=0,
+        keepers=defaultdict(lambda: dict(arrets=0, pris=0, cadres=0, m=0, estime=False)),
+        arrets=0, pris=0, periods_for=[0] * 6, periods_against=[0] * 6, has_events=0))
     for m in sorted(matches, key=lambda x: x.get("date") or ""):
         for side, team, opp, gf, ga in sides(m):
             a = acc[team]
@@ -108,6 +144,7 @@ def team_profiles(matches, teams_by_poule=None):
             a["matches"].append(dict(id=m["id"], date=m.get("date"), adv=opp,
                                      dom=side == "home", bp=gf, bc=ga,
                                      res=outcome(gf, ga), mt_bp=ht_f, mt_bc=ht_a))
+            conceded, estimated = keepers_conceded(m, side)
             for p in m.get("players", {}).get(side, []):
                 key = norm(p.get("name")) or f"N{p.get('num')}"
                 s = a["scorers"][key]
@@ -116,9 +153,24 @@ def team_profiles(matches, teams_by_poule=None):
                 s["buts"] += p.get("goals") or 0
                 s["pen"] += p.get("pen_goals") or 0
                 s["m"] += 1
+                if p.get("shots"):
+                    s["tirs"] += p["shots"]
+                    s["tirs_buts"] += p.get("goals") or 0
                 a["jaunes"] += p.get("yellow") or 0
                 a["deux_min"] += p.get("two_min") or 0
                 a["rouges"] += p.get("red") or 0
+                if p.get("saves"):
+                    k = a["keepers"][key]
+                    k["nom"], k["num"] = s["nom"], p.get("num")
+                    k["arrets"] += p["saves"]
+                    k["m"] += 1
+                    if p.get("num") in conceded:
+                        k["pris"] += conceded[p["num"]]
+                        k["cadres"] += p["saves"] + conceded[p["num"]]
+                        k["estime"] = k["estime"] or estimated
+            if conceded:  # pourcentage de l'équipe : seulement les matchs où les buts pris sont répartis
+                a["arrets"] += sum(p.get("saves") or 0 for p in m["players"][side])
+                a["pris"] += sum(conceded.values())
             if m.get("events"):
                 a["has_events"] += 1
                 for e in m["events"]:
@@ -149,8 +201,15 @@ def team_profiles(matches, teams_by_poule=None):
             deux_min_moy=round(a["deux_min"] / a["sheets"], 1) if a.get("sheets") else None,
             rouges=a["rouges"] if a.get("sheets") else None,
             buteurs=[dict(nom=s["nom"], num=s["num"], buts=s["buts"], pen=s["pen"],
-                          moy=round(s["buts"] / max(1, s["m"]), 1), m=s["m"])
+                          moy=round(s["buts"] / max(1, s["m"]), 1), m=s["m"], tirs=s["tirs"] or None,
+                          reussite=round(100 * s["tirs_buts"] / s["tirs"]) if s["tirs"] else None)
                      for s in scorers if s["buts"] > 0],
+            arrets_pct=save_pct(a["arrets"], a["pris"]),
+            gardiens=sorted((dict(nom=k["nom"], num=k["num"], m=k["m"], arrets=k["arrets"],
+                                  pris=k["pris"] if k["cadres"] else None,
+                                  pct=save_pct(k["cadres"] - k["pris"], k["pris"]) if k["cadres"] else None,
+                                  estime=k["estime"])
+                             for k in a["keepers"].values()), key=lambda k: (-k["m"], -k["arrets"])),
             periodes_bp=[round(x / a["has_events"], 1) for x in a["periods_for"]] if a["has_events"] else None,
             periodes_bc=[round(x / a["has_events"], 1) for x in a["periods_against"]] if a["has_events"] else None,
         )
@@ -159,7 +218,7 @@ def team_profiles(matches, teams_by_poule=None):
             out.setdefault(team, dict(
                 equipe=team, poule=poule, j=0, bp_moy=None, bc_moy=None, forme=[], matches=[],
                 mt1_bp=None, mt2_bp=None, mt1_bc=None, mt2_bc=None, jaunes_moy=None, deux_min_moy=None,
-                rouges=None, buteurs=[],
+                rouges=None, buteurs=[], arrets_pct=None, gardiens=[],
                 periodes_bp=None, periodes_bc=None))
     return out
 
@@ -227,13 +286,19 @@ def club_players(matches, config, roster):
         for e in events:
             if e.get("side") == side and e.get("num") is not None:
                 buckets[e["num"]].add(min(5, int(e["t"] // 600)))
+        conceded, estimated = keepers_conceded(m, side)
         for p in m["players"][side]:
             key = norm(p.get("name")) or f"N{p.get('num')}"
             rec = players.setdefault(key, dict(
                 cle=key, nom=p.get("name") or f"n° {p.get('num')}", nums=Counter(),
                 m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux_min=0,
                 rouges=0, clutch=0, w_buts=0.0, w=0.0, diffs=[], journal=[],
-                tranches=0, m_deroule=0))
+                tranches=0, m_deroule=0, pris=0, cadres=0, estime=False))
+            pris = conceded.get(p.get("num")) if p.get("saves") else None
+            if pris is not None:  # gardien dont les buts pris sont connus pour ce match
+                rec["pris"] += pris
+                rec["cadres"] += p["saves"] + pris
+                rec["estime"] = rec["estime"] or estimated
             if events:
                 rec["m_deroule"] += 1
                 rec["tranches"] += len(buckets.get(p.get("num"), ()))
@@ -254,11 +319,12 @@ def club_players(matches, config, roster):
             rec["w"] += weight
             rec["diffs"].append(gf - ga)
             rec["journal"].append(dict(date=m.get("date"), adv=opp, res=outcome(gf, ga),
-                                       score=f"{gf}-{ga}", buts=g,
+                                       score=f"{gf}-{ga}", buts=g, tirs=p.get("shots"),
                                        jaunes=p.get("yellow") or 0,
                                        deux_min=p.get("two_min") or 0,
                                        rouges=p.get("red") or 0,
-                                       arrets=p.get("saves") or 0))
+                                       arrets=p.get("saves") or 0, pris=pris,
+                                       pct=save_pct(p["saves"], pris) if pris is not None else None))
     all_diffs = [gf - ga for _, _, _, gf, ga in with_sheet]
     max_form = max((r["w_buts"] / r["w"] for r in players.values()), default=0) or 1
     max_clutch = max((r["clutch"] / r["m"] for r in players.values()), default=0) or 1
@@ -272,7 +338,7 @@ def club_players(matches, config, roster):
         if ros.get("nom"):
             r["nom"] = ros["nom"]  # l'orthographe de l'effectif fait foi à l'affichage
         poste = ros.get("poste", "")
-        gk = poste == "GB" or (not poste and r["arrets"] > r["buts"] and r["arrets"] > 0)
+        gk = "GB" in poste.split("/") or (not poste and r["arrets"] > r["buts"] and r["arrets"] > 0)
         m = r["m"]
         without = n_sheet - m
         rest = (sum(all_diffs) - sum(r["diffs"])) / without if without else None
@@ -280,6 +346,8 @@ def club_players(matches, config, roster):
         shrink = min(m, without) / (min(m, without) + 2) if without else 0.0
         impact = raw_imp * shrink
         penal = (r["deux_min"] + 3 * r["rouges"] + 0.3 * r["jaunes"]) / m
+        # % d'arrêts lissé vers 30 % (10 tirs fictifs), ramené sur l'échelle 15 % -> 0, 45 % -> 1
+        pct_lisse = (r["cadres"] - r["pris"] + 3) / (r["cadres"] + 10)
         comps = dict(
             att=(r["w_buts"] / r["w"]) / max_form,
             eff=(r["tirs_connus"] + 2.5) / (r["tirs"] + 5) if r["tirs"] else 0.5,
@@ -287,12 +355,13 @@ def club_players(matches, config, roster):
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
             clutch=(r["clutch"] / m) / max_clutch if any_events else 0.5,
             assid=m / n_sheet if n_sheet else 0,
-            gk=(r["arrets"] / m) / max_saves if gk else 0,
+            gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
+            gk_vol=(r["arrets"] / m) / max_saves if gk else 0,
         )
         scores = {}
         for plan, w in PLANS.items():
-            if gk:
-                val = 0.6 * comps["gk"] + 0.25 * comps["imp"] + 0.15 * comps["assid"]
+            if gk:  # gardien : d'abord le % d'arrêts, puis le volume, l'impact et l'assiduité
+                val = 0.5 * comps["gk"] + 0.15 * comps["gk_vol"] + 0.2 * comps["imp"] + 0.15 * comps["assid"]
             else:
                 val = sum(w[k] * comps[k] for k in w)
             scores[plan] = round(100 * val)
@@ -303,7 +372,11 @@ def club_players(matches, config, roster):
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
             min_deux=2 * r["deux_min"], tirs=r["tirs"] or None,
-            arrets=r["arrets"], jaunes=r["jaunes"], deux_min=r["deux_min"], rouges=r["rouges"],
+            reussite=round(100 * r["tirs_connus"] / r["tirs"]) if r["tirs"] else None,
+            arrets=r["arrets"], pris=r["pris"] if r["cadres"] else None,
+            tirs_subis=r["cadres"] or None, pct_arrets=save_pct(r["cadres"] - r["pris"], r["pris"]),
+            pris_estime=r["estime"],
+            jaunes=r["jaunes"], deux_min=r["deux_min"], rouges=r["rouges"],
             buts_moy=round(r["buts"] / m, 1),
             forme_buts=round(r["w_buts"] / r["w"], 1),
             impact=round(impact, 1), decisifs=r["clutch"],
@@ -316,10 +389,11 @@ def club_players(matches, config, roster):
             continue
         out.append(dict(
             cle="R:" + rkey, nom=ros.get("nom") or rkey.title(), num=None, poste=ros.get("poste", ""),
-            gardien=ros.get("poste") == "GB", disponible=ros.get("disponible", True),
-            m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, arrets=0,
+            gardien="GB" in (ros.get("poste") or "").split("/"), disponible=ros.get("disponible", True),
+            m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
+            arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
-            comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk")},
+            comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
             scores={plan: None for plan in PLANS}, journal=[]))
     return out, club_matches, with_sheet
 
@@ -583,6 +657,7 @@ def analyze(today=None, roster=None):
                   club_court=config["club"]["nom_affiche"],
                   demo=any((m.get("source") or {}).get("demo") for m in matches),
                   matchs=len(matches), feuilles=n_fdme, effectif=squad,
+                  gardiens=int(config.get("gardiens_feuille", 2)),
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet)),
         prochain=nxt,
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p))

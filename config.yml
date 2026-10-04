@@ -13,8 +13,9 @@ poules:
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196332/"
   - id: "72"
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196334/"
-# Nombre de joueurs sur la feuille : "auto" = maximum déjà aligné cette saison
-effectif_feuille: auto
+# Joueurs à choisir pour chaque match, dont les gardiens ("auto" = maximum déjà aligné cette saison)
+effectif_feuille: 12
+gardiens_feuille: 2
 # true = garde quelques captures dans raw/sample pour régler les extracteurs
 # (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
 echantillons_debug: true

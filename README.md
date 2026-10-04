@@ -92,7 +92,19 @@ matchs joués est signalé « pas encore à jour » plutôt que comme une pénal
 Note sur 100 par joueur, à partir des feuilles du club : buts récents (les derniers matchs
 pèsent plus), efficacité si les tirs sont saisis, discipline, écart de l'équipe avec et sans le
 joueur, buts en fin de match serré, assiduité. Trois pondérations (équilibré, attaque, rigueur) ;
-celle conseillée dépend du profil de l'adversaire. Gardiens : arrêts par match, impact, assiduité.
+celle conseillée dépend du profil de l'adversaire. Gardiens : d'abord le pourcentage d'arrêts
+(arrêts sur tirs cadrés subis, c'est-à-dire arrêts + buts pris), puis les arrêts par match,
+l'impact et l'assiduité. Joueurs de champ : les buts face aux tirs (réussite au tir).
+
+La feuille donne les arrêts de chaque gardien, pas ses buts pris. Quand un seul gardien a fait
+des arrêts, il prend tous les buts du match. Quand deux gardiens se partagent le match, chaque but
+encaissé va au gardien du dernier arrêt de la même mi-temps (à défaut, du prochain) : c'est une
+estimation, marquée comme telle dans la page. Le même calcul donne le pourcentage d'arrêts des
+gardiens adverses dans le repérage.
+
+L'équipe proposée compte 12 joueurs dont 2 gardiens (`effectif_feuille` et `gardiens_feuille`
+dans `config.yml`), les mieux notés parmi les disponibles ; s'il manque du monde, un joueur de
+l'effectif pas encore aligné complète la feuille.
 
 Discipline : les trois sanctions de la feuille restent distinctes partout (joueurs, journal des
 matchs, repérage de l'adversaire) : l'avertissement (carton jaune, un au plus par joueur et par
