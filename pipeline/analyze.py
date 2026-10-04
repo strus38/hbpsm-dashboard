@@ -388,6 +388,15 @@ def load_roster():
 
 
 HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
+FIABLE = (3, 6)  # matchs comptés (saison passée pour HIST) : en deçà du 1er, note fragile ; du 2e, indicative
+
+
+def reliability(m, m_past):
+    """Sur combien de matchs repose une note : ceux de la saison, plus ceux de la saison passée
+    comptés pour HIST, et ce que cela vaut (fragile, indicative, solide ; aucune sans match)."""
+    n = m + HIST * m_past
+    level = "aucune" if not n else "fragile" if n < FIABLE[0] else "indicative" if n < FIABLE[1] else "solide"
+    return dict(matchs=round(n, 1), saison=m, passee=m_past, niveau=level)
 
 
 def club_matches_of(matches, config):
@@ -552,7 +561,7 @@ def club_players(matches, config, roster, history=()):
             forme_buts=round(form(r, h), 1),
             impact=round(impact, 1), decisifs=r["clutch"],
             comps={k: round(v, 2) for k, v in comps.items()},
-            scores=scores, journal=r["journal"], passe=passe,
+            scores=scores, journal=r["journal"], passe=passe, fiabilite=reliability(m, h["m"]),
             note_base="saison" if m and not h["m"] else "saison et " + saison_passee if m else saison_passee))
     out.sort(key=lambda p: -p["scores"]["equilibre"])
     # joueurs de l'effectif jamais inscrits sur une feuille : listés, sans note
@@ -566,7 +575,8 @@ def club_players(matches, config, roster, history=()):
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
             comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
-            scores={plan: None for plan in PLANS}, journal=[], passe=None, note_base=None))
+            scores={plan: None for plan in PLANS}, journal=[], passe=None, note_base=None,
+            fiabilite=reliability(0, 0)))
     return out, club_matches, with_sheet
 
 

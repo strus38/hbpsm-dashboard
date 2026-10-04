@@ -70,8 +70,12 @@ La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de c
 sur les 4 matchs à la fois : chacun joue au moins 1 des 4 matchs (ou 2, ou rotation libre, au
 choix de l'entraîneur). Elle se fait d'abord sur les matchs les plus abordables (victoire
 estimée la plus haute), jamais sur un match clé, avec au plus 3 joueurs de champ et 1 gardien
-changés par match ; laisse sa place celui qui a le plus joué sur la période (à égalité, le moins
-bien noté), si bien que le repos tourne aussi chez les titulaires et les gardiens. Chaque case
+changés par match (les 2 gardiens si le minimum l'exige, sur un match à la victoire estimée
+d'au moins 65 %) ; laisse sa place celui qui a le plus joué sur la période (à égalité, le moins
+bien noté), si bien que le repos tourne aussi chez les titulaires et les gardiens. Chaque note
+dit sur combien de matchs elle repose (saison passée comptée pour moitié) : fragile sous 3,
+indicative sous 6, solide au-delà ; tant que le club a moins de 5 feuilles lues ou des notes
+fragiles, la planification le rappelle. Chaque case
 dit pourquoi au survol ; un minimum impossible à tenir est signalé en rouge. La force
 alignée rapporte la valeur des 12 retenus à celle de l'équipe type ; la victoire estimée part
 de celle calculée sur GitHub (équipe au complet) et baisse avec la force ; le risque multiplie

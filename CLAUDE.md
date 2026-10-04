@@ -136,7 +136,9 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   match par match, tombait sur les matchs difficiles et ne reposait jamais le 1er gardien) :
   chacun joue au moins 1 des 4 matchs par défaut (`S.regle` = 1, 2 ou 0 = libre), d'abord sur
   les matchs les plus abordables, jamais sur un match clé, 3 joueurs de champ et 1 gardien au
-  plus par match ; sort celui qui a le plus joué sur la période. Gymnase des 4 prochains
+  plus par match, 2 gardiens si le minimum l'exige sur un match à 65 % ou plus (`ROT_GB2`) ;
+  sort celui qui a le plus joué sur la période. Fiabilité de chaque note (`analyze.reliability`,
+  `FIABLE`) affichée en points ; avec 1 feuille au 05/10/2026, les choix restent des tendances. Gymnase des 4 prochains
   matchs du club lu sur la page de la rencontre ; heure de rendez-vous saisie par l'entraîneur.
   Disponibilités, choix et rendez-vous restent dans le navigateur de l'entraîneur (`S` dans
   `localStorage`), avec export / import en fichier ; jamais publiés.

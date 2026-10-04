@@ -364,9 +364,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           return {cle: P.filter(r => r.m.cle).map(r => r.rotated.length), ordre: easy.map(r => r.rotated.length),
                   paires: P.every(r => r.rotated.length === r.resting.length && r.sel.length === 12),
                   manque: D.joueurs.filter(p => P.apps(p) < P.need(p)).length,
-                  libre: (S.regle = 0, planning().every(r => !r.rotated.length))}; })()""")
+                  libre: (S.regle = 0, planning().every(r => !r.rotated.length)),
+                  gb2: (S.regle = 2, planning().every(r => { const g = r.rotated.filter(isGK).length;
+                    return g <= 1 || (g === 2 && !r.m.cle && r.m.p_victoire >= ROT_GB2); }))}; })()""")
         page.evaluate("S.regle = 1")
-        assert all(n == 0 for n in rot["cle"]) and rot["paires"] and rot["libre"]
+        assert all(n == 0 for n in rot["cle"]) and rot["paires"] and rot["libre"] and rot["gb2"]
         assert sum(rot["ordre"]) > 0 and rot["ordre"] == sorted(rot["ordre"], reverse=True) and rot["manque"] == 0
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
         page.click("nav.tabs button[data-tab=planif]")
@@ -465,6 +467,13 @@ def test_trois_sanctions(sandbox):
     us, them = d["equipes"][demo_data.CLUB], d["equipes"]["Club B"]
     assert (us["jaunes_moy"], us["deux_min_moy"], us["rouges"]) == (1.0, 2.0, 0)
     assert (them["jaunes_moy"], them["deux_min_moy"], them["rouges"]) == (0.0, 0.0, 1)
+
+
+def test_fiabilite_des_notes():
+    """Une note dit sur combien de matchs elle repose : la saison passée compte pour moitié."""
+    assert an.reliability(0, 0)["niveau"] == "aucune"
+    assert an.reliability(1, 2) == dict(matchs=2.0, saison=1, passee=2, niveau="fragile")
+    assert an.reliability(0, 8)["niveau"] == "indicative" and an.reliability(1, 14)["niveau"] == "solide"
 
 
 def test_heure_de_paris():
