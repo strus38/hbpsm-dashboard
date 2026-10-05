@@ -400,10 +400,13 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           champ.forEach((p, i) => S.postes[p.cle] = cycle[i % cycle.length]);
           const r = planning()[0], st = startSeven(r), b = benchOf(r, st), box = document.createElement("div");
           box.innerHTML = courtSVG(st, b);
-          const noms = box.querySelectorAll(".tok:not(.vide) .nm").length + box.querySelectorAll(".sub").length;
-          const gb2 = (b.GB || []).length;
-          S.postes = {}; return {feuille: r.sel.length, noms, gb2}; })()""")
-        assert court == {"feuille": 12, "noms": 12, "gb2": 1}
+          const lus = [...box.querySelectorAll(".tok:not(.vide) .nm")].map(t => t.textContent).join(" / ").split("/").map(x => x.trim()).filter(Boolean);
+          const prenoms = lus.every(x => r.sel.some(p => firstName(p) === x));
+          const gb2 = (b.GB || []).length, keep = D.joueurs;
+          D.joueurs = [{nom: "Zéphyrin Alpha"}, {nom: "Zéphyrin Beta"}, {nom: "Onésime Gamma"}];
+          const homonymes = D.joueurs.map(firstName); D.joueurs = keep;
+          S.postes = {}; return {feuille: r.sel.length, noms: lus.length, prenoms, gb2, homonymes}; })()""")
+        assert court == {"feuille": 12, "noms": 12, "prenoms": True, "gb2": 1, "homonymes": ["Zéphyrin A.", "Zéphyrin B.", "Onésime"]}
         # le gymnase s'ouvre dans Maps ; le match s'ajoute à l'agenda, heure de Paris (rien si l'horaire n'est pas fixé)
         cal = page.evaluate("""(() => { const salle = {nom: "GYMNASE DU PARC", rue: "1 RUE DU STADE", code_postal: "38000", ville: "VILLE"};
           const m = {id: "m9", date: "2026-10-10T23:30", domicile: false, adversaire: D.saison.matchs[0].adversaire, journee: 4, salle};

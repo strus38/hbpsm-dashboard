@@ -886,28 +886,36 @@ function benchOf(r, start){
   }
   return out;
 }
+// sur le terrain, le prénom ; deux joueurs du même prénom : l'initiale du nom en plus
+const firstName = p => { const w = String(p.nom).trim().split(/\s+/), f = w[0];
+  const twin = D.joueurs.some(q => q !== p && String(q.nom).trim().split(/\s+/)[0] === f);
+  return twin && w.length > 1 ? f + " " + w[w.length - 1][0] + "." : f; };
 function courtSVG(start, bench = {}){
-  const pos = {GB:[170,30],ALG:[44,70],ALD:[296,70],PIV:[170,140],ARG:[70,222],DC:[170,252],ARD:[270,222]};
-  const who = p => esc(p.num ?? "")+' '+esc(shortName(p.nom));
-  let tok = "", low = 305;
+  const pos = {GB:[170,30],ALG:[56,70],ALD:[284,70],PIV:[170,140],ARG:[72,222],DC:[170,252],ARD:[268,222]};
+  // « titulaire / remplaçant », en lignes assez courtes pour tenir au bord du terrain
+  const lines = (names, max) => names.reduce((out, n) => { const i = out.length - 1;
+    if(i >= 0 && (out[i] + " / " + n).length <= max) out[i] += " / " + n;
+    else { if(i >= 0) out[i] += " /"; out.push(n); }
+    return out; }, []);
+  let tok = "", low = 307;
   for(const k of POSTES){
     const [x,y] = pos[k], c = start[k], subs = bench[k] || [];
-    const name = c ? esc(shortName(c.p.nom)) : "à pourvoir";
+    const ls = c ? lines([c.p, ...subs].map(firstName), k === "ALG" || k === "ALD" ? 14 : 20) : ["à pourvoir"];
     tok += '<g class="tok'+(c?"":" vide")+(k==="GB"?" gb":"")+'" transform="translate('+x+','+y+')"><circle r="15"/>'
       + '<text class="n" y="6">'+(c ? esc(c.p.num ?? "") : "")+'</text>'
-      + '<text class="nm" y="30">'+name+'</text><text class="ps" y="43">'+k+'</text>'
-      + subs.map((p, i) => '<text class="sub" y="'+(58 + 13*i)+'">'+who(p)+'</text>').join("")+'</g>';
-    if(subs.length) low = Math.max(low, y + 58 + 13*(subs.length - 1) + 10);
+      + ls.map((l, i) => '<text class="nm" y="'+(30 + 13*i)+'">'+esc(l)+'</text>').join("")
+      + '<text class="ps" y="'+(43 + 13*(ls.length - 1))+'">'+k+'</text></g>';
+    low = Math.max(low, y + 43 + 13*(ls.length - 1) + 12);
   }
-  // sans poste connu : en bas, trois par ligne
+  // sans poste connu : en bas, quatre par ligne
   const rest = bench[""] || [];
-  for(let i = 0; i < rest.length; i += 3){
+  for(let i = 0; i < rest.length; i += 4){
     low += 14;
-    tok += '<text class="sub libre" x="170" y="'+low+'">'+(i ? "" : "Sans poste : ")+rest.slice(i, i + 3).map(who).join(" · ")+'</text>';
+    tok += '<text class="sub libre" x="170" y="'+low+'">'+(i ? "" : "Sans poste : ")+rest.slice(i, i + 4).map(p => esc(firstName(p))).join(" / ")+'</text>';
   }
   const n = Object.values(bench).reduce((a, l) => a + l.length, 0), H = low + (n ? 22 : 6);
-  if(n) tok += '<text class="leg" x="12" y="'+(H - 10)+'">Sous chaque poste : les remplaçants</text>';
-  return '<div class="court"><svg viewBox="0 0 340 '+H+'" role="img" aria-label="Sept de départ possible sur le demi-terrain'+(n ? ", remplaçants sous leur poste" : "")+'">'
+  if(n) tok += '<text class="leg" x="12" y="'+(H - 10)+'">Titulaire / remplaçant</text>';
+  return '<div class="court"><svg viewBox="0 0 340 '+H+'" role="img" aria-label="Sept de départ possible sur le demi-terrain'+(n ? ", chaque titulaire suivi de son remplaçant" : "")+'">'
     + '<path class="zone" d="M70 6 A100 100 0 0 0 270 6 Z" opacity=".9"/>'
     + '<path class="line" d="M70 6 A100 100 0 0 0 270 6"/>'
     + '<path class="line" d="M20 6 A150 150 0 0 0 320 6" stroke-dasharray="7 7"/>'

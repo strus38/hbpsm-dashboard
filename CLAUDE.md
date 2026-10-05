@@ -186,7 +186,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   Google Agenda (lien) ou fichier .ics fabriqué au clic (`matchEvent`, `icsText`, VTIMEZONE
   Europe/Paris, 90 min, rendez-vous de l'entraîneur dans la description) ; rien tant que
   l'horaire est provisoire. Terrain : sept de départ (`startSeven`) et les 5 autres sous le
-  titulaire de leur premier poste (`benchOf`), le 2e gardien sous le gardien.
+  titulaire de leur premier poste (`benchOf`), le 2e gardien sous le gardien ; libellés au prénom
+  (`firstName`, initiale du nom si deux prénoms identiques), « titulaire / remplaçant ».
 - L'empreinte du manifeste comprend le code du calcul (`publish.code_version` : pipeline/*.py et
   config.yml) : un changement de code republie, même sans nouvelle feuille.
 - La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com`, car les fichiers de Release
