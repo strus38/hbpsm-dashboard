@@ -115,6 +115,11 @@ n'a pas validé la feuille, « retenu » ensuite. Le tableau montre aussi les de
 classe d'âge, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
 proche ; elle n'est affichée nulle part.
 
+L'entraîneur seul déclare un joueur absent (pour un match) ou blessé (à partir d'un match, jusqu'à
+ce qu'il le dise rétabli), d'un clic sur une case. Le joueur sort des propositions concernées, et
+la rotation des matchs suivants s'en accommode. Publiés avec ses choix (chiffrés), ces statuts
+valent pour tout le monde : les propositions changent avant même qu'il valide la feuille.
+
 Sur téléphone, la page prend l'allure d'une application : onglets en bas avec icônes, noms
 courts, tableaux sans les colonnes secondaires, planification un match à la fois (choisi par
 les pastilles du haut) avec la colonne des noms fixe et de grandes cases. Le survol n'existant

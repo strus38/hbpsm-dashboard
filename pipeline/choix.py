@@ -20,6 +20,7 @@ NAME = "choix.enc"
 MAX_TEXT = 60_000   # quatre feuilles de 12 joueurs, chiffrées, tiennent en quelques kilo-octets
 MAX_MATCHES = 40
 MAX_PLAYERS = 16
+MAX_INJURED = 40
 ENVELOPE = ("format", "v", "kdf", "iterations", "sel", "chiffre", "nonce", "donnees")
 
 
@@ -38,6 +39,19 @@ def check(envelope, secret):
                 or not all(isinstance(p, str) and 0 < len(p) < 120 for p in players) \
                 or not isinstance(choice.get("le"), str):
             raise vault.VaultError("Choix refusés : feuille de forme inattendue.")
+    # blessés : {joueur: {de: date du premier match manqué, a: date du retour ou null}}
+    hurt = data.get("blesses", {})
+    if not isinstance(hurt, dict) or len(hurt) > MAX_INJURED or not all(
+            isinstance(k, str) and 0 < len(k) < 120 and isinstance(b, dict) and isinstance(b.get("de"), str)
+            and len(b["de"]) < 40 and (b.get("a") is None or (isinstance(b.get("a"), str) and len(b["a"]) < 40))
+            and set(b) <= {"de", "a"} for k, b in hurt.items()):
+        raise vault.VaultError("Choix refusés : blessures de forme inattendue.")
+    # absents : {match: [joueurs]}, déclarés par l'entraîneur pour un match
+    away = data.get("absents", {})
+    if not isinstance(away, dict) or len(away) > MAX_MATCHES or not all(
+            isinstance(k, str) and 0 < len(k) < 40 and isinstance(v, list) and len(v) <= MAX_INJURED
+            and all(isinstance(x, str) and 0 < len(x) < 120 for x in v) for k, v in away.items()):
+        raise vault.VaultError("Choix refusés : absences de forme inattendue.")
     return data
 
 
@@ -53,7 +67,8 @@ def main():
     data = check(envelope, secret)
     common.PUBLIE.mkdir(parents=True, exist_ok=True)
     write_json(common.PUBLIE / NAME, {k: envelope[k] for k in ENVELOPE})  # rien d'autre que le coffre
-    print(f"[choix] {len(data['matchs'])} feuille(s) validée(s) publiée(s)")
+    print(f"[choix] {len(data['matchs'])} feuille(s) validée(s), {len(data.get('blesses') or {})} blessure(s), "
+          f"{sum(len(v) for v in (data.get('absents') or {}).values())} absence(s) publiée(s)")
     return 0
 
 

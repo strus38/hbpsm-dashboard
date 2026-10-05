@@ -557,6 +557,26 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         wait_sent(3)
         chosen = publish_last()
         assert page.evaluate("planning()[0].etat") == "publiee"
+        # blessé, absent : l'entraîneur les déclare d'un clic (… incertain → absent → blessé) ; ils sortent
+        # des propositions des matchs concernés, puis partent avec la publication, pour tout le monde
+        hurt = page.evaluate("""(() => { const P = planning(), r = P[1], p = r.sel.find(q => !isGK(q)), id = String(r.m.id);
+          S.dm[id] = Object.assign(S.dm[id] || {}, {[p.cle]: "a"});   // absent pour ce match
+          cycleCell(id, p.cle);   // → blessé à partir de ce match
+          const after = planning();
+          const out = {cle: p.cle, hors: after.slice(1).every(x => !x.sel.includes(p) && availOf(p, x.m) === "a"),
+                       avant: availOf(p, after[0].m), attente: statusPending()};
+          cycleCell(String(after[3].m.id), p.cle);   // rétabli à partir du 4e match
+          out.retour = availOf(p, planning()[3].m) !== "a" && availOf(p, planning()[2].m) === "a";
+          const q = planning()[2].sel.find(x => !isGK(x) && x !== p), id2 = String(planning()[2].m.id);
+          S.dm[id2] = Object.assign(S.dm[id2] || {}, {[q.cle]: "i"}); cycleCell(id2, q.cle);   // incertain → absent
+          out.absent = q.cle; out.id2 = id2; out.sorti = !planning()[2].sel.includes(q) && availOf(q, planning()[3].m) !== "a";
+          render(true); return out; })()""")
+        assert hurt["hors"] and hurt["avant"] != "a" and hurt["attente"] and hurt["retour"] and hurt["sorti"]
+        page.locator("[data-publier-blessures]").click()
+        wait_sent(4)
+        published = publish_last()
+        assert published["blesses"][hurt["cle"]]["a"] and hurt["absent"] in published["absents"][hurt["id2"]]
+        assert not page.evaluate("statusPending()") and page.locator("[data-publier-blessures]").count() == 0
         # caisse noire : un trésorier met une amende ; elle part chiffrée au workflow « Caisse noire »
         page.click("nav.tabs button[data-tab=caisse]")
         page.locator("[data-cpick-j]").first.click()
@@ -565,7 +585,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("[data-cn='1']").click()
         page.fill("#cnote", "veste du club")
         page.locator("[data-cgo]").click()
-        wait_sent(4)
+        wait_sent(5)
         assert sent[-1]["url"].endswith("/actions/workflows/caisse.yml/dispatches")
         ops = caisse.check(json.loads(sent[-1]["body"]["inputs"]["ops"]), PHRASE)
         assert [(o["t"], o["regle"], o["n"], o["montant"], o["note"]) for o in ops] == [("amende", "m_oubli", 2, 4, "veste du club")]
@@ -602,6 +622,10 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.wait_for_function("() => CHOIX !== null", timeout=10000)
         assert ro.evaluate("PLAN.map(r => r.etat)") == ["choix", "suggestion", "suggestion", "suggestion"]
         assert sorted(ro.evaluate("PLAN[0].sel.map(p => p.cle)")) == sorted(chosen["matchs"][first]["joueurs"])
+        # blessé et absent publiés : en consultation aussi, ils sortent des propositions
+        assert ro.evaluate("""((c, a, id2) => { const P = planning(), p = D.joueurs.find(x => x.cle === c), q = D.joueurs.find(x => x.cle === a);
+          return !P[2].sel.includes(p) && !P[2].sel.includes(q) && availOf(q, P.find(r => String(r.m.id) === id2).m) === "a"; })""" +
+                           f"({json.dumps(hurt['cle'])}, {json.dumps(hurt['absent'])}, {json.dumps(hurt['id2'])})")
         # en consultation, ce que l'entraîneur a saisi dans ce navigateur ne change rien : la même
         # proposition qu'un navigateur où rien n'a été saisi
         assert ro.evaluate("""(() => { const pick = () => JSON.stringify(planning().map(r => r.sel.map(p => p.cle)));
@@ -717,9 +741,16 @@ def test_choix_de_l_entraineur(sandbox, monkeypatch):
     assert choix.main() == 0
     written = json.loads((sandbox / "publie" / "choix.enc").read_text("utf-8"))
     assert "extra" not in written and vault.decrypt(written, PHRASE) == good
+    # blessés et absents déclarés par l'entraîneur : publiés avec les feuilles
+    status = dict(good, blesses={"R:EXEMPLE ISIDORE": dict(de="2026-10-10T20:30", a=None)}, absents={"42": ["R:MODELE JEAN"]})
+    monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(status, PHRASE, 2000)))
+    assert choix.main() == 0
+    assert vault.decrypt(json.loads((sandbox / "publie" / "choix.enc").read_text("utf-8")), PHRASE)["absents"] == {"42": ["R:MODELE JEAN"]}
     refused = [vault.encrypt(good, "une autre phrase bien longue", 2000),             # pas la phrase du club
                vault.encrypt(dict(good, format="autre"), PHRASE, 2000),               # pas des choix
                vault.encrypt(dict(good, matchs={"1": dict(joueurs=["x"] * 20, le="")}), PHRASE, 2000),
+               vault.encrypt(dict(good, blesses={"R:X": dict(de="2026-10-10", a=None, note="?")}), PHRASE, 2000),
+               vault.encrypt(dict(good, absents={"42": "R:X"}), PHRASE, 2000),         # une liste attendue
                vault.encrypt(good, PHRASE, 1000)]                                      # chiffrement affaibli
     for bad in refused:
         monkeypatch.setenv("HBPSM_CHOIX", json.dumps(bad))

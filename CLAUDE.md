@@ -193,6 +193,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
   passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
   de la saison passée ne compte pas pour la règle des 2 changements.
+- Blessé, absent (demandes de l'auteur, 05/10/2026) : seul l'entraîneur les déclare, d'un clic sur
+  une case (… incertain → absent → blessé → disponible). Absent : pour ce match (`dm` « a »). Blessé :
+  à partir de ce match jusqu'à son retour (`S.blesse[cle]` = {de, a}, dates de match ; un clic sur un
+  match suivant le dit rétabli). Les deux partent avec la publication des choix (`choix.enc` :
+  `blesses`, `absents` {match: [joueurs]}, vérifiés par `choix.check`) : les propositions changent
+  pour tout le monde avant même que la feuille soit validée ; bandeau « pas encore publiés » et
+  bouton Publier (`statusPending`). Ce qu'il a saisi ici prime sur le publié (« d » efface).
 - Classe d'âge (demande de l'auteur, 05/10/2026 : miser sur l'avenir, une équipe solide et jeune en
   cas de montée) : 5e colonne `age` de l'effectif (jeune : 30 ans au plus, intermediaire : 31 à 40,
   experimente : plus de 40), dans roster.csv et le secret, jamais dans le dépôt. Paramètre seulement,
