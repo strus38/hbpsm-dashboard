@@ -4,6 +4,8 @@ Entrées : data/matches/*.json, data/fixtures.json, roster.csv, config.yml
 Sortie  : dictionnaire prêt pour le tableau de bord (docs/data.json).
 """
 import csv
+import hashlib
+import json
 import itertools
 import math
 import random
@@ -12,7 +14,7 @@ import statistics
 from collections import Counter, defaultdict
 
 from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
-                     norm, paris_now, read_json, same_team)
+                     norm, paris_now, read_json, same_team, write_json)
 from . import caisse
 from .parse_fdme import split_name
 
@@ -1021,6 +1023,32 @@ def team_logos(fixtures):
     return out
 
 
+PLANIF = "planif.json"  # entrées de la planification figées (data/, repris de etat.enc)
+
+
+def freeze_plan(players, matchs, sheets, roster, config):
+    """Les propositions de la planification ne bougent qu'après un match du club (une feuille de plus
+    lue) ou un changement d'effectif : d'ici là, notes des joueurs et chances de victoire servant à la
+    rotation restent celles du moment où elles ont été posées (scores_plan, p_plan, cle), quoi que
+    les publications suivantes recalculent. Un match qui entre dans l'horizon reçoit ses valeurs du
+    jour. Même résultat pour tout le monde, et d'une ouverture à l'autre."""
+    key = dict(feuilles=sorted(str(s) for s in sheets), forfaits=sorted(config.get("forfaits") or []),
+               effectif=hashlib.sha256(json.dumps(roster, sort_keys=True, ensure_ascii=False, default=str)
+                                       .encode("utf-8")).hexdigest()[:16])
+    prev = read_json(DATA / PLANIF, {}) or {}
+    same = prev.get("cle") == key
+    notes = dict(prev.get("notes") or {}) if same else {}
+    probs = dict(prev.get("matchs") or {}) if same else {}
+    for p in players:
+        notes.setdefault(p["cle"], p.get("scores"))
+        p["scores_plan"] = notes[p["cle"]]
+    for m in matchs:
+        frozen = probs.setdefault(str(m["id"]), dict(p=m.get("p_victoire"), cle=bool(m.get("cle"))))
+        m["p_plan"], m["cle"] = frozen["p"], frozen["cle"]
+    write_json(DATA / PLANIF, dict(cle=key, notes=notes, matchs=probs, depuis=prev.get("depuis") if same else paris_now().strftime("%Y-%m-%d %H:%M")))
+    return (prev.get("depuis") if same else None) or paris_now().strftime("%Y-%m-%d %H:%M")
+
+
 def cup_ahead(fixtures, config, today, league):
     """Les matchs de coupe à venir du club, pour la planification : pas d'enjeu pour le classement,
     jamais match clé. Victoire estimée : celle d'un match de championnat contre le même adversaire
@@ -1169,6 +1197,7 @@ def analyze(today=None, roster=None):
                 m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
                                              profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
                                              gap, priors.get(m["adversaire"]), m["domicile"])
+    plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
@@ -1180,7 +1209,7 @@ def analyze(today=None, roster=None):
                   prudence=PRUDENCE,
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
                   historique=[x.get("saison") for x in seasons],
-                  ecart_division=float(config.get("ecart_division", ECART))),
+                  ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since),
         prochain=nxt,
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)
                 for p in sorted(set(by_poule) | set(teams))},

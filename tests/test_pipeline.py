@@ -358,6 +358,12 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.evaluate("D.derniers.length") == 2 and page.locator(".plan .h.past").count() == 2
         on = page.evaluate("D.derniers.reduce((a, x) => a + D.joueurs.filter(p => (p.journal || []).some(j => j.id === x.id)).length, 0)")
         assert on > 0 and page.locator(".plan .pc.on").count() == on
+        # jamais deux fois de suite la même équipe : au moins 2 changements, depuis le dernier match joué
+        changes = page.evaluate("""(() => { const last = D.derniers.slice(-1)[0];
+          let prev = D.joueurs.filter(p => (p.journal || []).some(j => j.id === last.id));
+          return planning().map(r => { const c = r.sel.filter(p => !prev.includes(p)).length; prev = r.sel; return c; }); })()""")
+        assert len(changes) == 4 and min(changes) >= 2, changes
+        assert "proposé" in page.inner_text(".plan") and "retenu" not in page.inner_text(".plan .h")
         page.click("nav.tabs button[data-tab=semaine]")
         assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
@@ -367,14 +373,15 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.evaluate(sheet + "(0)") == [12, 1, 0, 1]  # un seul gardien disponible : signalé
         page.evaluate("S.absents = {}")
         # rotation : jamais sur un match clé, d'abord sur les matchs les plus abordables ; chaque entrant
-        # prend la place d'un joueur au repos, et chacun joue au moins 1 des 4 matchs
-        rot = page.evaluate("""(() => { S.regle = 1; const P = planning();
+        # prend la place d'un joueur au repos, et chacun joue au moins 1 des 4 matchs (les échanges de la
+        # règle des 2 changements d'un match au suivant, forced, se comptent à part)
+        rot = page.evaluate("""(() => { S.regle = 1; const P = planning(), rq = r => r.rotated.filter(p => !r.forced.includes(p));
           const easy = P.filter(r => !r.m.cle).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50));
-          return {cle: P.filter(r => r.m.cle).map(r => r.rotated.length), ordre: easy.map(r => r.rotated.length),
+          return {cle: P.filter(r => r.m.cle).map(r => rq(r).length), ordre: easy.map(r => rq(r).length),
                   paires: P.every(r => r.rotated.length === r.resting.length && r.sel.length === 12),
                   manque: D.joueurs.filter(p => P.apps(p) < P.need(p)).length,
-                  libre: (S.regle = 0, planning().every(r => !r.rotated.length)),
-                  gb2: (S.regle = 2, planning().every(r => { const g = r.rotated.filter(isGK).length;
+                  libre: (S.regle = 0, planning().every(r => !rq(r).length)),
+                  gb2: (S.regle = 2, planning().every(r => { const g = rq(r).filter(isGK).length;
                     return g <= 1 || (g === 2 && !r.m.cle && r.m.p_victoire >= ROT_GB2); }))}; })()""")
         page.evaluate("S.regle = 1")
         assert all(n == 0 for n in rot["cle"]) and rot["paires"] and rot["libre"] and rot["gb2"]
@@ -588,6 +595,14 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.wait_for_function("() => CHOIX !== null", timeout=10000)
         assert ro.evaluate("PLAN.map(r => r.etat)") == ["choix", "suggestion", "suggestion", "suggestion"]
         assert sorted(ro.evaluate("PLAN[0].sel.map(p => p.cle)")) == sorted(chosen["matchs"][first]["joueurs"])
+        # en consultation, ce que l'entraîneur a saisi dans ce navigateur ne change rien : la même
+        # proposition qu'un navigateur où rien n'a été saisi
+        assert ro.evaluate("""(() => { const pick = () => JSON.stringify(planning().map(r => r.sel.map(p => p.cle)));
+          const saved = JSON.stringify(S), m = planning()[1].m.id;
+          S.dm[m] = {[D.joueurs[0].cle]: "a", [D.joueurs[1].cle]: "a"}; S.regle = 2; const a = pick();
+          Object.assign(S, {postes: {}, absents: {}, depannage: {}, dm: {}, pin: {}, regle: 1});
+          const b = pick(); S = JSON.parse(saved);
+          return a === b; })()""")
         ro.click("nav.tabs button[data-tab=semaine]")
         assert "choisis par l'entraîneur" in ro.inner_text("h2") and "Choix de l'entraîneur" in ro.inner_text(".etat-ligne")
         assert ro.locator("[data-valider]").count() == 0
@@ -988,6 +1003,23 @@ def test_division_du_dessus():
     above_div = an.cup_chance(forces, 25.0, "CLUB BRAVO", prof, 1, 1.12)
     assert 45 <= same_div <= 65 and above_div <= same_div - 15
     assert an.cup_chance({}, 25.0, "CLUB BRAVO", prof, 1, 1.12) is None
+
+
+def test_planification_figee_entre_deux_matchs(sandbox):
+    """Les entrées de la planification (notes, chances de victoire, match clé) restent celles posées
+    tant qu'aucune feuille du club n'arrive : mêmes propositions d'une publication à l'autre."""
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    m0, path = d["saison"]["matchs"][0], sandbox / "data" / an.PLANIF
+    assert m0["p_plan"] == m0["p_victoire"] and all(p["scores_plan"] == p["scores"] for p in d["joueurs"])
+    state = json.loads(path.read_text("utf-8"))
+    state["matchs"][str(m0["id"])]["p"] = 1   # comme si le calcul avait bougé depuis
+    path.write_text(json.dumps(state), "utf-8")
+    again = an.analyze("2026-10-04")["saison"]["matchs"][0]
+    assert again["p_plan"] == 1 and again["p_victoire"] == m0["p_victoire"]   # affichage à jour, rotation figée
+    state["cle"]["feuilles"] = state["cle"]["feuilles"][:-1]   # une feuille du club de plus depuis : on repart
+    path.write_text(json.dumps(state), "utf-8")
+    assert an.analyze("2026-10-04")["saison"]["matchs"][0]["p_plan"] == m0["p_victoire"]
 
 
 def test_forfait_general(sandbox, monkeypatch):

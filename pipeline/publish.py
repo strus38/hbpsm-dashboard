@@ -35,7 +35,7 @@ from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
 from .export_training import build_exports
 
-STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json")
+STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json", "planif.json")
 PAGE_NAME = "HBPSM-tableau-de-bord.html"
 # Séance du prochain entraînement, publiée EN CLAIR pour l'application HANDBALL-training : elle ne
 # porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.

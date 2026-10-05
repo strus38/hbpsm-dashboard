@@ -105,6 +105,13 @@ aucun contrôle de modification, une note rappelle qu'une feuille non validée p
 n'est qu'une suggestion, et toucher une case en donne la raison. Ce n'est pas un verrou : rien
 de ce qu'on modifie ne quitte le navigateur, sauf la feuille que l'entraîneur valide (ci-dessous).
 
+Les propositions sont les mêmes pour tous et d'une ouverture à l'autre : en consultation, rien de
+ce qui a pu être saisi dans le navigateur n'y entre, et les notes et chances de victoire qui
+guident la rotation restent figées entre deux matchs du club (elles repartent à chaque nouvelle
+feuille lue, ou si l'effectif change). D'un match au suivant, au moins deux joueurs changent,
+gardiens compris, à partir du dernier match joué. Une case dit « proposé » tant que l'entraîneur
+n'a pas validé la feuille, « retenu » ensuite.
+
 Sur téléphone, la page prend l'allure d'une application : onglets en bas avec icônes, noms
 courts, tableaux sans les colonnes secondaires, planification un match à la fois (choisi par
 les pastilles du haut) avec la colonne des noms fixe et de grandes cases. Le survol n'existant

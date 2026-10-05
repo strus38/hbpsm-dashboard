@@ -174,6 +174,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   (écart de division compris), continuité = part retrouvée ; `origines` (vus, retrouves, equipes),
   aussi dans le résumé public (noms d'équipes et nombres seulement). Limite : seules les poules où
   jouaient nos équipes d'aujourd'hui sont lues.
+- Propositions stables et communes (demande de l'auteur, 05/10/2026) : en consultation, la
+  planification ignore tout ce qui est rangé dans le navigateur (`SP()` renvoie `NEUTRE` hors mode
+  entraîneur) ; `analyze.freeze_plan` fige les entrées de la rotation (`scores_plan`, `p_plan`, `cle`)
+  dans `data/planif.json` (repris de etat.enc) tant que les feuilles lues du club, l'effectif et les
+  forfaits ne changent pas ; `meta.planif_depuis`. « proposé » tant que l'entraîneur n'a pas décidé
+  (`DECIDE`), « retenu » ensuite.
+- Jamais deux fois de suite la même équipe (demande de l'auteur, 05/10/2026) : `MIN_CHANGES` = 2
+  joueurs (gardiens compris) changent d'un match au suivant, à partir du dernier match joué, même sur
+  un match clé ; l'échange le moins coûteux, poste pour poste, sans découvrir un poste clef, jamais
+  avec un joueur en dépannage (`forced` ; « N changement(s) seulement » sinon).
 - Planification : les deux derniers matchs du club dont la feuille est lue (`derniers`, `journal.id`
   des joueurs) en colonnes grisées avant les 4 à venir (✓ et buts, ou arrêts pour un gardien).
 - Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
