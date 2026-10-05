@@ -754,6 +754,13 @@ function planning(){
     } else { gks = pick(true, nGK); field = pick(false, size - gks.length); }
     return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], serie: [], peu: null, fixed: !!fixed, broken};
   });
+  // domicile et extérieur : que personne ne joue que d'un côté ; excess > 0 : il a déjà plus de
+  // matchs du côté de ce match (saison jouée et propositions comprises)
+  const atVenue = (p, dom) => (p.journal || []).filter(j => j.dom === dom).length
+    + P.filter(r => !!r.m.domicile === dom && (r.gks.includes(p) || r.field.includes(p))).length;
+  const excess = (p, r) => atVenue(p, !!r.m.domicile) - atVenue(p, !r.m.domicile);
+  // le reposer sur ce match lui laisserait des matchs d'un seul côté : à éviter s'il y a mieux
+  const lastSide = (p, r) => atVenue(p, !!r.m.domicile) <= 1 && atVenue(p, !r.m.domicile) >= 1 ? 1 : 0;
   // 2. la rotation, sur l'ensemble des matchs
   const quota = ruleOf(H.length);
   const apps = p => P.filter(r => r.gks.includes(p) || r.field.includes(p)).length;
@@ -778,11 +785,12 @@ function planning(){
             if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
             const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q)
                 && (gk || filled(team(r).map(x => x === q ? p : x)) >= filled(team(r))))
-              .sort((a, b) => fit(p, b) - fit(p, a) || ageRank(b) - ageRank(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+              .sort((a, b) => fit(p, b) - fit(p, a) || lastSide(a, r) - lastSide(b, r) || ageRank(b) - ageRank(a) || excess(b, r) - excess(a, r) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
             const c = gk ? 2 : fit(p, out);   // même poste ou poste tenu : aussi bon ; on garde alors le match le plus abordable
-            if(!best || c > best.c) best = {r, out, c};
-            if(c >= 2) break;
+            const side = excess(p, r) > 0 ? 1 : 0;   // le côté où il a déjà le plus joué : en dernier
+            if(!best || c > best.c || (c === best.c && side < best.side)) best = {r, out, c, side};
+            if(c >= 2 && side === 0) break;
           }
           if(!best) continue;
           const {r, out} = best;
@@ -802,7 +810,7 @@ function planning(){
     for(const h of [...played.map(x => !!(x.joueurs || {})[p.cle]), ...P.map(x => x === r || x.gks.includes(p))]){ run = h ? run + 1 : 0; top = Math.max(top, run); }
     return top; };
   const gbIns = (r, g) => D.joueurs.filter(p => isGK(p) && !r.gks.includes(p) && !depOf(p) && pinOf(p, r.m) !== "out" && availOf(p, r.m) !== "a" && runWith(p, r) <= GB_SUITE)
-    .sort((a, b) => (availOf(a, r.m) === "i") - (availOf(b, r.m) === "i") || apps(a) - apps(b) || val(b, r.m) - val(a, r.m));
+    .sort((a, b) => (availOf(a, r.m) === "i") - (availOf(b, r.m) === "i") || apps(a) - apps(b) || excess(a, r) - excess(b, r) || val(b, r.m) - val(a, r.m));
   for(let guard = 0; guard < 40; guard++){
     const seq = [...played.map(x => ({has: p => !!(x.joueurs || {})[p.cle]})), ...P.map(r => ({r, has: p => r.gks.includes(p)}))];
     let fix = null;
@@ -848,7 +856,7 @@ function planning(){
             .filter(p => isGK(p) === gk && !depOf(p) && !team().includes(p) && !prev.includes(p));   // jamais le dépannage
           for(const o of outs) for(const i of ins){
             if(!gk && filled(list.map(x => x === o ? i : x)) < filled(list)) continue;
-            const cost = [availOf(i, r.m) === "i" ? 1 : 0, 2 - fit(i, o), ageRank(i) - ageRank(o), -apps(o), val(o, r.m) - val(i, r.m)];
+            const cost = [availOf(i, r.m) === "i" ? 1 : 0, 2 - fit(i, o), lastSide(o, r), ageRank(i) - ageRank(o), excess(i, r) - excess(o, r), -apps(o), val(o, r.m) - val(i, r.m)];
             if(!best || cost.some((c, n) => c !== best.cost[n] && cost.slice(0, n).every((d, z) => d === best.cost[z]) && c < best.cost[n]))
               best = {gk, o, i, cost};
           }

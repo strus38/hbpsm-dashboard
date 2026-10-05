@@ -205,6 +205,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   échange de fit 2, le plus abordable ; sinon le moins mauvais. Règle des 2 changements : fit avant
   l'âge, puis celui qui a le plus joué. Infobulle : « même poste », « il tient son poste », « poste
   différent, faute de mieux ».
+- Domicile / extérieur (demande de l'auteur, 05/10/2026) : que personne, gardiens compris, ne joue que
+  d'un côté. `journal.dom` ; `atVenue`, `excess` (matchs joués de la saison et proposés) ; `lastSide` :
+  ne pas reposer quelqu'un sur son dernier match d'un côté s'il y a mieux (avant l'âge) ; puis l'entrant
+  va du côté où il a le moins joué, le sortant est celui qui en a le plus de ce côté.
 - Gardiens (demande de l'auteur, 05/10/2026) : pas plus de `GB_SUITE` = 3 matchs de suite sans sortir,
   matchs joués de la saison compris (`derniers` en garde 3, la planification en montre 2). Après la
   rotation, avant la règle des 2 changements : il se repose sur le match le plus abordable de la

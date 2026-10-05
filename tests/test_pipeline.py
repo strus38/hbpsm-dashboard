@@ -71,6 +71,7 @@ def test_classement_et_notes(sandbox):
     club = next(r for r in d["poules"]["71"]["classement"] if r["equipe"] == demo_data.CLUB)
     assert sum(p["buts"] for p in d["joueurs"]) == club["bp"]
     assert all(e["plan"] in an.PLANS for e in d["equipes"].values())
+    assert all(isinstance(j["dom"], bool) for p in d["joueurs"] for j in p["journal"])   # domicile / extérieur, pour l'équilibre
 
 
 def test_sans_donnees(sandbox):

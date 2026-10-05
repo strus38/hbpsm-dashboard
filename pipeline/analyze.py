@@ -679,7 +679,7 @@ def player_stats(with_sheet, weight_of):
             rec["w_buts"] += weight * g
             rec["w"] += weight
             rec["diffs"].append(gf - ga)
-            rec["journal"].append(dict(id=str(m.get("id")), date=m.get("date"), adv=opp, res=outcome(gf, ga),
+            rec["journal"].append(dict(id=str(m.get("id")), date=m.get("date"), adv=opp, dom=side == "home", res=outcome(gf, ga),
                                        score=f"{gf}-{ga}", buts=g, tirs=p.get("shots"),
                                        jaunes=p.get("yellow") or 0,
                                        deux_min=p.get("two_min") or 0,
