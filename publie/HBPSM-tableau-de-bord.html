@@ -243,21 +243,66 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks i.goal{background:var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
+.ts{display:none}
+#why{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;gap:12px;align-items:flex-start;
+  max-width:560px;margin:0 auto;padding:12px 14px;background:var(--structure-900);color:#fff;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.92rem}
+#why[hidden]{display:none}
+#why span{flex:1} #why .link{color:var(--accent);font-size:.86rem}
+.seg.tap{display:inline-flex}
+.seg.tap button{padding:6px 12px;font-size:.86rem}
+/* Téléphone : menu sur une ligne, libellés et noms courts, tableaux sans colonnes secondaires,
+   planification à colonne des noms fixe, cases plus grandes pour le doigt */
+@media (max-width:560px){
+  .tl{display:none} .ts{display:inline}
+  main{padding:0 12px 40px}
+  h1{font-size:1.6rem;overflow-wrap:anywhere}
+  h2{font-size:1.3rem;margin:22px 0 8px}
+  header.top .when{font-size:1rem}
+  .panel{padding:12px}
+  nav.tabs{display:grid;grid-template-columns:repeat(6,1fr)}
+  nav.tabs button{max-width:none;min-width:0;padding:12px 0 9px;font-size:.84rem;letter-spacing:0}
+  th.opt,td.opt{display:none}
+  td.team{min-width:0;white-space:normal}
+  th,td{padding:7px 4px}
+  .res{font-size:.88rem}
+  .res .sc{min-width:52px;font-size:1.1rem}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  .kpis .num{font-size:1.4rem}
+  .btn{width:100%;text-align:center}
+  .plan-wrap{padding:6px}
+  .plan{grid-template-columns:minmax(100px,1fr) repeat(var(--n),48px) 30px;min-width:0;font-size:.8rem}
+  .plan>div{padding:4px 2px}
+  .plan .who{position:sticky;left:0;z-index:1;background:var(--surface)}
+  .plan .pst{display:none}
+  .plan .fia{font-size:.6rem}
+  .plan .h{font-size:.7rem}
+  .plan .h b{font-size:.76rem;display:block;line-height:1.15}
+  .plan .cov{display:block;margin:2px 0;padding:0 3px;font-size:.66rem}
+  .plan .tag.key{margin:0;font-size:.62rem;padding:0 4px}
+  .cell{width:40px;height:32px}
+  .legend-plan{gap:4px}
+  .legend-plan .cell{margin-left:4px}
+  .hero .kpis{grid-template-columns:1fr;gap:6px}
+  .hero .kpis div{display:flex;align-items:baseline;gap:12px;padding:6px 10px}
+  .hero .kpis .num{min-width:62px}
+  .link{display:inline-block;padding:8px 0}
+  input[type=checkbox]{width:20px;height:20px;vertical-align:-5px}
+}
 </style>
 </head>
 <body>
 <header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
   <button role="tab" data-tab="semaine" aria-selected="true">Semaine</button>
-  <button role="tab" data-tab="planif" aria-selected="false">Planification</button>
-  <button role="tab" data-tab="convoc" aria-selected="false">Convocation</button>
+  <button role="tab" data-tab="planif" aria-selected="false"><span class="tl">Planification</span><span class="ts">Planif.</span></button>
+  <button role="tab" data-tab="convoc" aria-selected="false"><span class="tl">Convocation</span><span class="ts">Convoc.</span></button>
   <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
-  <button role="tab" data-tab="adv" aria-selected="false">Adversaires</button>
+  <button role="tab" data-tab="adv" aria-selected="false"><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
   <button role="tab" data-tab="saison" aria-selected="false">Saison</button>
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "aca170ffaade", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "61859b23930c", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -346,6 +391,18 @@ const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rh
     .filter(x => !/^(HB|HBC|HANDBALL|CLUB|RTE|ENTENTE|-)$/i.test(x));
   return (w.slice(0, 2).join(" ") || t).toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase());
 };
+// sur téléphone, les tableaux montrent le nom court (« Sablons Rhodia », « HBPSM »)
+const teamCell = t => '<span class="tl">'+esc(t)+'</span><span class="ts">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span>';
+// et le joueur en « M. Dupont »
+const playerShort = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[0][0]+". "+w.slice(1).join(" ") : w[0]; };
+let whyTimer = null;
+function showWhy(text){   // la raison d'une case, lisible au doigt (pas de survol sur téléphone)
+  let box = document.getElementById("why");
+  if(!box){ box = document.createElement("div"); box.id = "why"; box.setAttribute("role", "status"); document.body.appendChild(box); }
+  box.innerHTML = '<span>'+esc(text)+'</span><button class="link" data-why-close="1" aria-label="Fermer">Fermer</button>';
+  box.hidden = false;
+  clearTimeout(whyTimer); whyTimer = setTimeout(() => { box.hidden = true; }, 9000);
+}
 const shortName = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[w.length-1] : w[0]; };
 let PLAN = null;   // calculée à chaque rendu : quelques dizaines d'opérations
 const FIA = {aucune: [0, "sans note : jamais aligné, à vous de juger"], fragile: [1, "note fragile"],
@@ -495,7 +552,7 @@ function viewSemaine(){
   const P = PLAN, H = P.map(r => r.m);
   if(!H.length) return empty();
   const r = P[0], m = r.m, e = D.equipes[m.adversaire] || {};
-  let h = '<header class="top"><p class="when">'+matchLine(m)+'</p><h1>'+esc(D.meta.club_court)+' contre '+esc(m.adversaire)+'</h1></header>';
+  let h = '<header class="top"><p class="when">'+matchLine(m)+'</p><h1>'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h1></header>';
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   const lieu = m.salle ? esc(m.salle.nom)+(m.salle.ville ? ", "+esc(m.salle.ville) : "") : "lieu pas encore fixé par la fédération";
   h += '<div class="hero"><div class="kpis">'
@@ -559,20 +616,23 @@ function viewPlanif(){
   h += '<div class="edit noprint"><label class="small muted" for="regle">Rotation</label><select id="regle">'
     + [[1,"chacun joue au moins 1 des "+n+" matchs"],[2,"chacun joue au moins 2 des "+n+" matchs"],[0,"libre : les mieux notés à chaque match"]]
       .map(([v,t]) => '<option value="'+v+'"'+(Number(S.regle)===v?" selected":"")+'>'+t+'</option>').join("")+'</select>'
-    + '<button class="link" data-reset="all">Tout réinitialiser</button></div>';
-  h += '<div class="panel scroll"><div class="plan" style="--n:'+P.length+'"><div></div>'
-    + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'+matchLine(r.m)+'<br>'
-      + (r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br>'
-      + (r.m.cle ? '<span class="tag key">Match clé</span>' : 'enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu))
-      + (q ? '<br><span class="rotn">'+(r.m.cle ? "sans rotation" : r.rotated.length ? r.rotated.length+" rotation"+(r.rotated.length>1?"s":"") : "sans rotation")+'</span>' : '')+'</div>').join("")
+    + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
+    + '<div class="edit noprint"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
+    + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
+  h += '<div class="panel scroll plan-wrap"><div class="plan" style="--n:'+P.length+'"><div class="who"></div>'
+    + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
+      + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
+      + '<span class="ts">J'+esc(r.m.journee ?? "?")+' · '+pct(r.m.p_victoire)+'<br></span>'
+      + (r.m.cle ? '<span class="tag key">Match clé</span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
+      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'</div>').join("")
     + '<div class="h">retenu</div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
     for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
-      h += '<div class="who" title="'+esc(p.nom+(poste(p) ? " · "+poste(p) : ""))+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' '+esc(p.nom)
+      h += '<div class="who" title="'+esc(p.nom+(poste(p) ? " · "+poste(p) : ""))+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' <span class="tl">'+esc(p.nom)+'</span><span class="ts">'+esc(playerShort(p.nom))+'</span>'
         + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
-        + (depOf(p) ? ' <small class="dep" title="Joue seulement s\'il manque des joueurs ; hors rotation">dépannage</small>' : '')+'</div>';
+        + (depOf(p) ? ' <small class="dep" title="Joue seulement s\'il manque des joueurs ; hors rotation"><span class="tl">dépannage</span><span class="ts">dép.</span></small>' : '')+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -595,7 +655,7 @@ function viewPlanif(){
     }
   }
   if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + P.map(r => '<div class="h small">'
-      + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus">'+esc(c.nom)+' '+c.n+'/'+c.min+'</span>').join(" ")
+      + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus"><span class="tl">'+esc(c.nom)+'</span><span class="ts">'+esc(c.nom.slice(0, 3).toUpperCase())+'</span> '+c.n+'/'+c.min+'</span>').join(" ")
       + '</div>').join("") + '<div></div>';
   h += '<div class="who muted small">Avec ces choix</div>' + P.map(r => '<div class="h"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + 'force '+Math.round(100*r.force)+' %<br>victoire '+pct(r.pAdj)+'<br>'+riskTag(r)
@@ -623,7 +683,7 @@ function viewConvoc(){
   const r = P.find(x => String(x.m.id) === String(S.convM)) || P[0], m = r.m;
   let h = '<header class="top"><p class="when">Après l\'entraînement du vendredi</p><h1>Convocation</h1></header>'
     + '<div class="seg noprint" role="group" aria-label="Match">'+P.map(x => '<button data-conv="'+esc(x.m.id)+'" aria-pressed="'+(x===r)+'">J'+esc(x.m.journee ?? "?")+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>';
-  h += '<div class="panel convoc" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p><h2 style="margin:4px 0 8px">'+esc(D.meta.club_court)+' contre '+esc(m.adversaire)+'</h2>'
+  h += '<div class="panel convoc" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p><h2 style="margin:4px 0 8px">'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h2>'
     + '<dl class="facts"><dt>Match</dt><dd>'+esc(fmtDate(m.date, m.provisoire))+'</dd>'
     + '<dt>Lieu</dt><dd>'+(m.salle ? esc(m.salle.nom)+'<br><span class="small muted">'+esc([m.salle.rue, [m.salle.code_postal, m.salle.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))+'</span>' : "pas encore fixé par la fédération")+'</dd>'
     + '<dt><label for="rdv">Rendez-vous</label></dt><dd><input id="rdv" type="time" value="'+esc(S.rdv[m.id] || "")+'" data-match="'+esc(m.id)+'"></dd></dl>'
@@ -778,10 +838,10 @@ function pastPlayers(e, x){   // les joueurs de la saison passée : revus cette 
   const cards = j => [j.jaunes ? j.jaunes+" CJ" : "", j.rouges ? j.rouges+" CR" : ""].filter(Boolean).join(" ") || "–";
   const who = j => '<td class="n">'+esc(j.num ?? "–")+'</td><td class="team">'+esc(j.nom)
     + (j.present === true && j.num_now != null && j.num_now !== j.num ? ' <small class="muted">n° '+esc(j.num_now)+' cette saison</small>' : '')+'</td><td>'+j.m+'</td>';
-  const field = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.buts+(j.pen ? ' <small class="muted">dont '+j.pen+' à 7 m</small>' : '')+'</td><td>'+fr(j.moy)+'</td>'
-    + '<td>'+(j.reussite != null ? j.reussite+' %' : '–')+'</td><td>'+(j.deux_min || "–")+'</td><td>'+cards(j)+'</td></tr>';
-  const keeper = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.arrets+'</td><td>'+(j.pris ?? "–")+'</td>'
-    + '<td>'+(j.pct != null ? j.pct+' %'+(j.estime ? '*' : '') : '–')+'</td><td>'+(j.deux_min || "–")+'</td><td>'+cards(j)+'</td></tr>';
+  const field = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.buts+(j.pen ? ' <small class="muted tl">dont '+j.pen+' à 7 m</small>' : '')+'</td><td class="opt">'+fr(j.moy)+'</td>'
+    + '<td>'+(j.reussite != null ? j.reussite+' %' : '–')+'</td><td class="opt">'+(j.deux_min || "–")+'</td><td class="opt">'+cards(j)+'</td></tr>';
+  const keeper = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.arrets+'</td><td class="opt">'+(j.pris ?? "–")+'</td>'
+    + '<td>'+(j.pct != null ? j.pct+' %'+(j.estime ? '*' : '') : '–')+'</td><td class="opt">'+(j.deux_min || "–")+'</td><td class="opt">'+cards(j)+'</td></tr>';
   const groups = list => !known ? [["", list]]
     : [["Toujours là cette saison", list.filter(j => j.present === true)], ["Pas revus cette saison", list.filter(j => j.present !== true)]];
   const table = (list, head, row, cols) => {
@@ -794,8 +854,8 @@ function pastPlayers(e, x){   // les joueurs de la saison passée : revus cette 
   return '<h3 style="margin-top:14px">'+(us ? "Nos joueurs" : "Leurs joueurs")+' en '+esc(x.saison)+'</h3>'
     + '<p class="small muted">'+(known ? back+' sur '+js.length+' revus sur une feuille de cette saison, en gras. ' : "Pas encore de feuille de match cette saison : on ne sait pas qui est resté. ")
     + 'Chiffres de '+esc(x.saison)+', sur '+x.feuilles+' feuille'+(x.feuilles>1?"s":"")+' lue'+(x.feuilles>1?"s":"")+'.</p>'
-    + table(js.filter(j => !j.gardien), '<th>Buts</th><th>/match</th><th>Tirs réussis</th><th>2 min</th><th>Cartons</th>', field, 8)
-    + table(js.filter(j => j.gardien), '<th>Arrêts</th><th>Buts pris</th><th>% arrêts</th><th>2 min</th><th>Cartons</th>', keeper, 8)
+    + table(js.filter(j => !j.gardien), '<th>Buts</th><th class="opt">/match</th><th>Tirs réussis</th><th class="opt">2 min</th><th class="opt">Cartons</th>', field, 8)
+    + table(js.filter(j => j.gardien), '<th>Arrêts</th><th class="opt">Buts pris</th><th>% arrêts</th><th class="opt">2 min</th><th class="opt">Cartons</th>', keeper, 8)
     + (js.some(j => j.gardien && j.estime) ? '<p class="small muted">* buts pris répartis entre gardiens par estimation quand la feuille ne dit pas qui était dans les buts.</p>' : '');
 }
 function viewAdv(){
@@ -803,7 +863,7 @@ function viewAdv(){
   if(!adv) return '<header class="top"><h1>Adversaires</h1></header>'+emptyPanel();
   const e = D.equipes[adv], us = isUs(adv);
   const next = PLAN.find(r => r.m.adversaire === adv);
-  let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : "Poule "+esc(e.poule))+'</p><h1>'+esc(adv)+'</h1></header>'
+  let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : "Poule "+esc(e.poule))+'</p><h1>'+teamCell(adv)+'</h1></header>'
     + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":"")+'</option>').join("")+'</select></div>';
   h += '<div class="panel"><p>Poule '+esc(e.poule)+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
@@ -871,8 +931,8 @@ function viewPoules(){
   const cur = ids.includes(S.poule) ? S.poule : ids[0], P = D.poules[cur];
   let h = '<h2>Poules</h2>'
     + '<div class="seg" role="group" aria-label="Poule">'+ids.map(i=>'<button data-poule="'+i+'" aria-pressed="'+(i===cur)+'">Poule '+i+'</button>').join("")+'</div>'
-    + '<h2>Classement</h2><div class="panel scroll"><table><thead><tr><th>#</th><th>Équipe</th><th>Pts</th><th>J</th><th>V</th><th>N</th><th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>Forme</th></tr></thead><tbody>'
-    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+'"><td>'+r.rang+'</td><td class="team">'+esc(r.equipe)+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td>'+r.v+'</td><td>'+r.n+'</td><td>'+r.d+'</td><td>'+r.bp+'</td><td>'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
+    + '<h2>Classement</h2><div class="panel scroll"><table><thead><tr><th>#</th><th>Équipe</th><th>Pts</th><th>J</th><th class="opt">V</th><th class="opt">N</th><th class="opt">D</th><th class="opt">BP</th><th class="opt">BC</th><th>Diff</th><th>Forme</th></tr></thead><tbody>'
+    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+'"><td>'+r.rang+'</td><td class="team">'+teamCell(r.equipe)+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td class="opt">'+r.v+'</td><td class="opt">'+r.n+'</td><td class="opt">'+r.d+'</td><td class="opt">'+r.bp+'</td><td class="opt">'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
     + '</tbody></table></div><p class="small muted" style="margin-top:6px">Classement recalculé depuis les scores : victoire 3 points, nul 2, défaite 1.'
     + (P.officiel_lu && !(P.ecarts||[]).length ? " Identique au classement de la fédération." : "")+'</p>';
   const ecart = x => esc(x.equipe)+" "+x.officiel+" points au lieu de "+x.calcule;
@@ -882,9 +942,9 @@ function viewPoules(){
   if(odd.length) h += '<p class="note">Le classement de la fédération diffère (pénalité ou forfait probable) : '
     + odd.map(ecart).join(" ; ")+'.</p>';
   const res = D.resultats.filter(r => r.poule === cur);
-  h += '<h2>Résultats</h2><div class="panel">'+(res.length ? res.map(r=>'<div class="res"><span class="r">'+esc(r.dom)+'</span><span class="sc">'+r.sd+" - "+r.se+'</span><span>'+esc(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate((r.date||"").slice(0,10)))+(r.feuille?"":", feuille non lue")+'</span></div>').join("") : "<p>Aucun résultat pour l'instant.</p>")+'</div>';
+  h += '<h2>Résultats</h2><div class="panel">'+(res.length ? res.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc">'+r.sd+" - "+r.se+'</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate((r.date||"").slice(0,10)))+(r.feuille?"":", feuille non lue")+'</span></div>').join("") : "<p>Aucun résultat pour l'instant.</p>")+'</div>';
   const next = D.a_venir.filter(r => r.poule === cur).slice(0,8);
-  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res"><span class="r">'+esc(r.dom)+'</span><span class="sc muted">–</span><span>'+esc(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+'</span></div>').join("")+'</div>';
+  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc muted">–</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+'</span></div>').join("")+'</div>';
   h += '<p class="small muted" style="margin-top:14px">Mis à jour le '+esc(D.meta.genere)+'. '+D.meta.feuilles+' feuille'+(D.meta.feuilles>1?"s":"")+' lue'+(D.meta.feuilles>1?"s":"")+' sur '+D.meta.matchs+' match'+(D.meta.matchs>1?"s":"")+' joué'+(D.meta.matchs>1?"s":"")+'.</p>';
   if(GENERE) h += '<p class="status"><span id="source">'+esc(sourceText())+'</span> <button class="link" data-lock="1">Oublier la phrase secrète sur cet ordinateur</button></p>';
   return h;
@@ -944,7 +1004,10 @@ function importPlan(file){
 document.addEventListener("click", ev => {
   const t = ev.target.closest("button"); if(!t) return;
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
+  else if(t.dataset.cell && S.tap === "why"){ showWhy(t.getAttribute("aria-label")); }
   else if(t.dataset.cell){ const [id, cle] = t.dataset.cell.split("|"); cycleCell(id, cle); save(); render(true); }
+  else if(t.dataset.tap){ S.tap = t.dataset.tap; save(); render(true); }
+  else if(t.dataset.whyClose){ document.getElementById("why").hidden = true; }
   else if(t.dataset.reset){ if(t.dataset.reset === "all"){ S.dm = {}; S.pin = {}; } else { delete S.dm[t.dataset.reset]; delete S.pin[t.dataset.reset]; } save(); render(true); }
   else if(t.dataset.conv){ S.convM = t.dataset.conv; save(); render(true); }
   else if(t.dataset.copy){ copyConvocation(t.dataset.copy); }
