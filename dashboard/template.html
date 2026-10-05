@@ -267,7 +267,13 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .prop:first-of-type{border-top:0}
 .prop-groupe{border-top:1px solid var(--rule)}.prop-groupe>summary{list-style:none;cursor:pointer;border-top:0}
 .prop-groupe>.prop{padding-left:20px}
-.anges{margin:10px 0 0;color:var(--muted)}.prop .emoji,.tile .emoji{font-size:1.5rem;text-align:center}
+.anges{margin:10px 0 0;color:var(--muted)}
+.cotis{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 14px;margin:8px 0}
+.cotis-l{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--rule)}
+.cotis-l .btn{margin-top:0;padding:5px 10px}
+.pen{padding:10px 0;border-top:1px solid var(--rule)}.pen:first-of-type{border-top:0}
+.pen-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;padding:6px 0}
+.pen-st{display:inline-flex;align-items:center;gap:6px}.pen-st .btn{margin-top:0;padding:3px 10px}.pen-st b{min-width:1.2em;text-align:center}.prop .emoji,.tile .emoji{font-size:1.5rem;text-align:center}
 .prop-btn{display:flex;gap:6px}.prop-btn .btn{margin-top:0;padding:8px 12px}
 .montant{font-weight:700;white-space:nowrap}
 .article{display:inline-block;margin-top:2px}
@@ -1131,14 +1137,19 @@ function ledger(){   // l'état de la caisse : amendes, paiements, propositions 
   const pays = ops.filter(o => o.t === "paiement" && !gone.has(o.id));
   const decided = new Set([...fines.map(o => o.auto), ...ops.filter(o => o.t === "refus").map(o => o.auto)].filter(Boolean));
   const bal = {};
-  const of = c => bal[c] = bal[c] || {du: 0, paye: 0, n: 0, tournees: 0};
+  // la cotisation se doit et se paie, mais ce n'est pas une amende : ni podium, ni compte des amendes
+  const of = c => bal[c] = bal[c] || {du: 0, paye: 0, n: 0, tournees: 0, amendes: 0, cotise: false};
   for(const c of members()) of(c);
-  for(const f of fines){ const b = of(f.joueur); b.n++; if(f.montant == null) b.tournees++; else b.du += f.montant; }
+  for(const f of fines){ const b = of(f.joueur);
+    if(f.regle === "cotisation"){ b.cotise = true; b.du += f.montant || 0; continue; }
+    b.n++; if(f.montant == null) b.tournees++; else { b.du += f.montant; b.amendes += f.montant; } }
   for(const p of pays) of(p.joueur).paye += p.montant || 0;
   return {ops, fines, pays, decided, bal};
 }
+let PENS = {};   // penalties manqués saisis dans les cartes « Gérard Penaldo », avant enregistrement
+const openProps = (L, keep) => (D.caisse.propositions || []).filter(p => !L.decided.has(p.id) && keep(p));
 function caisseProposals(L){   // d'après les feuilles (calculées sur GitHub), plus les « Bon point ! » des mois finis
-  const props = (D.caisse.propositions || []).filter(p => !L.decided.has(p.id));
+  const props = openProps(L, p => !p.check && p.regle !== "cotisation");
   const first = L.ops.map(o => (o.le || "").slice(0, 7)).filter(Boolean).sort()[0];
   const cur = new Date().toISOString().slice(0, 7);
   for(let m = first; m && m < cur; m = nextMonth(m)){
@@ -1217,10 +1228,10 @@ function caisseStatus(){
     + (CPUB === "refuse" ? '<div class="edit"><input id="cjeton" type="password" autocomplete="off" aria-label="Nouveau jeton"><button class="btn" data-cjeton-save="1">Enregistrer</button></div>' : '')+'</div>';
 }
 function podium(L){
-  const rows = Object.entries(L.bal).filter(([, b]) => b.du > 0).sort((a, b) => b[1].du - a[1].du).slice(0, 3);
+  const rows = Object.entries(L.bal).filter(([, b]) => b.amendes > 0).sort((a, b) => b[1].amendes - a[1].amendes).slice(0, 3);
   if(!rows.length) return "";
   const medal = ["🥇", "🥈", "🥉"];
-  return '<div class="podium">'+rows.map(([c, b], i) => '<div class="marche m'+(i + 1)+'"><span class="medaille">'+medal[i]+'</span><b>'+esc(memberName(c))+'</b><span>'+euros(b.du)+' · '+b.n+' amende'+(b.n > 1 ? "s" : "")+'</span></div>').join("")+'</div>';
+  return '<div class="podium">'+rows.map(([c, b], i) => '<div class="marche m'+(i + 1)+'"><span class="medaille">'+medal[i]+'</span><b>'+esc(memberName(c))+'</b><span>'+euros(b.amendes)+' · '+b.n+' amende'+(b.n > 1 ? "s" : "")+'</span></div>').join("")+'</div>';
 }
 function proposalsBlock(L){
   const props = caisseProposals(L), w = canWrite();
@@ -1241,6 +1252,46 @@ function proposalsBlock(L){
   return '<h2>À valider <span class="small muted">('+props.length+')</span></h2><div class="panel">'
     + '<p class="small muted">Proposées d\'après les feuilles de match et le règlement'+(w ? "" : " : un trésorier les valide ou les refuse")+'.'
     + (w && props.length > 1 ? ' <button class="link" data-cvalall="1">Tout valider</button>' : '')+'</p>'+body+'</div>';
+}
+function cotisationBlock(L){   // qui a payé sa cotisation ; la carte disparaît quand tout le monde est fixé
+  const open = openProps(L, p => p.regle === "cotisation"), w = canWrite();
+  if(!open.length) return "";
+  const paid = L.fines.filter(f => f.regle === "cotisation").map(f => f.joueur), r = RULE("cotisation");
+  return '<h2>'+r.emoji+' Cotisations <span class="small muted">'+paid.length+' payée'+(paid.length > 1 ? "s" : "")+', '+open.length+' en attente</span></h2><div class="panel">'
+    + '<p class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+(w ? " Marquez qui a payé : la cotisation et son paiement sont enregistrés ensemble." : "")+'</p>'
+    + '<div class="cotis">'+open.map(p => '<div class="cotis-l"><b>'+esc(memberName(p.joueur))+'</b>'
+      + (w ? '<span><button class="btn" data-ccot="'+esc(p.id)+'">Payé</button><button class="link" data-ccotno="'+esc(p.id)+'">ne cotise pas</button></span>' : '<span class="small muted">pas encore</span>')+'</div>').join("")+'</div>'
+    + (paid.length ? '<p class="small">✓ Payé : '+paid.map(c => esc(memberName(c))).join(", ")+'</p>' : '')+'</div>';
+}
+function penaltyBlock(L){   // la feuille ne dit pas qu'un 7 m est manqué : on le demande, match par match
+  const open = openProps(L, p => p.check), w = canWrite();
+  if(!open.length) return "";
+  const r = RULE("m_penalty"), rh = RULE("m_penalty_hors_cadre");
+  return '<h2>'+r.emoji+' Gérard Penaldo</h2><div class="panel">'
+    + '<p class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+' '+esc(rh.texte)+' La feuille de match ne dit pas qu\'un penalty est manqué : '+(w ? "indiquez-le ici, match par match." : "les trésoriers l\'indiquent ici.")+'</p>'
+    + open.map(p => { const st = PENS[p.id] = PENS[p.id] || {};
+      const who = [...new Set([...(p.tireurs || []).map(t => t.joueur), ...Object.keys(st)])];
+      const scored = Object.fromEntries((p.tireurs || []).map(t => [t.joueur, t.marques]));
+      const others = (p.feuille || []).filter(c => !who.includes(c));
+      return '<div class="pen"><p><b>'+esc(p.motif.replace(/^penalties /, "Match "))+'</b> <span class="small muted">'+esc(fmtDate(p.date))+'</span></p>'
+        + (who.length ? who.map(c => { const v = st[c] = st[c] || {a: 0, h: 0};
+            return '<div class="pen-l"><span><b>'+esc(memberName(c))+'</b> <span class="small muted">'+(scored[c] || 0)+' marqué'+((scored[c] || 0) > 1 ? "s" : "")+'</span></span>'
+              + (w ? '<span class="pen-st"><span class="small">manqués</span><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|a|-1">−</button><b>'+v.a+'</b><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|a|1">+</button>'
+                + '<span class="small">dont hors cadre</span><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|h|-1">−</button><b>'+v.h+'</b><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|h|1">+</button></span>' : '')+'</div>'; }).join("")
+          : '<p class="small muted">Aucun penalty marqué par nos joueurs dans ce match.</p>')
+        + (w ? '<div class="edit">'+(others.length ? '<select data-cpenadd="'+esc(p.id)+'"><option value="">+ autre tireur</option>'+others.map(c => '<option value="'+esc(c)+'">'+esc(memberName(c))+'</option>').join("")+'</select>' : '')
+          + '<button class="btn" data-cpensave="'+esc(p.id)+'">Enregistrer</button><button class="btn ghost" data-cpennone="'+esc(p.id)+'">Aucun manqué</button></div>' : '')+'</div>'; }).join("")+'</div>';
+}
+function penaltyOps(p){   // règlement : 1 € par penalty manqué à partir du 2e échec ; hors cadre, 2 € tout de suite
+  const st = PENS[p.id] || {}, ops = [], le = new Date().toISOString(), date = p.date;
+  for(const [c, v] of Object.entries(st)){
+    const h = Math.min(v.h, v.a), inside = v.a - h, fined = h ? inside : Math.max(0, inside - 1);
+    const note = p.motif.replace(/^penalties /, "") + " : " + v.a + " manqué" + (v.a > 1 ? "s" : "") + (h ? ", dont " + h + " hors cadre" : "");
+    if(h) ops.push({id: "v:" + p.id + ":" + c + ":hc", t: "amende", joueur: c, regle: "m_penalty_hors_cadre", n: h, montant: 2 * h, date, match: p.match, note, auto: p.id, par: whoAmI(), le});
+    if(fined) ops.push({id: "v:" + p.id + ":" + c + ":in", t: "amende", joueur: c, regle: "m_penalty", n: fined, montant: fined, date, match: p.match, note, auto: p.id, par: whoAmI(), le});
+  }
+  ops.push({id: "r:" + p.id, t: "refus", auto: p.id, par: whoAmI(), le, note: "penalties vérifiés"});   // la carte est traitée
+  return ops;
 }
 function pickerBlock(){
   const w = canWrite(), r = PICK.regle ? RULE(PICK.regle) : null;
@@ -1266,12 +1317,12 @@ function pickerBlock(){
 function balancesBlock(L){
   const w = canWrite();
   const all = Object.entries(L.bal).sort((a, b) => (b[1].du - b[1].paye) - (a[1].du - a[1].paye) || memberName(a[0]).localeCompare(memberName(b[0])));
-  const rows = all.filter(([, b]) => b.n || b.paye), clean = all.filter(([, b]) => !b.n && !b.paye);
+  const rows = all.filter(([, b]) => b.n || b.du > b.paye), clean = all.filter(([, b]) => !b.n && b.du <= b.paye);
   const angels = clean.length ? '<p class="small anges">😇 Sans amende : '+clean.map(([c]) => esc(memberName(c))).join(", ")+'</p>' : '';
   return '<h2>Les comptes</h2><div class="panel comptes">'+(rows.length ? "" : '<p class="small muted">Aucune amende pour l\'instant.</p>')+rows.map(([c, b]) => {
     const reste = b.du - b.paye, mine = L.fines.filter(f => f.joueur === c).sort((x, y) => (y.date || "").localeCompare(x.date || ""));
     const paid = L.pays.filter(p => p.joueur === c);
-    return '<details class="compte"><summary><b>'+esc(memberName(c))+'</b><span class="small muted">'+b.n+' amende'+(b.n > 1 ? "s" : "")+(b.tournees ? " · 🍻 "+b.tournees : "")+'</span>'
+    return '<details class="compte"><summary><b>'+esc(memberName(c))+'</b><span class="small muted">'+b.n+' amende'+(b.n > 1 ? "s" : "")+(b.tournees ? " · 🍻 "+b.tournees : "")+(b.cotise ? " · 🎟️ cotisation" : "")+'</span>'
       + '<span class="reste'+(reste > 0 ? " du" : "")+'">'+(reste > 0 ? euros(reste)+" à payer" : b.du ? "à jour" : "–")+'</span></summary>'
       + (mine.length ? '<ul class="plain lignes">'+mine.map(f => { const r = RULE(f.regle);
           return '<li>'+r.emoji+' <b>'+esc(r.titre)+'</b> <span class="small muted">'+esc(fmtDate(f.date))+(f.n > 1 ? " · ×"+f.n : "")+(f.note ? " · "+esc(f.note) : "")+(f.par ? " · par "+esc(memberName(f.par)) : "")+(f.envoi ? " · envoi en cours" : "")+'</span>'
@@ -1285,7 +1336,9 @@ function feedBlock(L){
   if(!ops.length) return "";
   const line = o => o.t === "amende" ? "💸 "+esc(memberName(o.joueur))+" : "+esc(RULE(o.regle).titre)+(RULE(o.regle).nature ? " (🍻)" : ", "+euros(o.montant))
     : o.t === "paiement" ? "💶 "+esc(memberName(o.joueur))+" a payé "+euros(o.montant)
-    : "🚫 proposition refusée : "+esc(RULE(String(o.auto).split(":")[0]).titre)+" pour "+esc(memberName(String(o.auto).split(":").pop()));
+    : String(o.auto).endsWith(":check") ? "🥅 penalties vérifiés"
+    : String(o.auto).startsWith("cotisation:") ? "🎟️ "+esc(memberName(String(o.auto).split(":").slice(2).join(":")))+" ne cotise pas"
+    : "🚫 proposition refusée : "+esc(RULE(String(o.auto).split(":")[0]).titre)+" pour "+esc(memberName(String(o.auto).split(":").slice(2).join(":")));
   return '<h2>Derniers mouvements</h2><div class="panel"><ul class="plain feed">'+ops.map(o => '<li>'+line(o)+'<span class="small muted"> · '
     + esc(new Date(o.le || Date.now()).toLocaleDateString("fr-FR", {day: "numeric", month: "short"}))+(o.par ? " · "+esc(memberName(o.par)) : "")+(o.envoi ? " · envoi en cours" : "")+'</span></li>').join("")+'</ul></div>';
 }
@@ -1301,8 +1354,8 @@ function viewCaisse(){
   let h = '<header class="top"><p class="when">'+((D.caisse.tresoriers || []).length ? "Trésoriers : "+D.caisse.tresoriers.map(memberName).join(", ") : "Règlement "+esc(D.caisse.saison || ""))+'</p><h1>Caisse noire</h1></header>';
   h += caisseStatus();
   h += '<div class="kpis"><div><b class="num">'+euros(paid)+'</b><span>dans la caisse</span></div><div><b class="num">'+euros(due - paid)+'</b><span>à encaisser</span></div>'
-    + '<div><b class="num">'+L.fines.length+'</b><span>amende'+(L.fines.length > 1 ? "s" : "")+'</span></div></div>';
-  return h + podium(L) + proposalsBlock(L) + pickerBlock() + balancesBlock(L) + feedBlock(L) + rulesBlock();
+    + (n => '<div><b class="num">'+n+'</b><span>amende'+(n > 1 ? "s" : "")+'</span></div></div>')(L.fines.filter(f => f.regle !== "cotisation").length);
+  return h + podium(L) + penaltyBlock(L) + proposalsBlock(L) + cotisationBlock(L) + pickerBlock() + balancesBlock(L) + feedBlock(L) + rulesBlock();
 }
 function denonciation(){
   const r = RULE(PICK.regle), n = PICK.n, amount = r.nature ? null : r.montant != null ? r.montant * n : Number(String(PICK.montant).replace(",", ".")) || 0;
@@ -1434,6 +1487,15 @@ document.addEventListener("click", ev => {
   }
   else if(t.dataset.cannule && canWrite()){ if(confirm("Annuler cette amende ?")) addOps([{id: uid(), t: "annule", cible: t.dataset.cannule, par: whoAmI(), le: new Date().toISOString(), note: ""}]); }
   else if(t.dataset.cflush){ flushCaisse(); }
+  else if(t.dataset.ccot && canWrite()){ const p = openProps(ledger(), x => x.id === t.dataset.ccot)[0];
+    if(p) addOps([fineOp(p, true), {id: "pay:" + p.id, t: "paiement", joueur: p.joueur, montant: p.montant, par: whoAmI(), le: new Date().toISOString(), note: "cotisation"}]); }
+  else if(t.dataset.ccotno && canWrite()){ addOps([{id: "r:" + t.dataset.ccotno, t: "refus", auto: t.dataset.ccotno, par: whoAmI(), le: new Date().toISOString(), note: "ne cotise pas"}]); }
+  else if(t.dataset.cpen && canWrite()){ const [id, c, k, d] = t.dataset.cpen.split("|"); const v = ((PENS[id] = PENS[id] || {})[c] = PENS[id][c] || {a: 0, h: 0});
+    v[k] = Math.max(0, Math.min(9, v[k] + Number(d))); if(v.h > v.a){ if(k === "h") v.a = v.h; else v.h = v.a; } render(true); }
+  else if(t.dataset.cpensave && canWrite()){ const p = openProps(ledger(), x => x.id === t.dataset.cpensave)[0];
+    if(p){ const ops = penaltyOps(p), fines = ops.filter(o => o.t === "amende"); addOps(ops); delete PENS[p.id];
+      showWhy(fines.length ? "🥅 " + fines.map(o => memberName(o.joueur) + " " + euros(o.montant)).join(", ") + " dans la caisse !" : "🥅 Penalties enregistrés : pas d'amende (le premier échec est offert)."); } }
+  else if(t.dataset.cpennone && canWrite()){ addOps([{id: "r:" + t.dataset.cpennone, t: "refus", auto: t.dataset.cpennone, par: whoAmI(), le: new Date().toISOString(), note: "aucun penalty manqué"}]); }
   else if(t.dataset.cjetonShow){ CJETON = true; render(true); }
   else if(t.dataset.cjetonSave){ const v = (document.getElementById("cjeton").value || "").trim(); if(v){ try { localStorage.setItem(TOKEN, v); } catch (e) {} CJETON = false; CPUB = ""; render(true); flushCaisse(); } }
   else if(t.dataset.valider){ validate(t.dataset.valider); }
@@ -1457,6 +1519,7 @@ document.addEventListener("change", ev => {
   if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
   if(t.id === "cme"){ try { localStorage.setItem(ME, t.value); } catch (e) {} render(true); return; }
   if(t.id === "cdate"){ PICK.date = t.value; return; }
+  if(t.dataset.cpenadd !== undefined){ if(t.value){ (PENS[t.dataset.cpenadd] = PENS[t.dataset.cpenadd] || {})[t.value] = {a: 0, h: 0}; } render(true); return; }
   if(t.id === "adv"){ S.adv = t.value; save(); render(true); }
   else if(t.id === "regle"){ S.regle = Number(t.value); save(); render(true); }
   else if(t.id === "rdv"){ S.rdv[t.dataset.match] = t.value; save(); render(true); }

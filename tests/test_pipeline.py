@@ -521,6 +521,12 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         monkeypatch.setenv("HBPSM_CAISSE", sent[-1]["body"]["inputs"]["ops"])
         assert caisse.main() == 0
         assert page.evaluate("fetchCaisse().then(() => { render(true); return [outbox().length, ledger().fines.length]; })") == [0, 1]
+        # penalties manqués : 1 € à partir du 2e échec du match, 2 € dès un hors cadre
+        pens = page.evaluate("""(() => { const p = {id: "m_penalty:x:check", motif: "penalties contre Club", date: "2026-10-10", match: "x"};
+          const out = [[1, 0], [2, 0], [2, 1], [1, 1]].map(([a, h]) => { PENS[p.id] = {"R:A": {a, h}};
+            return penaltyOps(p).filter(o => o.t === "amende").map(o => o.regle + ":" + o.montant).join(","); });
+          delete PENS[p.id]; return out; })()""")
+        assert pens == ["", "m_penalty:1", "m_penalty_hors_cadre:2,m_penalty:1", "m_penalty_hors_cadre:2"]
         server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
         server.server_close()
         page.reload()
@@ -825,6 +831,9 @@ def test_caisse_propositions():
     assert ("m_fessee", caisse.COACH) in by and by[("m_fessee", caisse.COACH)]["montant"] is None
     assert by[("m_3x2min", isidore)]["montant"] == 5 and by[("m_precision", isidore)]["motif"].startswith("1 but sur 5 tirs (20 %)")
     assert all(p["regle"] in caisse.RULES and p["id"] for p in props) and len({p["id"] for p in props}) == len(props)
+    # la feuille ne dit pas qu'un 7 m est manqué : une vérification par match, avec les joueurs de la feuille
+    check = next(p for p in props if p.get("check"))
+    assert (check["id"], check["regle"], check["tireurs"], len(check["feuille"])) == ("m_penalty:m1:check", "m_penalty", [], 3)
 
 
 def test_noms_ancienne_feuille():

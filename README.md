@@ -176,8 +176,14 @@ les derniers mouvements.
 - Propositions, à valider par un trésorier, chacune avec son point du règlement : d'après les
   feuilles de match, la 2e exclusion de 2 minutes, les 3 × 2 minutes, l'expulsion directe, une
   réussite au tir sous 40 %, le dernier but du match, la victoire de +20 (tournée du coach) ;
-  et aussi la cotisation de chacun et le « Bon point ! » d'un mois sans amende. Les penalties
-  manqués ne se lisent pas sur la feuille : ils se saisissent à la main.
+  et aussi le « Bon point ! » d'un mois sans amende.
+- Penalties manqués (« Gérard Penaldo ») : la feuille ne dit pas qu'un 7 m est manqué. Après
+  chaque match, une carte propose les tireurs (ceux qui ont marqué un 7 m, plus un autre au
+  choix) ; le trésorier indique les manqués et les hors cadre, la page compte l'amende comme le
+  règlement (1 € à partir du 2e échec du match, 2 € tout de suite pour un hors cadre).
+- Cotisations : une carte où le trésorier marque qui a payé (la cotisation et son paiement sont
+  enregistrés ensemble) ou qui ne cotise pas ; elle disparaît quand tout le monde est fixé. La
+  cotisation compte dans la caisse, pas comme une amende (ni podium, ni compte des amendes).
 
 Pour qu'un trésorier puisse saisir, donnez-lui le jeton de publication (celui de la feuille
 validée) : il le colle une fois via « Je suis trésorier ». Les trésoriers sont marqués dans

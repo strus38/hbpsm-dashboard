@@ -150,6 +150,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   (trésoriers, entraîneur : choix de l'auteur) ; boîte d'envoi locale `hbpsm:caisse-envoi`
   jusqu'à publication. Propositions : `caisse.proposals` (feuilles) + « Bon point ! » calculé dans
   la page ; une proposition validée a l'id « v:<proposition> », refusée « r:<proposition> ».
+  Penalties manqués (introuvables sur la feuille : colonne « 7m » = buts sur 7 m, aucun libellé
+  d'échec) : une proposition « m_penalty:<match>:check » par match (tireurs, joueurs de la
+  feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
+  « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
 - Noms courts : le numéro d'équipe est gardé (« Nord Drome 2 » ≠ « Nord Drome »).
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).

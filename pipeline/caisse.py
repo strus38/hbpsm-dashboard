@@ -80,7 +80,7 @@ REGLEMENT = [
     dict(code="m_relance", partie="Match", titre="Relances", montant=0.5, unite="relance manquée", emoji="🧤",
          texte="Gardiens : relance manquée, 0,50 € à partir de la 2e du match."),
     dict(code="m_penalty", partie="Match", titre="Gérard Penaldo", montant=1, unite="penalty manqué", emoji="🥅",
-         texte="Penalty manqué : 1 € à partir du 2e échec du match."),
+         texte="Penalty manqué : 1 € à partir du 2e échec du match.", auto=True),
     dict(code="m_penalty_hors_cadre", partie="Match", titre="Gérard Penaldo", montant=2, unite="penalty hors cadre",
          emoji="🥅", texte="Penalty hors cadre : 2 €, dès le premier."),
     dict(code="m_precision", partie="Match", titre="Précision", montant=1, unite="match à moins de 40 % au tir", emoji="🎳",
@@ -139,6 +139,14 @@ def proposals(with_sheet, roster, members, saison):
             add("m_heros", _who(scorer.get("name"), roster), f"dernier but du match {where}", m)
         if gf - ga >= 20:
             add("m_fessee", COACH, f"victoire {gf}-{ga} {where}", m)
+        # la feuille ne dit pas qu'un 7 m est manqué (« But 7m » seulement) : on le demande, match
+        # par match, en proposant ceux qui en ont marqué
+        sheet = m["players"][side]
+        out.append(dict(id=f"m_penalty:{m['id']}:check", regle="m_penalty", check=True, joueur=None, n=1, montant=None,
+                        date=(m.get("date") or "")[:10], match=m["id"], motif=f"penalties {where}",
+                        tireurs=[dict(joueur=_who(p.get("name"), roster), marques=p.get("pen_goals") or 0)
+                                 for p in sheet if p.get("pen_goals")],
+                        feuille=[_who(p.get("name"), roster) for p in sheet]))
     for cle in members:
         add("cotisation", cle, f"cotisation de la saison {saison}", date=f"{saison[:4]}-09-01")
     return out
