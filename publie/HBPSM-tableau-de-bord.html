@@ -252,7 +252,7 @@ nav.tabs[hidden]{display:none}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "6992e651ff96", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "579ac500ac67", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -352,7 +352,13 @@ function fia(p){
   const [n, what] = FIA[f.niveau] || FIA.aucune;
   const sur = !f.matchs ? "" : " : "+f.saison+" match"+(f.saison>1?"s":"")+" cette saison"
     + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "");
-  return '<span class="fia" title="'+esc(what+sur)+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
+  return '<span class="fia" title="'+esc(what+sur+brute(p))+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
+}
+// la note avant d'être ramenée vers la moyenne, quand l'écart compte
+function brute(p, plan = "equilibre"){
+  const b = p.scores_bruts && p.scores_bruts[plan], s = p.scores && p.scores[plan];
+  return b == null || s == null || Math.abs(b - s) < 1 ? ""
+    : ". Note ramenée vers la moyenne de l'effectif : "+b+" brute, "+s+" retenue";
 }
 
 // Rotation, réglée par l'entraîneur (S.regle) : chacun joue au moins S.regle des matchs où il est
@@ -557,7 +563,9 @@ function viewPlanif(){
   const fragile = D.joueurs.filter(p => p.fiabilite && ["fragile", "aucune"].includes(p.fiabilite.niveau)).length;
   if(D.meta.club_feuilles < FIABLE_CLUB || fragile) h += '<p class="note"><b>Des notes encore fragiles.</b> '
     + D.meta.club_feuilles+' feuille'+(D.meta.club_feuilles>1?"s":"")+' de match du club lue'+(D.meta.club_feuilles>1?"s":"")+' cette saison ; la saison passée compte pour moitié. '
-    + fragile+' joueur'+(fragile>1?"s ont":" a")+' une note sur moins de 3 matchs <span class="fia">●○○</span> : entre deux joueurs proches, l\'écart ne départage rien. '
+    + fragile+' joueur'+(fragile>1?"s ont":" a")+' une note sur moins de 3 matchs <span class="fia">●○○</span>. '
+    + 'Les notes sont ramenées vers la moyenne de l\'effectif, comme si chacun avait aussi joué '+(D.meta.prudence ?? 2)+' matchs moyens : '
+    + 'un seul bon match ne fait plus passer un joueur devant un autre beaucoup plus vu ; mais entre deux joueurs proches, l\'écart ne départage rien. '
     + 'En début de saison, « au moins 2 des '+n+' matchs » fait jouer tout le monde et donne vite des notes plus sûres ; '
     + 'et ce que vous voyez à l\'entraînement vaut plus que ces chiffres : un clic sur une case impose votre choix.</p>';
   h += '<div class="panel scroll"><div class="plan" style="--n:'+P.length+'"><div></div>'
@@ -668,7 +676,9 @@ function playerCard(p, plan, refs){
     p.rouges ? '<span class="chip cr">'+p.rouges+' CR</span>' : ''].join("") || (p.m ? '<span class="chip">aucune sanction</span>' : '');
   return '<div class="pc'+(dispo(p)?"":" out")+'"><div class="pc-head">'+ring(rated(p) ? p.scores[plan] : null)
     + '<div><b>'+esc(p.num != null ? p.num+" · " : "")+esc(p.nom)+'</b><br><span class="small muted">'+(poste(p) ? esc(POSTE_NOM[poste(p).split("/")[0]] || poste(p)) : (gk ? "Gardien" : "poste non renseigné"))
-    + ' · '+(p.m ? p.m+" match"+(p.m>1?"s":"")+" sur "+p.m_total : rated(p) ? "pas encore aligné, note "+esc(p.note_base) : "pas encore aligné")+'</span></div></div>'
+    + ' · '+(p.m ? p.m+" match"+(p.m>1?"s":"")+" sur "+p.m_total : rated(p) ? "pas encore aligné, note "+esc(p.note_base) : "pas encore aligné")
+    + '<br>'+fia(p)+(p.fiabilite ? ' '+esc(FIA[p.fiabilite.niveau] ? FIA[p.fiabilite.niveau][1] : "") : "")
+    + (rated(p) && p.scores_bruts && Math.abs(p.scores_bruts[plan] - p.scores[plan]) >= 1 ? ' · brute '+p.scores_bruts[plan] : '')+'</span></div></div>'
     + (p.m ? spark(p.journal.map(j => gk ? j.arrets : j.buts), gk) : "")
     + (gk ? bar(p.pct_arrets, refs.gk, "Arrêts sur tirs cadrés"+(p.pris_estime ? " (estimé)" : ""))
           : bar(p.reussite, refs.tir, "Réussite au tir"+(p.tirs ? " · "+p.buts+"/"+p.tirs : "")))
