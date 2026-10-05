@@ -261,6 +261,10 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 .ts{display:none}
+tr.forfait td,.res.forfait>span{color:var(--muted);opacity:.62}
+tr.forfait .logo,.res.forfait .logo{filter:grayscale(1)}
+tr.forfait td b{font-weight:inherit}
+.tag.gone{background:var(--rule);color:var(--muted);border:0}
 /* ---- allure : cartes aérées, ombres douces, logos, jauges ---- */
 .club{background:linear-gradient(135deg,var(--structure-900),var(--structure-700))}
 .club img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:contain;padding:2px;align-self:center}
@@ -1199,7 +1203,8 @@ function viewAdv(){
   const e = D.equipes[adv], us = isUs(adv);
   const next = PLAN.find(r => r.m.adversaire === adv);
   let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : esc(pouleLabel(e)))+'</p><h1>'+teamCell(adv)+'</h1></header>'
-    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].forfait?" (forfait)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+  if(e.forfait) h += '<p class="note">Forfait général pour la saison : cette équipe ne jouera pas ; ses matchs ne comptent ni au classement ni dans les chances de la saison.</p>';
   h += '<div class="panel"><p>'+esc(pouleLabel(e))+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
     + (e.arrets_pct!=null ? '<div><b class="num">'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : "")
@@ -1544,7 +1549,7 @@ function viewPoules(){
   let h = '<h2>Poules</h2>'
     + '<div class="seg" role="group" aria-label="Poule">'+ids.map(i=>'<button data-poule="'+i+'" aria-pressed="'+(i===cur)+'">Poule '+i+'</button>').join("")+'</div>'
     + '<h2>Classement</h2><div class="panel scroll"><table><thead><tr><th>#</th><th>Équipe</th><th>Pts</th><th>J</th><th class="opt">V</th><th class="opt">N</th><th class="opt">D</th><th class="opt">BP</th><th class="opt">BC</th><th>Diff</th><th>Forme</th></tr></thead><tbody>'
-    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+'"><td>'+r.rang+'</td><td class="team">'+teamCell(r.equipe)+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td class="opt">'+r.v+'</td><td class="opt">'+r.n+'</td><td class="opt">'+r.d+'</td><td class="opt">'+r.bp+'</td><td class="opt">'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
+    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+(r.forfait?" forfait":"")+'"'+(r.forfait?' title="Forfait général : ses matchs ne comptent pas cette saison"':'')+'><td>'+(r.rang ?? "–")+'</td><td class="team">'+teamCell(r.equipe)+(r.forfait?' <span class="tag gone">forfait</span>':'')+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td class="opt">'+r.v+'</td><td class="opt">'+r.n+'</td><td class="opt">'+r.d+'</td><td class="opt">'+r.bp+'</td><td class="opt">'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
     + '</tbody></table></div><p class="small muted" style="margin-top:6px">Classement recalculé depuis les scores : victoire 3 points, nul 2, défaite 1.'
     + (P.officiel_lu && !(P.ecarts||[]).length ? " Identique au classement de la fédération." : "")+'</p>';
   const ecart = x => esc(x.equipe)+" "+x.officiel+" points au lieu de "+x.calcule;
@@ -1556,7 +1561,7 @@ function viewPoules(){
   const res = D.resultats.filter(r => r.poule === cur);
   h += '<h2>Résultats</h2><div class="panel">'+(res.length ? res.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc">'+r.sd+" - "+r.se+'</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate((r.date||"").slice(0,10)))+(r.feuille?"":", feuille non lue")+'</span></div>').join("") : "<p>Aucun résultat pour l'instant.</p>")+'</div>';
   const next = D.a_venir.filter(r => r.poule === cur).slice(0,8);
-  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc muted">–</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+'</span></div>').join("")+'</div>';
+  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res'+(r.forfait?" forfait":"")+'"><span class="r">'+teamCell(r.dom)+'</span><span class="sc muted">–</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+(r.forfait?", forfait général : ne sera pas joué":"")+'</span></div>').join("")+'</div>';
   h += '<p class="small muted" style="margin-top:14px">Mis à jour le '+esc(D.meta.genere)+'. '+D.meta.feuilles+' feuille'+(D.meta.feuilles>1?"s":"")+' lue'+(D.meta.feuilles>1?"s":"")+' sur '+D.meta.matchs+' match'+(D.meta.matchs>1?"s":"")+' joué'+(D.meta.matchs>1?"s":"")+'.</p>';
   if(GENERE) h += '<p class="status"><span id="source">'+esc(sourceText())+'</span> <button class="link" data-lock="1">Oublier la phrase secrète sur cet ordinateur</button></p>';
   return h;

@@ -155,6 +155,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
+- Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
+  config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
+  (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du
+  classement, de la simulation (6 équipes), des matchs à préparer et de la planification ; « À
+  venir » les montre grisés, « ne sera pas joué ».
 - Noms courts : le numéro d'équipe est gardé (« Nord Drome 2 » ≠ « Nord Drome »).
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris

@@ -34,6 +34,11 @@ voisines:
 postes_clefs:
   - {nom: pivots, postes: [PIV], min: 2}
   - {nom: arrières, postes: [ARG, DC, ARD], min: 4}
+# Forfait général pour la saison (constaté par l'auteur, le site ne le dit pas) : l'équipe reste
+# affichée, en gris et sans rang ; ses matchs ne comptent ni au classement ni dans les chances de
+# la saison, et sortent de la planification.
+forfaits:
+  - "P16M DIV2 RTE NORD DROME HANDBALL 2"   # 05/10/2026
 # true = garde quelques captures dans raw/sample pour régler les extracteurs
 # (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
 echantillons_debug: true

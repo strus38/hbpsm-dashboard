@@ -946,6 +946,24 @@ def test_seance_publique_sans_nom(sandbox, monkeypatch):
             publish.check_public(fuite, names)
 
 
+def test_forfait_general(sandbox, monkeypatch):
+    """Une équipe en forfait général reste au classement, en bas et sans rang ; ses matchs ne
+    comptent plus, ni dans la simulation ni dans les matchs à préparer."""
+    demo(sandbox)
+    before = an.analyze("2026-10-04")
+    gone = next(m["adversaire"] for m in before["saison"]["matchs"] if not m.get("coupe"))
+    config = dict(common.load_config(), forfaits=[gone])
+    monkeypatch.setattr(an, "load_config", lambda: config)
+    d = an.analyze("2026-10-04")
+    rows = d["poules"]["71"]["classement"]
+    assert rows[-1]["equipe"] == gone and rows[-1]["forfait"] and rows[-1]["rang"] is None
+    assert [r["rang"] for r in rows[:-1]] == list(range(1, len(rows)))
+    assert all(m["adversaire"] != gone for m in d["saison"]["matchs"])
+    assert len(d["saison"]["rangs"]) == len(before["saison"]["rangs"]) - 1
+    assert all(r["forfait"] == (gone in (r["dom"], r["ext"])) for r in d["a_venir"])
+    assert d["equipes"][gone]["forfait"] and d["prochain"]["adversaire"] != gone
+
+
 def test_logos_du_resume_public(monkeypatch):
     """Les logos entrent réduits dans le résumé public ; un logo déjà reçu n'est pas retéléchargé."""
     import io

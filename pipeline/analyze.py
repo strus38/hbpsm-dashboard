@@ -887,15 +887,20 @@ def training_axes(club, profiles, players):
     return axes[:4]
 
 
-def poule_view(matches, teams, official):
-    """Classement recalculé, et écarts éventuels avec celui de la fédération (pénalités, forfaits)."""
+def poule_view(matches, teams, official, gone=frozenset()):
+    """Classement recalculé, et écarts éventuels avec celui de la fédération (pénalités, forfaits).
+    Une équipe en forfait général (gone, noms normalisés) reste affichée, en bas et sans rang."""
     rows = standings(matches, teams)
+    kept = [r for r in rows if norm(r["equipe"]) not in gone]
+    for i, r in enumerate(kept, 1):
+        r["rang"] = i
+    rows = kept + [dict(r, rang=None, forfait=True) for r in rows if norm(r["equipe"]) in gone]
     off = {norm(k): v for k, v in official_table(official).items()}
     off_j = {norm(k): v for k, v in official_table(official, ("J",)).items()}
     # moins de matchs joués côté fédération : son classement n'est pas encore à jour
     gaps = [dict(equipe=r["equipe"], officiel=off[norm(r["equipe"])], calcule=r["pts"],
                  retard=off_j.get(norm(r["equipe"])) is not None and off_j[norm(r["equipe"])] < r["j"])
-            for r in rows if off.get(norm(r["equipe"])) is not None and off[norm(r["equipe"])] != r["pts"]]
+            for r in kept if off.get(norm(r["equipe"])) is not None and off[norm(r["equipe"])] != r["pts"]]
     return dict(classement=rows, ecarts=gaps, officiel_lu=bool(off))
 
 
@@ -978,11 +983,19 @@ def analyze(today=None, roster=None):
     official = {k: v for k, v in official.items() if not str(k).startswith("ext-")}
     matches = [m for m in every_match if not m.get("coupe")]
     fixtures = [f for f in every_fixture if not f.get("coupe")]
+    teams = known_teams(fixtures, official)
+    # forfait général (config.yml, constaté par l'auteur) : l'équipe reste affichée, en gris, mais
+    # ses matchs ne comptent ni au classement ni dans la simulation, et ne sont plus à préparer
+    gone = frozenset(norm(t) for t in config.get("forfaits") or [])
+    out_of = lambda f: norm(f.get("home") or "") in gone or norm(f.get("away") or "") in gone
+    forfeited = [f for f in fixtures if f.get("score_home") is None and out_of(f)]
+    matches = [m for m in matches if not out_of(dict(home=m["home"]["name"], away=m["away"]["name"]))]
+    fixtures = [f for f in fixtures if not out_of(f)]
+    every_fixture = [f for f in every_fixture if not (f.get("score_home") is None and out_of(f))]
 
     by_poule = defaultdict(list)
     for m in matches:
         by_poule[str(m.get("poule"))].append(m)
-    teams = known_teams(fixtures, official)
     profiles = team_profiles(matches, teams)
     league_profiles = dict(profiles)
     rivals = {(f["away"] if is_club(f.get("home"), config) else f["home"]) for f in every_fixture
@@ -997,6 +1010,9 @@ def analyze(today=None, roster=None):
                               rouges=None, arrets_pct=None)
     for team in rivals:
         profiles[team]["coupe"] = True
+    for team, prof in profiles.items():
+        if norm(team) in gone:
+            prof["forfait"] = True
     seasons = load_history()
     priors = history_profiles(seasons, profiles, matches, config)
     for team, prof in profiles.items():
@@ -1027,8 +1043,8 @@ def analyze(today=None, roster=None):
     n_fdme = sum(1 for m in matches if (m.get("players") or {}).get("home"))
     club_poule = profiles[club_name]["poule"] if club_name else None
     target = int((config.get("objectif") or {}).get("rang", 1))
-    saison = (outlook(matches, fixtures, club_name, club_poule, target, known=teams.get(str(club_poule), ()),
-                      priors=priors)
+    saison = (outlook(matches, fixtures, club_name, club_poule, target,
+                      known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors)
               if club_name else None)
     if saison and saison.get("matchs") is not None:  # les matchs de coupe à venir, à leur date
         saison["matchs"] = sorted(saison["matchs"] + cup_ahead(every_fixture, config, today, saison["matchs"]),
@@ -1045,7 +1061,7 @@ def analyze(today=None, roster=None):
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
                   historique=[x.get("saison") for x in seasons]),
         prochain=nxt,
-        poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p))
+        poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)
                 for p in sorted(set(by_poule) | set(teams))},
         resultats=sorted((dict(id=m["id"], poule=str(m.get("poule")), journee=m.get("journee"),
                                date=m.get("date"), dom=m["home"]["name"], ext=m["away"]["name"],
@@ -1059,8 +1075,9 @@ def analyze(today=None, roster=None):
                     propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]
                                                   + [caisse.COACH], config.get("saison") or "")),
         a_venir=sorted((dict(poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
-                             provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"))
-                        for f in fixtures if f.get("score_home") is None),
+                             provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"),
+                             forfait=out_of(f))
+                        for f in fixtures + forfeited if f.get("score_home") is None),
                        key=lambda r: r["date"] or "9999")[:40],
         equipes=profiles, joueurs=players, duos=pairs(with_sheet), plans=PLANS,
         saison=saison, axes=axes,

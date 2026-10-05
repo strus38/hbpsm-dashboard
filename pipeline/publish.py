@@ -149,7 +149,7 @@ def public_summary(data):
         objectif=None if not s else dict({k: s.get(k) for k in ("statut", "poule", "cible", "rang", "pts", "restants",
                                                                   "proba", "proba_tout", "rangs", "pts_max")},
                                          matchs=[{k: m.get(k) for k in keep_m} for m in s.get("matchs") or []]),
-        poules={p: [{k: r.get(k) for k in ("rang", "equipe", "pts", "j", "v", "n", "d", "bp", "bc", "diff", "forme")}
+        poules={p: [{k: r.get(k) for k in ("rang", "equipe", "pts", "j", "v", "n", "d", "bp", "bc", "diff", "forme", "forfait")}
                     for r in v["classement"]] for p, v in (data.get("poules") or {}).items()},
         resultats=[{k: r.get(k) for k in ("poule", "journee", "date", "dom", "ext", "sd", "se")} for r in (data.get("resultats") or [])[:16]],
         axes=[{k: a.get(k) for k in ("titre", "libelle", "constat")} for a in data.get("axes") or []])
