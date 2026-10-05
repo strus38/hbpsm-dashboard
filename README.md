@@ -116,6 +116,17 @@ pour ce qui est actif ou mis en avant, toujours avec un texte foncé.
 La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com` : les fichiers attachés à une
 Release ne sont pas lisibles par une page web (GitHub n'y met pas d'en-tête CORS).
 
+## Coupes
+
+`coupes` dans `config.yml` désigne les coupes où joue le club (la Coupe de France
+départementale en 2026-2027). La collecte y lit chaque tour, une poule d'une journée de
+plusieurs centaines de rencontres, et n'en garde que les matchs du club, avec leur feuille.
+Ces matchs comptent dans les statistiques et les notes des joueurs, et dans la planification :
+ils s'y placent à leur date, marqués « Coupe », sans enjeu pour le classement, jamais match clé,
+et la rotation y passe en premier (les gagner compte moins qu'en championnat). Ils ne comptent
+ni dans le classement ni dans les chances de la saison ; l'onglet Saison montre le parcours du
+club en coupe.
+
 ## Feuille validée par l'entraîneur
 
 Tant que l'entraîneur n'a pas validé un match, tout le monde voit sur la page une

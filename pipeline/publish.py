@@ -131,7 +131,7 @@ def public_summary(data):
     if nxt:
         found = next((m for m in s.get("matchs") or [] if m.get("id") == nxt.get("id")), {})
         nxt.update({k: found.get(k) for k in ("p_victoire", "enjeu", "cle", "rang_adv")})
-    keep_m = ("journee", "date", "provisoire", "adversaire", "domicile", "p_victoire", "enjeu", "cle", "rang_adv")
+    keep_m = ("journee", "coupe", "tour", "date", "provisoire", "adversaire", "domicile", "p_victoire", "enjeu", "cle", "rang_adv")
     return dict(
         format="hbpsm-public", v=1, genere=data["meta"]["genere"], club=club, club_court=data["meta"].get("club_court"),
         saison=data["meta"].get("saison"), feuilles=data["meta"].get("club_feuilles"), prochain=nxt,

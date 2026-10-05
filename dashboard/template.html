@@ -146,6 +146,8 @@ section[hidden]{display:none}
 .stake .range{position:relative;height:10px;background:var(--rule);border-radius:5px;margin:10px 0 6px}
 .stake .range i{position:absolute;top:0;bottom:0;background:var(--track);border-radius:5px}
 .stake.key .range i{background:var(--accent-trait)}
+.tag.cup{background:var(--structure-100);color:var(--structure-900);border-color:var(--structure-500)}
+.plan .tag.cup{margin:0}
 .tag.key{background:var(--accent);color:var(--on-accent);border-color:var(--accent-fonce)}
 .big{font:700 3.2rem/1 var(--display);font-variant-numeric:tabular-nums}
 .axis{padding:10px 0;border-top:1px solid var(--rule)}
@@ -437,7 +439,10 @@ const pinOf = (p, m) => (S.pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
   const w = String(t).replace(/^P\d+[MF]?\s*(DIV\d*)?\s*-?\s*/i, "").split(/\s+/)
     .filter(x => !/^(HB|HBC|HANDBALL|CLUB|RTE|ENTENTE|-)$/i.test(x));
-  return (w.slice(0, 2).join(" ") || t).toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase());
+  const base = (w.slice(0, 2).join(" ") || t).toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase());
+  // le numéro d'équipe distingue l'équipe 2 de l'équipe 1 du même club : on le garde
+  const num = (String(t).match(/[\s-](\d)\s*$/) || [])[1];
+  return num && !base.endsWith(num) ? base + " " + num : base;
 };
 // sur téléphone, les tableaux montrent le nom court (« Sablons Rhodia », « HBPSM »)
 const teamCell = t => '<span class="tl">'+esc(t)+'</span><span class="ts">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span>';
@@ -548,9 +553,10 @@ function planning(){
   const apps = p => P.filter(r => r.gks.includes(p) || r.field.includes(p)).length;
   const need = p => depOf(p) ? 0 : Math.min(quota, H.filter(m => availOf(p, m) === "d" && pinOf(p, m) !== "out").length);
   if(quota){
-    const easy = P.filter(r => !r.m.cle && !r.fixed).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
+    const easy = P.filter(r => !r.m.cle && !r.fixed).sort((a, b) => (b.m.coupe ? 1 : 0) - (a.m.coupe ? 1 : 0)
+      || (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
       || (a.m.enjeu ?? 0) - (b.m.enjeu ?? 0) || a.k - b.k);
-    const capsOf = gk => gk ? [r => ROT_GB, r => (r.m.p_victoire ?? 0) >= ROT_GB2 ? 2 : ROT_GB] : [r => ROT_CHAMP];
+    const capsOf = gk => gk ? [r => ROT_GB, r => r.m.coupe || (r.m.p_victoire ?? 0) >= ROT_GB2 ? 2 : ROT_GB] : [r => ROT_CHAMP];
     for(const gk of [true, false]) for(const cap of capsOf(gk)){
       const team = r => gk ? r.gks : r.field, used = P.map(r => r.rotated.filter(p => isGK(p) === gk).length);
       for(let moved = true; moved;){
@@ -655,12 +661,17 @@ function advice(r){
   const m = r.m;
   if(!r.ok) return "Il manque "+(r.missingGK > 0 ? r.missingGK+" gardien"+(r.missingGK>1?"s":"") : r.missing+" joueur"+(r.missing>1?"s":""))+" disponible"+((r.missingGK>1||r.missing>1)?"s":"")+" pour la feuille.";
   if(!r.postesOk) return "Postes clefs non couverts : il manque "+manquePostes(r).join(" et ")+". Rendez disponible un joueur de ce poste, ou indiquez dans l'onglet Joueurs qui peut y jouer (2e poste).";
+  if(m.coupe) return "Match de coupe : le gagner compte moins qu'en championnat, c'est le match où faire tourner l'effectif.";
   if(m.cle) return "Match clé pour la saison : alignez l'équipe la plus forte, sans rotation.";
   if(m.p_victoire != null && m.p_victoire >= 65) return "Adversaire à votre portée : vous pouvez faire tourner l'effectif sans grand risque.";
   if(m.p_victoire != null && m.p_victoire < 45) return "Adversaire plus fort : chaque titulaire compte, rotation à limiter.";
   return "Match équilibré : rotation mesurée, gardez l'ossature de l'équipe.";
 }
-const matchLine = m => "J"+esc(m.journee ?? "?")+" · "+esc(fmtDate(m.date, m.provisoire))+" · "+(m.domicile ? "domicile" : "extérieur");
+// « 1ER TOUR » -> « 1er tour », « 2EME TOUR » -> « 2e tour »
+const tourLabel = t => String(t || "").toLowerCase().replace(/(\d+)\s*(?:eme|ème)\b/, "$1e");
+const roundOf = m => m.coupe ? m.coupe + (m.tour ? " · " + tourLabel(m.tour) : "") : "J" + (m.journee ?? "?");
+const roundShort = m => m.coupe ? "Coupe" : "J" + (m.journee ?? "?");
+const matchLine = m => esc(roundOf(m))+" · "+esc(fmtDate(m.date, m.provisoire))+" · "+(m.domicile ? "domicile" : "extérieur");
 const pct = x => x == null ? "–" : x+" %";
 
 function viewSemaine(){
@@ -740,8 +751,8 @@ function viewPlanif(){
   h += '<div class="panel scroll plan-wrap"><div class="plan" style="--n:'+P.length+'"><div class="who"></div>'
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
-      + '<span class="ts">J'+esc(r.m.journee ?? "?")+' · '+pct(r.m.p_victoire)+'<br></span>'
-      + (r.m.cle ? '<span class="tag key">Match clé</span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
+      + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
+      + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key">Match clé</span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
       + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div></div>').join("")
     + '<div class="h" title="Matchs où il est retenu"><span class="tl">retenu</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
@@ -810,7 +821,7 @@ function viewConvoc(){
   if(!P.length) return '<header class="top"><h1>Convocation</h1></header>'+emptyPanel();
   const r = P.find(x => String(x.m.id) === String(S.convM)) || P[0], m = r.m;
   let h = '<header class="top"><p class="when">Après l\'entraînement du vendredi</p><h1>Convocation</h1></header>' + roNote() + jetonBox()
-    + '<div class="seg noprint" role="group" aria-label="Match">'+P.map(x => '<button data-conv="'+esc(x.m.id)+'" aria-pressed="'+(x===r)+'">J'+esc(x.m.journee ?? "?")+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>';
+    + '<div class="seg noprint" role="group" aria-label="Match">'+P.map(x => '<button data-conv="'+esc(x.m.id)+'" aria-pressed="'+(x===r)+'">'+esc(roundShort(x.m))+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>';
   h += '<div class="panel convoc" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p><h2 style="margin:4px 0 8px">'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h2>'
     + '<dl class="facts"><dt>Match</dt><dd>'+esc(fmtDate(m.date, m.provisoire))+'</dd>'
     + '<dt>Lieu</dt><dd>'+(m.salle ? esc(m.salle.nom)+'<br><span class="small muted">'+esc([m.salle.rue, [m.salle.code_postal, m.salle.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))+'</span>' : "pas encore fixé par la fédération")+'</dd>'
@@ -829,7 +840,7 @@ function convText(r){
   const lieu = m.salle ? m.salle.nom+(m.salle.ville ? ", "+m.salle.ville : "") : "lieu à confirmer";
   const rdv = S.rdv[m.id] ? "Rendez-vous à "+S.rdv[m.id].replace(":","h")+" – "+lieu : "Lieu : "+lieu;
   const who = list => list.map(p => p.nom+(p.num != null ? " ("+p.num+")" : "")).join(", ");
-  return [D.meta.club_court+" – convocation J"+(m.journee ?? "?")+" contre "+m.adversaire+" ("+(m.domicile?"domicile":"extérieur")+")",
+  return [D.meta.club_court+" – convocation "+roundOf(m)+" contre "+m.adversaire+" ("+(m.domicile?"domicile":"extérieur")+")",
     jour.charAt(0).toUpperCase()+jour.slice(1)+heure+(m.provisoire ? " (horaire à confirmer)" : ""), rdv, "",
     "Gardiens : "+who(r.gks), "Joueurs : "+who(r.field)].join("\n");
 }
@@ -1035,7 +1046,7 @@ function viewSaison(){
       h += '<div class="panel"><p class="muted small">Chances estimées de '+objectif(s.cible)+'</p><p class="big">'+s.proba+' %</p>'
         + rankBars(s)
         + '<p style="margin-top:8px">En gagnant tous les matchs restants : <b>'+s.proba_tout+' %</b>. Maximum possible : '+s.pts_max+' points.</p></div>';
-      h += '<h2>Matchs à gagner</h2><div class="panel">' + s.matchs.map(m => {
+      h += '<h2>Matchs à gagner</h2><div class="panel">' + s.matchs.filter(m => !m.coupe).map(m => {
         const lo = Math.min(m.sinon ?? 0, m.si_victoire ?? 0), hi = Math.max(m.sinon ?? 0, m.si_victoire ?? 0);
         return '<div class="stake'+(m.cle?" key":"")+'"><div class="head"><div><b>'+esc(m.adversaire)+'</b>'+(m.cle?'<span class="tag key">Match clé</span>':"")
           + '<br><span class="small muted">J'+esc(m.journee ?? "?")+", "+esc(fmtDate(m.date, m.provisoire))+", "+(m.domicile?"domicile":"extérieur")+", adversaire "+ord(m.rang_adv)+'</span></div>'
@@ -1053,6 +1064,21 @@ function viewSaison(){
     : '<button class="btn" data-dl="seance">Télécharger la séance à importer</button><p class="small muted" style="margin-top:8px">Dans l\'application de préparation des entraînements : Importer, puis choisir ce fichier. La séance arrive avec ces constats en objectif, sans exercice.</p>';
   h += '</div>';
   return h;
+}
+function viewCoupes(){   // le parcours du club en coupe : hors classement, mais dans la saison
+  const cs = D.coupes || [];
+  if(!cs.length) return "";
+  const byCup = {};
+  for(const c of cs) (byCup[c.coupe] = byCup[c.coupe] || []).push(c);
+  return Object.entries(byCup).map(([nom, list]) => '<h2>'+esc(nom)+'</h2><div class="panel">'
+    + list.map(c => { const us = '<b>'+esc(D.meta.club_court)+'</b>', them = teamCell(c.adversaire);
+      const [sd, se] = c.domicile ? [c.bp, c.bc] : [c.bc, c.bp];
+      return '<div class="res"><span class="r">'+(c.domicile ? us : them)+'</span>'
+      + '<span class="sc'+(c.res ? "" : " muted")+'">'+(c.res ? sd+" - "+se : "–")+'</span>'
+      + '<span>'+(c.domicile ? them : us)+(c.res ? ' <span class="form"><i class="'+c.res+'">'+c.res+'</i></span>' : '')+'</span>'
+      + '<span class="meta">'+esc(tourLabel(c.tour))+", "+esc(fmtDate(c.date, c.provisoire))
+      + (c.res && !c.feuille ? ", feuille non lue" : "")+'</span></div>'; }).join("")
+    + '<p class="small muted" style="margin-top:6px">Hors classement : ces matchs comptent dans les statistiques des joueurs et dans la rotation.</p></div>').join("");
 }
 function viewPoules(){
   const ids = Object.keys(D.poules);
@@ -1081,7 +1107,7 @@ function viewPoules(){
 const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
 const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueurs:viewJoueurs, adv:viewAdv,
-               saison: () => viewSaison() + viewPoules()};
+               saison: () => viewSaison() + viewCoupes() + viewPoules()};
 function render(keepScroll){
   const y = window.scrollY;
   document.getElementById("club-nom").textContent = D.meta.club_court || CFG.club || "HBPSM";

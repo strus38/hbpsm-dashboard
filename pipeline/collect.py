@@ -237,6 +237,15 @@ def crawl_poule(poule, known, old, now, is_ours=None):
                 fixtures[fx["id"]] = fx
     if is_ours:
         add_venues(fixtures, old, is_ours)
+    sheets = fetch_sheets(fixtures, known, now)
+    print(f"[collecte] poule {pid}: {len(lists)} journées lues sur {len(days)}, "
+          f"{len(fixtures)} rencontres, {sheets} feuilles téléchargées, "
+          f"classement officiel {'oui' if official else 'non'}")
+    return fixtures, official
+
+
+def fetch_sheets(fixtures, known, now):
+    """Feuilles des rencontres jouées, pas encore lues ; renvoie le nombre de téléchargées."""
     sheets = 0
     for fx in fixtures.values():
         target = RAW / "fdme" / f"{fx['id']}.pdf"
@@ -257,10 +266,43 @@ def crawl_poule(poule, known, old, now, is_ours=None):
         except (urllib.error.URLError, OSError) as exc:  # feuille pas encore déposée : au prochain passage
             print(f"[collecte] feuille {fx['id']}: {exc}", file=sys.stderr)
         time.sleep(PAUSE)
-    print(f"[collecte] poule {pid}: {len(lists)} journées lues sur {len(days)}, "
-          f"{len(fixtures)} rencontres, {sheets} feuilles téléchargées, "
-          f"classement officiel {'oui' if official else 'non'}")
-    return fixtures, official
+    return sheets
+
+
+def crawl_cup(cup, known, old, now, is_ours):
+    """Matchs du club dans une coupe. Chaque tour y est une poule d'une journée, de plusieurs
+    centaines de rencontres (Coupe de France départementale : tout le pays) ; seules celles du
+    club sont gardées, marquées par le nom de la coupe et le tour. Un tour n'est plus relu quand
+    les matchs du club y sont joués et leur feuille lue, ou quand il est passé sans le club."""
+    comp = cup["url"].rstrip("/") + "/"
+    slug = comp.rstrip("/").rsplit("-", 1)[-1]
+    first = page_data(comp, f"coupe_{slug}")
+    shown = str(((first.get("competitions---rencontre-list") or {}).get("poule") or {}).get("ext_pouleId") or "")
+    seen = any(f.get("coupe") == cup["nom"] for f in old.values())  # déjà collectée une fois
+    fixtures = {}
+    for tour in (first.get("competitions---poule-selector") or {}).get("poules") or []:
+        pid = str(tour.get("ext_pouleId") or "")
+        if not pid:
+            continue
+        try:
+            days = json.loads(tour.get("journees") or "[]")
+        except ValueError:
+            days = []
+        start = min((d["date_debut"] for d in days if d.get("date_debut")), default=None)
+        end = max((d.get("date_fin") or d["date_debut"] for d in days if d.get("date_debut")), default=None)
+        mine = [f for f in old.values() if f.get("coupe") == cup["nom"] and f.get("tour_id") == pid]
+        if (mine and finished(mine, known, now)) or (seen and not mine and end and end < now[:10]):
+            continue
+        data = first if pid == shown else page_data(f"{comp}poule-{pid}/", f"coupe_{slug}_{pid}")
+        for r in (data.get("competitions---rencontre-list") or {}).get("rencontres") or []:
+            if r.get("ext_rencontreId") and (is_ours(clean(r.get("equipe1Libelle"))) or is_ours(clean(r.get("equipe2Libelle")))):
+                fx = fixture(r, "coupe", f"{comp}poule-{pid}/", start)
+                fx.update(coupe=cup["nom"], tour=clean(tour.get("libelle")), tour_id=pid)
+                fixtures[fx["id"]] = fx
+    add_venues(fixtures, old, is_ours)
+    sheets = fetch_sheets(fixtures, known, now)
+    print(f"[collecte] {cup['nom']} : {len(fixtures)} match(s) du club, {sheets} feuille(s) téléchargée(s)")
+    return fixtures
 
 
 def main():
@@ -295,6 +337,11 @@ def main():
         old.update(fixtures)  # le site fait foi : une rencontre relue remplace l'ancienne
         if official:
             officials[poule["id"]] = official
+    for cup in config.get("coupes") or []:
+        try:
+            old.update(crawl_cup(cup, known, old, now, lambda t: is_club(t, config)))
+        except (urllib.error.URLError, OSError) as exc:  # la coupe attendra le prochain passage
+            print(f"[collecte] {cup.get('nom')}: {exc}", file=sys.stderr)
     write_json(DATA / "fixtures.json", sorted(old.values(), key=lambda f: (f.get("date") or "9999", f["id"])))
     write_json(DATA / "official_standings.json", officials)
     return 0 if not missing else 2

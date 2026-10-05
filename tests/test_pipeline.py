@@ -412,6 +412,15 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.locator("#why").is_visible() and page.evaluate("JSON.stringify(S.pin)") == before
         page.click("button[data-tap=edit]")
         page.set_viewport_size({"width": 1100, "height": 900})
+        # un match de coupe dans la planification : nommé comme tel, la rotation y passe d'abord
+        cup = page.evaluate("""(() => { const m = D.saison.matchs[1];
+          D.saison.matchs.splice(1, 0, Object.assign({}, m, {id: "coupe-1", coupe: "Coupe de France", tour: "1ER TOUR",
+            journee: null, p_victoire: null, enjeu: null, cle: false}));
+          S.regle = 1; const P = planning(), r = P.find(x => x.m.coupe);
+          const res = {label: roundOf(r.m), advice: !r.postesOk || advice(r).startsWith("Match de coupe"),   // un poste manquant passe avant
+                       most: P.every(x => x.rotated.length <= r.rotated.length) && r.rotated.length > 0};
+          D.saison.matchs.splice(1, 1); return res; })()""")
+        assert cup == {"label": "Coupe de France · 1er tour", "advice": True, "most": True}
         # adversaires : le club figure aussi dans la liste, en tête
         assert page.evaluate("opponent().names[0] === D.meta.club")
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
@@ -632,6 +641,78 @@ def test_choix_de_l_entraineur(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_CHOIX", "pas du json")
     with pytest.raises(vault.VaultError):
         choix.main()
+
+
+def test_coupe_collectee(monkeypatch):
+    """Coupe : chaque tour est une poule d'une journée ; seuls les matchs du club sont gardés, et un
+    tour clos (match joué, feuille lue) n'est plus relu."""
+    row = lambda rid, home, away: dict(ext_rencontreId=rid, equipe1Libelle=home, equipe2Libelle=away,
+                                       date="2026-10-17T18:00:00+02:00", fdmCode=None, equipementId=None,
+                                       journeeNumero="1", equipe1Score=None, equipe2Score=None)
+    tours = [dict(ext_pouleId="1", libelle="1ER TOUR", journees='[{"journee_numero":1,"date_debut":"2026-10-17","date_fin":"2026-10-18"}]'),
+             dict(ext_pouleId="2", libelle="2EME TOUR", journees='[{"journee_numero":1,"date_debut":"2026-11-21","date_fin":"2026-11-22"}]')]
+    page = lambda pid, rows: {"competitions---poule-selector": {"poules": tours},
+                              "competitions---rencontre-list": {"poule": {"ext_pouleId": pid}, "rencontres": rows}}
+    pages = []
+
+    def fake(url, name):
+        pages.append(url)
+        if url.endswith("poule-2/"):
+            return page("2", [row("21", "Club Ailleurs", "Club Loin")])
+        return page("1", [row("11", "Club Bravo", "Club Alpha"), row("12", "Club Ailleurs", "Club Loin")])
+
+    monkeypatch.setattr(collect, "page_data", fake)
+    monkeypatch.setattr(collect, "fetch_sheets", lambda fixtures, known, now: 0)
+    cup = dict(nom="Coupe de France", url="https://exemple/coupe-de-france-departementale-masculine-1/")
+    ours = lambda t: t == "Club Alpha"
+    got = collect.crawl_cup(cup, {}, {}, "2026-10-05T07:00", ours)
+    assert list(got) == ["11"] and len(pages) == 2   # la page de la coupe montre le 1er tour ; le 2e est lu
+    fx = got["11"]
+    assert (fx["coupe"], fx["tour"], fx["tour_id"], fx["poule"]) == ("Coupe de France", "1ER TOUR", "1", "coupe")
+    # le 1er tour joué et sa feuille lue, le 2e passé sans le club : plus rien à relire que la page d'entrée
+    pages.clear()
+    played = dict(fx, score_home=20, score_away=30)
+    collect.crawl_cup(cup, {"11": True}, {"11": played}, "2026-11-30T07:00", ours)
+    assert pages == [cup["url"]]
+
+
+def test_coupe_dans_la_saison(sandbox):
+    """Un match de coupe : hors classement, dans les statistiques des joueurs, dans les matchs à venir."""
+    demo(sandbox)
+    before = an.analyze("2026-10-04")
+    matches = sandbox / "data" / "matches"
+    club_match = next(json.loads(f.read_text("utf-8")) for f in sorted(matches.glob("*.json"))
+                      if demo_data.CLUB in (json.loads(f.read_text("utf-8"))["home"]["name"],
+                                            json.loads(f.read_text("utf-8"))["away"]["name"])
+                      and json.loads(f.read_text("utf-8"))["players"]["home"])
+    side = "home" if club_match["home"]["name"] == demo_data.CLUB else "away"
+    other = "away" if side == "home" else "home"
+    cup_played = dict(club_match, id="9001", poule="coupe", journee=None, date="2026-09-20T18:00",
+                      coupe="Coupe de France", tour="1ER TOUR")
+    cup_played[other] = dict(club_match[other], name="Club Lointain")
+    common.write_json(matches / "9001.json", cup_played)
+    fixtures = json.loads((sandbox / "data" / "fixtures.json").read_text("utf-8"))
+    base = dict(poule="coupe", coupe="Coupe de France", journee=None, score_home=None, score_away=None)
+    fixtures.append(dict(base, id="9001", tour="1ER TOUR", date="2026-09-20T18:00",
+                         home=cup_played["home"]["name"], away=cup_played["away"]["name"],
+                         score_home=cup_played["home"]["score"], score_away=cup_played["away"]["score"]))
+    fixtures.append(dict(base, id="9002", tour="2EME TOUR", date="2026-10-24T18:00", home="Club Lointain 2", away=demo_data.CLUB))
+    common.write_json(sandbox / "data" / "fixtures.json", fixtures)
+    d = an.analyze("2026-10-04")
+    # hors classement : ni poule, ni résultat, ni adversaire nouveau dans les équipes
+    assert "coupe" not in d["poules"] and all(r["id"] != "9001" for r in d["resultats"])
+    assert "Club Lointain" not in d["equipes"] and d["poules"] == before["poules"]
+    # dans les statistiques : chaque joueur de la feuille compte un match de plus
+    m_before = {p["cle"]: p["m"] for p in before["joueurs"]}
+    on_sheet = {p["name"] for p in club_match["players"][side]}
+    assert any(p["m"] == m_before.get(p["cle"], 0) + 1 for p in d["joueurs"])
+    assert d["meta"]["club_feuilles"] == before["meta"]["club_feuilles"] + 1 and on_sheet
+    # dans les matchs à venir, à sa date : pas d'enjeu, jamais match clé
+    cup = next(m for m in d["saison"]["matchs"] if m.get("coupe"))
+    assert (cup["id"], cup["tour"], cup["enjeu"], cup["cle"], cup["journee"]) == ("9002", "2EME TOUR", None, False, None)
+    dates = [m["date"] for m in d["saison"]["matchs"]]
+    assert dates == sorted(dates)
+    assert [c["id"] for c in d["coupes"]] == ["9001", "9002"] and d["coupes"][0]["res"] in "VND"
 
 
 def test_noms_ancienne_feuille():

@@ -41,7 +41,9 @@ def objective_text(data):
     parts = []
     if nxt:
         when = date_fr(nxt.get("date")) + (" (week-end, date à confirmer)" if nxt.get("provisoire") else "")
-        parts.append(f"Avant {nxt['adversaire']} (journée {nxt.get('journee') or '?'}, {when}, "
+        quand = (f"{nxt['coupe']}, {(nxt.get('tour') or '').lower()}" if nxt.get("coupe")
+                 else f"journée {nxt.get('journee') or '?'}")
+        parts.append(f"Avant {nxt['adversaire']} ({quand}, {when}, "
                      f"{'à domicile' if nxt.get('domicile') else 'à l’extérieur'}).")
     for i, a in enumerate(axes[:3], 1):
         parts.append(f"{i}) {a['titre']} [{a['libelle']}] : {a['constat']}")

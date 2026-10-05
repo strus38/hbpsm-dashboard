@@ -129,6 +129,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   de la rotation ; la retoucher la repasse « modifiée » (`S.valide[id] = null`). États :
   suggestion, choix, publiee, attente, modifiee, a_revoir, retrait. « Retirer la validation »
   (`withdraw`, `S.retire` jusqu'à ce que le retrait soit en ligne) republie sans ce match.
+- Coupes (demande de l'auteur, 05/10/2026) : `coupes` dans config.yml (Coupe de France
+  départementale masculine 2026-2027, competition 33244 ; 1er tour le 17/10 à Saint-Rambert-d'Albon).
+  `collect.crawl_cup` ne garde que les matchs du club (poule « coupe », champs `coupe`, `tour`,
+  `tour_id`) ; un tour clos ou passé sans le club n'est plus relu. `analyze` : classement,
+  profils, simulation sur le championnat seul ; `club_players` sur tous les matchs ; `cup_ahead`
+  ajoute les matchs de coupe à `saison.matchs` (enjeu nul, jamais clé) ; `coupes` = parcours.
+  Page : `roundOf` / `roundShort`, rotation d'abord sur la coupe, 2 gardiens changés possibles.
+  Résumé public : champs `coupe`, `tour` (HANDBALL-training 1.16.2 les affiche).
+- Noms courts : le numéro d'équipe est gardé (« Nord Drome 2 » ≠ « Nord Drome »).
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris
   exacts) ; PROTOCOLECOMMOTION, COMMOTION et TEMPSDEREGULATIONCOMPORTEMENTAL sont ignorés

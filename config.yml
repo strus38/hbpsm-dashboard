@@ -16,6 +16,12 @@ poules:
 # Joueurs à choisir pour chaque match, dont les gardiens ("auto" = maximum déjà aligné cette saison)
 effectif_feuille: 12
 gardiens_feuille: 2
+# Coupes où joue le club (demande de l'auteur, 05/10/2026) : ses matchs y comptent dans les
+# statistiques des joueurs et dans la rotation, pas dans le classement ni dans les chances de la
+# saison ; les gagner compte moins qu'en championnat.
+coupes:
+  - nom: Coupe de France
+    url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/coupe-de-france/coupe-de-france-departementale-masculine-2026-2027-33244/"
 # Postes clefs : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un des postes
 # du groupe (choix de l'entraîneur, 05/10/2026) ; un joueur à deux postes, « ARG/DC », compte pour
 # un seul groupe. Postes : ALG ARG DC ARD ALD PIV.

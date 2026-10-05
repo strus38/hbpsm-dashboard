@@ -896,6 +896,47 @@ def poule_view(matches, teams, official):
     return dict(classement=rows, ecarts=gaps, officiel_lu=bool(off))
 
 
+def cup_ahead(fixtures, config, today, league):
+    """Les matchs de coupe à venir du club, pour la planification : pas d'enjeu pour le classement,
+    jamais match clé. Victoire estimée : celle d'un match de championnat contre le même adversaire
+    s'il y en a un, sinon inconnue (une équipe d'une autre division)."""
+    out = []
+    for f in fixtures:
+        if not f.get("coupe") or f.get("score_home") is not None or (f.get("date") or "9999") < today:
+            continue
+        dom = is_club(f.get("home"), config)
+        if not dom and not is_club(f.get("away"), config):
+            continue
+        adv = f["away"] if dom else f["home"]
+        same = next((m for m in league if m.get("adversaire") == adv), None)
+        out.append(dict(id=f["id"], date=f.get("date"), provisoire=bool(f.get("date_provisoire")),
+                        journee=None, coupe=f["coupe"], tour=f.get("tour"), adversaire=adv, domicile=dom,
+                        salle=f.get("salle"), rang_adv=same and same.get("rang_adv"), pts_adv=None,
+                        p_victoire=same and same.get("p_victoire"), si_victoire=None, sinon=None,
+                        enjeu=None, cle=False))
+    return out
+
+
+def cup_results(matches, fixtures, config):
+    """Le parcours du club en coupe : matchs joués (score, feuille lue) et à venir."""
+    played = {m["id"]: m for m in matches if m.get("coupe")}
+    out = []
+    for f in fixtures:
+        if not f.get("coupe"):
+            continue
+        dom = is_club(f.get("home"), config)
+        if not dom and not is_club(f.get("away"), config):
+            continue
+        m = played.get(str(f["id"]))
+        us, them = ("home", "away") if dom else ("away", "home")
+        bp, bc = (m[us]["score"], m[them]["score"]) if m else (None, None)
+        out.append(dict(id=f["id"], coupe=f["coupe"], tour=f.get("tour"), date=f.get("date"),
+                        provisoire=bool(f.get("date_provisoire")), adversaire=f["away"] if dom else f["home"],
+                        domicile=dom, bp=bp, bc=bc, res=outcome(bp, bc) if m else None,
+                        feuille=bool(m and (m.get("players") or {}).get(us))))
+    return sorted(out, key=lambda c: c["date"] or "9999")
+
+
 def analyze(today=None, roster=None):
     config = load_config()
     today = today or paris_now().date().isoformat()
@@ -911,6 +952,10 @@ def analyze(today=None, roster=None):
             f["score_home"], f["score_away"] = m["home"]["score"], m["away"]["score"]
     official = read_json(DATA / "official_standings.json", {}) or {}
     roster = roster if roster is not None else load_roster()
+    # les coupes comptent pour les joueurs (statistiques, rotation), pas pour le classement
+    every_match, every_fixture = matches, fixtures
+    matches = [m for m in every_match if not m.get("coupe")]
+    fixtures = [f for f in every_fixture if not f.get("coupe")]
 
     by_poule = defaultdict(list)
     for m in matches:
@@ -922,11 +967,11 @@ def analyze(today=None, roster=None):
     for team, prof in profiles.items():
         plan, why = recommend_plan(prof, profiles)
         prof["plan"], prof["plan_raison"] = plan, why
-    players, club_matches, with_sheet = club_players(matches, config, roster,
+    players, club_matches, with_sheet = club_players(every_match, config, roster,
                                                      history=(seasons[-1].get("matches") or []) if seasons else ())
 
     club_name = next((t for t in profiles if is_club(t, config)), None)
-    upcoming = sorted((f for f in fixtures if f.get("score_home") is None
+    upcoming = sorted((f for f in every_fixture if f.get("score_home") is None
                        and (f.get("date") or "9999") >= today
                        and (is_club(f.get("home"), config) or is_club(f.get("away"), config))),
                       key=lambda f: f.get("date") or "9999")
@@ -936,7 +981,8 @@ def analyze(today=None, roster=None):
         dom = is_club(f.get("home"), config)
         nxt = dict(id=f["id"], date=f.get("date"), provisoire=bool(f.get("date_provisoire")), salle=f.get("salle"),
                    adversaire=f["away"] if dom else f["home"],
-                   domicile=dom, journee=f.get("journee"), poule=f.get("poule"))
+                   domicile=dom, journee=f.get("journee"), poule=f.get("poule"),
+                   coupe=f.get("coupe"), tour=f.get("tour"))
 
     squad = config.get("effectif_feuille", "auto")
     if squad == "auto":
@@ -949,6 +995,9 @@ def analyze(today=None, roster=None):
     saison = (outlook(matches, fixtures, club_name, club_poule, target, known=teams.get(str(club_poule), ()),
                       priors=priors)
               if club_name else None)
+    if saison and saison.get("matchs") is not None:  # les matchs de coupe à venir, à leur date
+        saison["matchs"] = sorted(saison["matchs"] + cup_ahead(every_fixture, config, today, saison["matchs"]),
+                                  key=lambda m: m.get("date") or "9999")
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
@@ -968,6 +1017,7 @@ def analyze(today=None, roster=None):
                                sd=m["home"]["score"], se=m["away"]["score"],
                                feuille=bool((m.get("players") or {}).get("home")))
                           for m in matches), key=lambda r: r["date"] or "", reverse=True),
+        coupes=cup_results(every_match, every_fixture, config),
         a_venir=sorted((dict(poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
                              provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"))
                         for f in fixtures if f.get("score_home") is None),

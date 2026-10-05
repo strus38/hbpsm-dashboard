@@ -265,6 +265,8 @@ def build_match(fx, parsed=None):
         away=dict(name=fx.get("away"), score=fx.get("score_away"), ht=fx.get("ht_away")),
         players={"home": [], "away": []}, events=[],
         source=dict(fdme=False, url=fx.get("url")))
+    if fx.get("coupe"):  # match de coupe : statistiques des joueurs, pas classement
+        match.update(coupe=fx["coupe"], tour=fx.get("tour"))
     if parsed:
         match["players"] = parsed["players"]
         match["events"] = parsed["events"]
