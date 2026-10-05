@@ -358,13 +358,19 @@ def division_label(competition):
     return f"{m.group(1)}{'re' if m.group(1) == '1' else 'e'} division" if m else None
 
 
-def history_profiles(seasons, profiles, matches, config, above=()):
+def history_profiles(seasons, profiles, matches, config, above=(), rosters=None):
     """Ce que la saison passée dit des équipes d'aujourd'hui : bilan et classement, confrontations
     avec le club, part de l'effectif de cette saison déjà là, devenir des meilleurs buteurs, et
     chaque joueur de la saison passée avec ses chiffres et s'il est revu cette saison.
     above : la même saison dans la division du dessus (niveau 1) ; une équipe qui y jouait compte
     plus forte de l'écart de division, d'autant plus qu'elle a gardé ses joueurs.
-    Renvoie aussi, pour la simulation, la force relative de chaque équipe et sa continuité."""
+    rosters : les matchs de cette saison dont les feuilles disent qui joue où (championnat, coupe,
+    poules des adversaires de coupe) ; matches par défaut.
+    Renvoie aussi, pour la simulation, la force relative de chaque équipe et sa continuité : d'après
+    l'équipe où chacun de ses joueurs d'aujourd'hui jouait la saison passée, tous clubs et toutes
+    divisions confondus (une nouvelle équipe, une nouvelle entente réunit des joueurs d'autres
+    clubs : notre division est la plus basse, personne n'en monte), sinon d'après son nom."""
+    rosters = matches if rosters is None else rosters
     priors = {}
     same = lambda a, b: same_team(a, b) or (is_club(a, config) and is_club(b, config))
     gap = 1 + float(config.get("ecart_division", ECART))
@@ -400,7 +406,7 @@ def history_profiles(seasons, profiles, matches, config, above=()):
                          res=outcome(m[side]["score"], m[other(side)]["score"]))
                     for m, side in mine if is_club(m[other(side)]["name"], config) and not is_club(team, config)]
             last = {name_key(pl["name"]) for m, side in mine for pl in (m.get("players") or {}).get(side, [])}
-            now = {name_key(pl["name"]) for m in matches for side in ("home", "away") if m[side]["name"] == team
+            now = {name_key(pl["name"]) for m in rosters for side in ("home", "away") if m[side]["name"] == team
                    for pl in (m.get("players") or {}).get(side, [])}
             scorers = Counter()
             names = {}
@@ -439,6 +445,37 @@ def history_profiles(seasons, profiles, matches, config, above=()):
         w = w if sum(w) else [1] * len(recs)
         priors[team] = (sum(wi * r[2][0] for wi, r in zip(w, recs)) / sum(w),
                         sum(wi * r[2][1] for wi, r in zip(w, recs)) / sum(w), max(r[2][2] for r in recs))
+    # d'où viennent les joueurs de cette saison : l'équipe où chacun a le plus joué la saison passée
+    played_by = defaultdict(Counter)  # joueur -> {(niveau, équipe): matchs}
+    strength, division = {}, {}       # (niveau, équipe) -> (attaque, défense) relatives, écart compris
+    for season, level in levels:
+        played = season.get("matches") or []
+        if not played:
+            continue
+        division[level] = division_label(season.get("competition"))
+        avg = sum(m["home"]["score"] + m["away"]["score"] for m in played) / (2 * len(played))
+        acc = defaultdict(lambda: [0, 0, 0])
+        for m in played:
+            for side, o in (("home", "away"), ("away", "home")):
+                a = acc[m[side]["name"]]
+                a[0], a[1], a[2] = a[0] + m[side]["score"], a[1] + m[o]["score"], a[2] + 1
+                for pl in (m.get("players") or {}).get(side, []):
+                    played_by[name_key(pl["name"])][(level, m[side]["name"])] += 1
+        for t, (bp, bc, j) in acc.items():
+            strength[(level, t)] = (bp / j / avg * gap ** level, bc / j / avg / gap ** level)
+    for team, prof in profiles.items():
+        now = {name_key(pl["name"]) for m in rosters for side in ("home", "away") if m[side]["name"] == team
+               for pl in (m.get("players") or {}).get(side, [])}
+        if not now or not played_by:
+            continue
+        origin = Counter(played_by[k].most_common(1)[0][0] for k in now if played_by.get(k))
+        n = sum(origin.values())
+        prof["origines"] = dict(saison=year, vus=len(now), retrouves=n,
+                                equipes=[dict(equipe=t, niveau=lv, division=division.get(lv), joueurs=c)
+                                         for (lv, t), c in origin.most_common(5)])
+        if n:  # la force des équipes d'où ils viennent, à proportion des joueurs retrouvés
+            priors[team] = (sum(c * strength[o][0] for o, c in origin.items()) / n,
+                            sum(c * strength[o][1] for o, c in origin.items()) / n, n / len(now))
     return priors
 
 
@@ -608,7 +645,7 @@ def player_stats(with_sheet, weight_of):
             rec["w_buts"] += weight * g
             rec["w"] += weight
             rec["diffs"].append(gf - ga)
-            rec["journal"].append(dict(date=m.get("date"), adv=opp, res=outcome(gf, ga),
+            rec["journal"].append(dict(id=str(m.get("id")), date=m.get("date"), adv=opp, res=outcome(gf, ga),
                                        score=f"{gf}-{ga}", buts=g, tirs=p.get("shots"),
                                        jaunes=p.get("yellow") or 0,
                                        deux_min=p.get("two_min") or 0,
@@ -1091,7 +1128,7 @@ def analyze(today=None, roster=None):
     for team in rivals:
         if levels.get(team):
             profiles[team]["niveau"] = levels[team]
-    priors = history_profiles(seasons, profiles, matches, config, above)
+    priors = history_profiles(seasons, profiles, matches, config, above, rosters=every_match + outside)
     for team, prof in profiles.items():
         plan, why = recommend_plan(prof, league_profiles)
         prof["plan"], prof["plan_raison"] = plan, why
@@ -1153,6 +1190,11 @@ def analyze(today=None, roster=None):
                                feuille=bool((m.get("players") or {}).get("home")))
                           for m in matches), key=lambda r: r["date"] or "", reverse=True),
         coupes=cup_results(every_match, every_fixture, config),
+        # les deux derniers matchs du club dont la feuille est lue : la planification les montre
+        # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
+        derniers=[dict(id=str(m.get("id")), date=m.get("date"), adversaire=opp, domicile=side == "home",
+                       bp=gf, bc=ga, res=outcome(gf, ga), journee=m.get("journee"), coupe=m.get("coupe"),
+                       tour=m.get("tour")) for m, side, opp, gf, ga in with_sheet[-2:]],
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],

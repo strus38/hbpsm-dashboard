@@ -166,6 +166,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   jouait en 1re division en 2025-2026 (12e sur 12) ; Meylan 2, Drac Isère 2, Sablons, Nord Drôme 2,
   Chirens-Coublevie et Nord Drôme (coupe, en 1re division cette saison) n'étaient ni en 1re ni en
   2e division ; le club Drac Isère avait son équipe 1 en 1re division, pas son équipe 2.
+- Origine des joueurs (demande de l'auteur, 05/10/2026 : notre division est la plus basse, une
+  équipe absente la saison passée est une nouvelle équipe ou entente, ses joueurs viennent d'autres
+  clubs) : `history_profiles` cherche chaque joueur de cette saison (feuilles de championnat, de
+  coupe et des poules des adversaires de coupe, `rosters`) dans toutes les feuilles de la saison
+  passée lues, tous clubs et divisions ; force de départ = celle des équipes d'où ils viennent
+  (écart de division compris), continuité = part retrouvée ; `origines` (vus, retrouves, equipes),
+  aussi dans le résumé public (noms d'équipes et nombres seulement). Limite : seules les poules où
+  jouaient nos équipes d'aujourd'hui sont lues.
+- Planification : les deux derniers matchs du club dont la feuille est lue (`derniers`, `journal.id`
+  des joueurs) en colonnes grisées avant les 4 à venir (✓ et buts, ou arrêts pour un gardien).
 - Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
   config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
   (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du

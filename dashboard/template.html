@@ -199,6 +199,15 @@ nav.tabs[hidden]{display:none}
 .plan .h b{color:var(--heading);font-size:.84rem}
 .plan .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plan .who b{color:var(--link);display:inline-block;min-width:20px}
+.plan.pp1{grid-template-columns:minmax(190px,1.6fr) minmax(64px,.6fr) repeat(var(--n),minmax(92px,1fr)) 46px}
+.plan.pp2{grid-template-columns:minmax(190px,1.6fr) repeat(2,minmax(64px,.6fr)) repeat(var(--n),minmax(92px,1fr)) 46px}
+.plan .past,.plan .pc{background:color-mix(in srgb,var(--structure-500) 6%,transparent)}
+.plan .pc{display:flex;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-weight:600}
+.plan .pc.on{color:var(--structure-700)}
+.plan .pc small{font-size:.7rem;color:var(--muted);font-weight:500}
+.plan .pc.foot{flex-direction:column;font-size:.74rem}
+.plan .past+.h:not(.past),.plan .pc+div:not(.pc){box-shadow:inset 2px 0 0 var(--rule)}
+.tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
 .cell:hover{border-color:var(--track)}
@@ -396,6 +405,10 @@ body:not(.lecture) .lecture-only{display:none!important}
   .hero-row{grid-template-columns:auto 1fr;gap:10px}
   .hero-row .kpis{grid-template-columns:1fr}
   .plan.single{grid-template-columns:minmax(0,1.3fr) minmax(124px,1fr) 34px}
+  .plan.single.pp1{grid-template-columns:minmax(0,1.2fr) 36px minmax(112px,1fr) 30px}
+  .plan.single.pp2{grid-template-columns:minmax(0,1.2fr) 36px 36px minmax(104px,1fr) 30px}
+  .plan.single .pc small,.plan.single .tag.done{display:none}
+  .plan.single.pp1 .cell.wide,.plan.single.pp2 .cell.wide{min-width:0;width:calc(100% - 4px);padding:0 6px}
   .plan.single .h{font-size:.74rem}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .prop{grid-template-columns:28px 1fr}.prop-btn{grid-column:2}
@@ -944,7 +957,16 @@ function viewPlanif(){
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
-  h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
+  // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
+  const done = D.derniers || [], jr = (p, x) => (p.journal || []).find(j => j.id === x.id);
+  const pastCell = (p, x) => { const j = jr(p, x);
+    if(!j) return '<div class="pc" title="'+esc(p.nom)+' : pas sur la feuille contre '+esc(x.adversaire)+'">·</div>';
+    const what = isGK(p) ? j.arrets+' arrêt'+(j.arrets > 1 ? "s" : "") : j.buts+' but'+(j.buts > 1 ? "s" : "");
+    return '<div class="pc on" title="'+esc(p.nom)+' : sur la feuille contre '+esc(x.adversaire)+', '+what+'">✓<small>'+(isGK(p) ? j.arrets : j.buts || "")+'</small></div>'; };
+  h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+(done.length ? " pp"+done.length : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
+    + done.map(x => '<div class="h past" title="Joué : '+esc(x.adversaire)+'"><div class="c"><span class="tag done">joué</span><br>'+logo(x.adversaire)
+      + '<br><span class="tl"><b>'+esc(teamShort(x.adversaire))+'</b><br>'+esc(roundShort(x))+' · '+esc(fmtDate((x.date || "").slice(0, 10)))+'<br></span>'
+      + '<span class="ts">'+esc(roundShort(x))+'<br></span><span class="form"><i class="'+x.res+'">'+x.res+'</i></span> <span class="tl">'+x.bp+'-'+x.bc+'</span></div></div>').join("")
     + cols.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c">'+logo(r.m.adversaire, "md")+'<b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
@@ -960,6 +982,7 @@ function viewPlanif(){
         + '<span class="tl">'+esc(p.nom)+'</span><span class="ts">'+esc(playerShort(p.nom))+'</span>'
         + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
         + (depOf(p) ? ' <small class="dep tl" title="Joue seulement s\'il manque des joueurs ; hors rotation">dépannage</small>' : '')+'</div>';
+      h += done.map(x => pastCell(p, x)).join("");
       for(const r of cols){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -982,10 +1005,11 @@ function viewPlanif(){
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
-  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + cols.map(r => '<div class="h small"><div class="c">'
+  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + done.map(() => '<div class="pc"></div>').join("") + cols.map(r => '<div class="h small"><div class="c">'
       + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus"><span class="tl">'+esc(c.nom)+'</span><span class="ts">'+esc(c.nom.slice(0, 3).toUpperCase())+'</span> '+c.n+'/'+c.min+'</span>').join(" ")
       + '</div></div>').join("") + '<div></div>';
   h += '<div class="who muted small footlab"><span class="tl">Avec ces choix</span><span class="ts">force<br>victoire<br>risque</span></div>'
+    + done.map(x => '<div class="pc foot"><span class="form"><i class="'+x.res+'">'+x.res+'</i></span><br><small>'+x.bp+'-'+x.bc+'</small></div>').join("")
     + cols.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
@@ -1156,13 +1180,23 @@ function common(adv){
 // un joueur de cette saison vu la saison passée : ses chiffres d'alors, sinon « pas là »
 const avant = (e, a, txt) => !e.passe || !e.passe.feuilles ? ""
   : '<br><span class="why prev">'+(a ? '<b>Déjà là en '+esc(e.passe.saison)+'</b> : '+txt(a) : 'Pas là en '+esc(e.passe.saison))+'</span>';
+// d'où viennent ses joueurs : l'équipe de chacun la saison passée, tous clubs et divisions confondus
+function origins(e){
+  const o = e.origines;
+  if(!o || !o.vus) return "";
+  if(!o.retrouves) return '<p class="small muted">Aucun de leurs '+o.vus+' joueurs vus cette saison n\'apparaît sur les feuilles '+esc(o.saison || "de la saison passée")+' que nous avons lues : ils jouaient sans doute dans d\'autres poules ou divisions.</p>';
+  const where = o.equipes.map(t => t.joueurs+' avec '+esc(teamShort(t.equipe))+(t.division ? ' ('+esc(t.division)+')' : '')).join(", ");
+  return '<p><b>Leurs joueurs en '+esc(o.saison)+'</b> : '+o.retrouves+' de leurs '+o.vus+' joueurs retrouvés, '+where+'. Leur force de départ en tient compte'+(o.retrouves < o.vus ? ', pour la part retrouvée' : '')+'.</p>';
+}
 function pastBlock(e){   // ce que la saison passée dit de cet adversaire
   const x = e.passe;
-  if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
+  if(!x) return '<h2>Saison passée</h2><div class="panel">'+(e.origines && e.origines.vus ? '<p class="small muted">Pas d\'équipe sous ce nom la saison passée : nouvelle équipe ou nouvelle entente.</p>'+origins(e)
+    : '<p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas d'équipe sous ce nom la saison passée (nouvelle équipe ou nouvelle entente) ; leurs joueurs seront recherchés dès leur première feuille de match." : "Saison passée pas encore collectée.")+'</p>')+'</div>';
   const rangs = x.rangs.map(r => ord(r.rang)+" de la poule "+esc(r.poule)+" ("+r.equipes+" équipes)").join(", ");
   const div = y => y.division || "division du dessus", haut = y => y.niveau > 0 ? " en "+esc(div(y))+" (au-dessus de la nôtre)" : "";
   let h = '<h2>Saison '+esc(x.saison)+haut(x)+'</h2><div class="panel">'
     + (x.niveau > 0 ? '<p class="note">Une division au-dessus la saison passée : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus, d\'autant plus qu\'elle a gardé ses joueurs'+(x.continuite ? ' ('+x.continuite.deja+' sur '+x.continuite.sur+')' : '')+'. Niveau potentiellement supérieur au nôtre.</p>' : '')
+    + origins(e)
     + (e.dessus ? '<p class="note">Le club jouait aussi en '+esc(div(e.dessus))+' : '+e.dessus.v+'-'+e.dessus.n+'-'+e.dessus.d+', '
       + e.dessus.rangs.map(r => ord(r.rang)+" sur "+r.equipes).join(", ")
       + (e.dessus.continuite ? ' ; '+e.dessus.continuite.deja+' de leurs '+e.dessus.continuite.sur+' joueurs de cette saison y jouaient' : ' ; part de ses joueurs encore là : à voir sur leurs feuilles')

@@ -354,6 +354,10 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # la page s'ouvre sur la planification
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        # les deux derniers matchs joués, avant les quatre à venir : qui était sur la feuille
+        assert page.evaluate("D.derniers.length") == 2 and page.locator(".plan .h.past").count() == 2
+        on = page.evaluate("D.derniers.reduce((a, x) => a + D.joueurs.filter(p => (p.journal || []).some(j => j.id === x.id)).length, 0)")
+        assert on > 0 and page.locator(".plan .pc.on").count() == on
         page.click("nav.tabs button[data-tab=semaine]")
         assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
@@ -963,10 +967,15 @@ def test_division_du_dessus():
     above = dict(saison="2025-2026", niveau=1, competition="https://exemple/1ere-division-masculine-2/", poules={},
                  matches=[game("CLUB DELTA", "CLUB ECHO", pl("Zéphyrin Alpha", "Onésime Beta"), pl("Hilarion Gamma")),
                           game("CLUB ECHO", "CLUB DELTA", pl("Hilarion Gamma"), pl("Zéphyrin Alpha", "Onésime Beta"))])
-    # cette saison, Delta a gardé ses deux joueurs ; Echo, sans feuille, a joué dans les deux divisions
-    now = [game("CLUB DELTA", "CLUB BRAVO", pl("Zéphyrin Alpha", "Onésime Beta"), pl("Eudes Gamma"))]
-    profiles = {t: {} for t in ("CLUB BRAVO", "CLUB DELTA", "CLUB ECHO")}
+    # cette saison, Delta a gardé ses deux joueurs ; Echo, sans feuille, a joué dans les deux divisions ;
+    # Foxtrot, nouvelle entente, réunit un joueur d'Echo et un inconnu
+    now = [game("CLUB DELTA", "CLUB BRAVO", pl("Zéphyrin Alpha", "Onésime Beta"), pl("Eudes Gamma")),
+           game("CLUB FOXTROT", "CLUB BRAVO", pl("Hilarion Gamma", "Aristide Beta"))]
+    profiles = {t: {} for t in ("CLUB BRAVO", "CLUB DELTA", "CLUB ECHO", "CLUB FOXTROT")}
     priors = an.history_profiles([ours], profiles, now, config, [above])
+    assert profiles["CLUB FOXTROT"]["passe"] is None and priors["CLUB FOXTROT"] == pytest.approx((1.12, 1 / 1.12, 0.5))
+    assert profiles["CLUB FOXTROT"]["origines"] == dict(saison="2025-2026", vus=2, retrouves=1, equipes=[
+        dict(equipe="CLUB ECHO", niveau=1, division="1re division", joueurs=1)])
     assert priors["CLUB BRAVO"] == (1.0, 1.0, 0.5) and profiles["CLUB BRAVO"]["dessus"] is None
     assert priors["CLUB DELTA"] == pytest.approx((1.12, 1 / 1.12, 1.0))
     delta = profiles["CLUB DELTA"]["passe"]

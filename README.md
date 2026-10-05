@@ -305,6 +305,13 @@ confondue avec son équipe 1. De même, un adversaire de coupe qui joue cette sa
 division du dessus (`voisines`, `niveau: 1`) reçoit une victoire estimée qui tient compte de
 l'écart. Adversaires le signale : « niveau potentiellement supérieur au nôtre ».
 
+Notre division est la plus basse : une équipe absente la saison passée est une nouvelle équipe
+ou une nouvelle entente. Ses joueurs sont donc cherchés un par un sur toutes les feuilles de la
+saison passée déjà lues, quel que soit leur club : sa force de départ est celle des équipes d'où
+ils viennent, à proportion des joueurs retrouvés (Adversaires : « Leurs joueurs en 2025-2026 :
+6 de leurs 11 joueurs retrouvés, 6 avec … »). Cela vaut pour toutes les équipes : un club qui a
+gardé ses joueurs retrouve son propre bilan.
+
 ## Lien avec l'application de préparation des entraînements
 
 Le fichier chiffré contient une séance au format d'échange `.hbt.json` de HANDBALL-training :

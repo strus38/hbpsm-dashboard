@@ -132,6 +132,10 @@ def team_public(e):
         {k: x.get(k) for k in ("saison", "niveau", "division", "j", "v", "n", "d", "bp_moy", "bc_moy", "rangs",
                                "face_a_face", "continuite", "feuilles")},
         buteurs=[{k: b.get(k) for k in ("num", "buts", "present")} for b in x.get("buteurs") or []])
+    o = e.get("origines")
+    out["origines"] = None if not o else dict({k: o.get(k) for k in ("saison", "vus", "retrouves")},
+                                              equipes=[{k: t.get(k) for k in ("equipe", "niveau", "division", "joueurs")}
+                                                       for t in o.get("equipes") or []])
     y = e.get("dessus")
     out["dessus"] = None if not y else {k: y.get(k) for k in ("saison", "niveau", "division", "j", "v", "n", "d",
                                                               "bp_moy", "bc_moy", "rangs", "continuite")}
