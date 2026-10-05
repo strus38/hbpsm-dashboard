@@ -471,6 +471,32 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert choix.main() == 0 and (out / "choix.enc").exists()
         assert page.evaluate("fetchChoices().then(c => { render(true); return c; })")
         assert page.evaluate("planning()[0].etat") == "publiee" and page.evaluate("planning()[1].etat") == "suggestion"
+
+        def wait_sent(n):
+            for _ in range(200):
+                if len(sent) >= n:
+                    return
+                page.wait_for_timeout(100)
+            raise AssertionError("rien envoyé à GitHub")
+
+        def publish_last():   # ce que fait le workflow, puis la page relit les choix
+            monkeypatch.setenv("HBPSM_CHOIX", sent[-1]["body"]["inputs"]["choix"])
+            assert choix.main() == 0
+            page.evaluate("fetchChoices().then(() => render(true))")
+            return choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)
+
+        # retirer la validation : elle quitte ce qui est publié, le match redevient une suggestion
+        page.once("dialog", lambda d: d.accept())
+        page.locator("[data-retirer]").first.click()
+        wait_sent(2)
+        assert page.evaluate("planning()[0].etat") == "retrait"
+        assert first not in publish_last()["matchs"]
+        assert page.evaluate("planning()[0].etat") == "suggestion" and page.evaluate("Object.keys(S.retire)") == []
+        # puis la revalider : de nouveau le choix de l'entraîneur
+        page.locator("[data-valider]").first.click()
+        wait_sent(3)
+        chosen = publish_last()
+        assert page.evaluate("planning()[0].etat") == "publiee"
         server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
         server.server_close()
         page.reload()

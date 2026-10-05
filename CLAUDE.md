@@ -127,7 +127,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   forme, taille) et écrit `publie/choix.enc` ; les pages le relisent (`fetchChoices`). Visiteur :
   « Choix de l'entraîneur » ou « Suggestion » (pointillés). Une feuille validée est figée et sort
   de la rotation ; la retoucher la repasse « modifiée » (`S.valide[id] = null`). États :
-  suggestion, choix, publiee, attente, modifiee, a_revoir.
+  suggestion, choix, publiee, attente, modifiee, a_revoir, retrait. « Retirer la validation »
+  (`withdraw`, `S.retire` jusqu'à ce que le retrait soit en ligne) republie sans ce match.
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris
   exacts) ; PROTOCOLECOMMOTION, COMMOTION et TEMPSDEREGULATIONCOMPORTEMENTAL sont ignorés

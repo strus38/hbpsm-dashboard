@@ -123,7 +123,8 @@ Tant que l'entraîneur n'a pas validé un match, tout le monde voit sur la page 
 « Valider la feuille » (planification, semaine ou convocation) fige la feuille de ce match et
 la publie : chacun voit alors « Choix de l'entraîneur, validé le… », et cette feuille sort de la
 rotation automatique. Retoucher une feuille validée la repasse à valider ; les joueurs voient
-la version publiée jusqu'à la nouvelle validation.
+la version publiée jusqu'à la nouvelle validation. « Retirer la validation » la retire aussi de
+ce qui est publié : chacun revoit une suggestion pour ce match.
 
 La page de l'entraîneur chiffre les feuilles validées avec la phrase du club et lance le
 workflow « Choix de l'entraîneur » (`.github/workflows/choix.yml`). Il vérifie qu'elles sont

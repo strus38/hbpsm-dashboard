@@ -194,6 +194,7 @@ nav.tabs[hidden]{display:none}
 .cell.i{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .cell.a{border-color:transparent;background:color-mix(in srgb,var(--loss) 14%,transparent);color:var(--loss)}
 .cell.rest{border-style:dashed;border-color:var(--track);color:var(--track);background:transparent}
+.plan .h.foot{align-self:start}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
 .plan .pst{font-size:.7rem;color:var(--muted)}
@@ -348,7 +349,7 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, depannage:{}, valide:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
+let S = {postes:{}, absents:{}, depannage:{}, valide:{}, retire:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 // avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
@@ -471,7 +472,8 @@ const ruleOf = n => Math.min(Number(S.regle) || 0, n);
 // celle qu'il a publiée ; les autres voient la publiée. Elle reste telle quelle, hors rotation.
 const byCle = k => D.joueurs.find(p => p.cle === k);
 const pubOf = m => (CHOIX && CHOIX.matchs && CHOIX.matchs[m.id]) || null;
-const fixedOf = m => COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+const retiredOf = m => COACH && S.retire && S.retire[m.id];   // retirée ici, retrait pas encore en ligne
+const fixedOf = m => retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
 // En dépannage (effectif ou fiche du joueur) : retenu seulement s'il manque des joueurs ou un poste
 // clef, et jamais compté dans la rotation.
 const depOf = p => (S.depannage || {})[p.cle] ?? !!p.depannage;
@@ -583,6 +585,7 @@ function planning(){
     const pub = pubOf(m), local = COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : undefined;
     const keyset = c => c ? c.joueurs.slice().sort().join("|") : null, mine = keyset({joueurs: sel.map(p => p.cle)});
     const etat = !COACH ? (pub ? "choix" : "suggestion")
+      : retiredOf(m) ? (pub ? "retrait" : "suggestion")
       : local === null ? (pub ? "modifiee" : "suggestion")
       : !(local || pub) ? "suggestion"
       : broken.length ? "a_revoir"
@@ -601,9 +604,11 @@ const ETAT = {
   publiee: ["ok", "Validée", "Validée et visible par les joueurs comme votre choix"],
   attente: ["mid", "Validée · à publier", "Validée sur cet ordinateur, pas encore visible par les joueurs"],
   modifiee: ["mid", "Modifiée", "Retouchée depuis la validation : les joueurs voient encore la feuille publiée"],
-  a_revoir: ["hi", "À revoir", "Un joueur de la feuille validée est maintenant absent"]};
+  a_revoir: ["hi", "À revoir", "Un joueur de la feuille validée est maintenant absent"],
+  retrait: ["mid", "Retrait à publier", "Validation retirée sur cet ordinateur : les joueurs voient encore la feuille publiée"]};
 const dayShort = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("fr-FR", {day:"numeric", month:"short"}); };
-const ETAT_COURT = {suggestion:"Sugg.", choix:"Choix", publiee:"Validée", attente:"À publier", modifiee:"Modifiée", a_revoir:"À revoir"};
+const ETAT_COURT = {suggestion:"Sugg.", choix:"Choix", publiee:"Validée", attente:"À publier", modifiee:"Modifiée", a_revoir:"À revoir", retrait:"Retrait"};
+const PENDING = ["attente", "retrait"];   // ce que les joueurs ne voient pas encore
 const etatTag = (r, compact) => { const [c, t, why] = ETAT[r.etat] || ETAT.suggestion;
   const date = ["choix","publiee"].includes(r.etat) && r.valideLe ? " le "+esc(dayShort(r.valideLe)) : "";
   return '<span class="feuille '+c+'" title="'+esc(why)+'">'+(compact ? '<span class="tl">'+t+date+'</span><span class="ts">'+ETAT_COURT[r.etat]+'</span>' : t+date)+'</span>'; };
@@ -612,21 +617,26 @@ const PUB_TXT = {envoi:"Publication…", envoyee:"Envoyée : les joueurs la verr
   erreur:"Publication impossible pour l'instant (connexion ?) : réessayez.", jeton:"Collez d'abord le jeton de publication."};
 function validCtl(r, compact){   // l'entraîneur valide (et publie) la feuille d'un match
   if(!COACH || r.etat === "publiee") return "";
-  if(r.etat === "attente") return '<button class="link" data-publier="1">'+(PUB === "envoi" ? "publication…" : "publier")+'</button>';
+  if(PENDING.includes(r.etat)) return '<button class="link" data-publier="1">'+(PUB === "envoi" ? "publication…" : "publier")+'</button>';
   const word = r.etat === "suggestion" ? "Valider" : "Revalider";
   return '<button class="'+(compact ? "link" : "btn")+' valider" data-valider="'+esc(r.m.id)+'">'
     + (compact ? '<span class="tl">'+word+' la feuille</span><span class="ts">'+word+'</span>' : word+' la feuille')+'</button>';
 }
 function jetonBox(){   // la première fois, le jeton de publication ; ensuite, où en est la publication
   if(!COACH) return "";
-  const need = PUB === "jeton" || PUB === "refuse" || (!stored(TOKEN) && PLAN.some(r => r.etat === "attente"));
+  const need = PUB === "jeton" || PUB === "refuse" || (!stored(TOKEN) && PLAN.some(r => PENDING.includes(r.etat)));
   if(!need) return PUB && PUB !== "envoi" ? '<p class="note">'+esc(PUB_TXT[PUB] || "")+'</p>' : "";
   return '<div class="panel jeton noprint"><p><b>Publier vos feuilles pour les joueurs.</b> '
     + (PUB === "refuse" ? esc(PUB_TXT.refuse) : "Collez le jeton de publication donné par le club : une fois sur cet ordinateur, il y reste.")+'</p>'
     + '<div class="edit"><input id="jeton" type="password" autocomplete="off" aria-label="Jeton de publication"><button class="btn" data-jeton="1">Enregistrer et publier</button></div></div>';
 }
+function retireCtl(r, compact){   // retirer une validation : les joueurs reverront une suggestion
+  if(!COACH || !["publiee", "attente", "modifiee", "a_revoir"].includes(r.etat)) return "";
+  return '<button class="link retirer" data-retirer="'+esc(r.m.id)+'">'
+    + (compact ? '<span class="tl">Retirer la validation</span><span class="ts">Retirer</span>' : 'Retirer la validation')+'</button>';
+}
 const squadTitle = r => ["choix","publiee"].includes(r.etat) ? "Les 12 choisis par l'entraîneur" : COACH ? "Les 12 pour ce match" : "Suggestion : 12 joueurs proposés";
-const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+'</p>';
+const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+retireCtl(r)+'</p>';
 // le risque en un mot, pour les colonnes étroites du téléphone
 const riskShort = r => '<span class="risk '+r.level+'" title="'+esc(!r.ok ? "feuille incomplète" : !r.postesOk ? "poste clef non couvert" : RISK[r.level])+'">'
   + (!r.ok ? "incompl." : !r.postesOk ? "poste" : {ok:"faible", mid:"modéré", hi:"élevé"}[r.level])+'</span>';
@@ -760,7 +770,7 @@ function viewPlanif(){
   h += '<div class="who muted small footlab"><span class="tl">Avec ces choix</span><span class="ts">force<br>victoire<br>risque</span></div>'
     + P.map(r => '<div class="h foot"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
-    + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? '<br>'+validCtl(r, true) : '')
+    + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div>').join("") + '<div></div></div></div>';
   h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
@@ -1115,7 +1125,8 @@ document.addEventListener("click", ev => {
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
-                      || t.dataset.valider || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
+                      || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
+  else if(t.dataset.retirer){ withdraw(t.dataset.retirer); }
   else if(t.dataset.valider){ validate(t.dataset.valider); }
   else if(t.dataset.publier){ publishChoices(); }
   else if(t.dataset.jeton){ const v = (document.getElementById("jeton").value || "").trim(); if(v){ try { localStorage.setItem(TOKEN, v); } catch (e) {} publishChoices(); } }
@@ -1177,22 +1188,38 @@ async function fetchChoices(){   // vrai si les choix publiés ont changé
   let env = null;
   try {
     const r = await fetch(CFG.choix + "?t=" + Date.now(), {cache:"no-store"});
-    if(r.status === 404){ const had = !!CHOIX; CHOIX = null; CHOIX_SIG = null; return had; }   // rien de validé encore
+    if(r.status === 404){ const had = !!CHOIX; CHOIX = null; CHOIX_SIG = null; forgetWithdrawn(); return had; }   // rien de validé encore
     if(r.ok) env = await r.json();
   } catch (e) {}
   if(!env){ try { env = JSON.parse(stored(CHOIX_KEY) || "null"); } catch (e) {} }   // hors connexion : la dernière copie
   if(!env || env.donnees === CHOIX_SIG) return false;
   try { CHOIX = await openVault(env, phrase); CHOIX_SIG = env.donnees; } catch (e) { return false; }
+  forgetWithdrawn();
   try { localStorage.setItem(CHOIX_KEY, JSON.stringify(env)); } catch (e) {}
   return true;
+}
+function forgetWithdrawn(){   // un retrait désormais en ligne n'a plus à être retenu ici
+  if(!S.retire) return;
+  for(const id of Object.keys(S.retire)) if(!(CHOIX && CHOIX.matchs && CHOIX.matchs[id])) delete S.retire[id];
+  save();
 }
 function validate(id){   // la feuille du moment devient le choix de l'entraîneur, puis part aux joueurs
   const r = PLAN.find(x => String(x.m.id) === String(id));
   if(!r) return;
   S.valide = S.valide || {};
   S.valide[r.m.id] = {joueurs: r.sel.map(p => p.cle), le: new Date().toISOString(), journee: r.m.journee ?? null};
+  if(S.retire) delete S.retire[r.m.id];
   save(); render(true);
   publishChoices();
+}
+function withdraw(id){   // publiée : on la retire aussi pour les joueurs ; sinon, seulement ici
+  const r = PLAN.find(x => String(x.m.id) === String(id));
+  if(!r || !confirm("Retirer la validation de la feuille J" + (r.m.journee ?? "?") + " ? Les joueurs reverront une suggestion.")) return;
+  if(S.valide) delete S.valide[r.m.id];
+  const published = !!pubOf(r.m);
+  if(published){ S.retire = S.retire || {}; S.retire[r.m.id] = new Date().toISOString(); }
+  save(); render(true);
+  if(published) publishChoices();
 }
 async function publishChoices(){
   if(!COACH) return;
@@ -1201,7 +1228,7 @@ async function publishChoices(){
   if(!CFG.depot || !phrase){ PUB = "erreur"; render(true); return; }
   // ce qui est déjà publié (un autre ordinateur a pu valider d'autres matchs), puis les validations d'ici
   const ids = new Set(PLAN.map(r => String(r.m.id))), matchs = {};
-  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id)) matchs[id] = c;
+  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = c;
   for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
   PUB = "envoi"; render(true);
   try {
@@ -1220,7 +1247,7 @@ function watchChoices(){   // la mise en ligne prend une minute ou deux : un cou
   PUB_POLL = setInterval(async () => {
     n++;
     if(await fetchChoices()){ render(true); }
-    if(!PLAN.some(r => r.etat === "attente")){ PUB = ""; render(true); clearInterval(PUB_POLL); }
+    if(!PLAN.some(r => PENDING.includes(r.etat))){ PUB = ""; render(true); clearInterval(PUB_POLL); }
     else if(n >= 16) clearInterval(PUB_POLL);
   }, 15000);
 }
