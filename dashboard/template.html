@@ -210,6 +210,7 @@ nav.tabs[hidden]{display:none}
 .cell.hurt{background:color-mix(in srgb,var(--loss) 14%,var(--surface));color:var(--loss);border-color:color-mix(in srgb,var(--loss) 45%,transparent)}
 .injury-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 button.risk{border:0;font:inherit;cursor:help;line-height:inherit}
+.theme-btn{display:none}
 .tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
@@ -407,6 +408,10 @@ body:not(.lecture) .lecture-only{display:none!important}
   .mc-name{font-size:1rem}
   .hero-row{grid-template-columns:auto 1fr;gap:10px}
   .hero-row .kpis{grid-template-columns:1fr}
+  header.club{display:flex;align-items:center;gap:8px}
+  header.club>div{flex:1;min-width:0;margin:0}
+  .theme-btn{display:inline-grid;place-items:center;margin-left:auto;align-self:center;width:36px;height:36px;flex-shrink:0;border-radius:50%;
+    border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:1.05rem;cursor:pointer}
   .plan.single{grid-template-columns:minmax(0,1.3fr) minmax(124px,1fr) 34px}
   .plan.single.pp1{grid-template-columns:minmax(0,1.2fr) 36px minmax(112px,1fr) 30px}
   .plan.single.pp2{grid-template-columns:minmax(0,1.2fr) 36px 36px minmax(104px,1fr) 30px}
@@ -454,7 +459,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </style>
 </head>
 <body>
-<header class="club"><div><img id="club-logo" alt="" hidden><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-mode" class="mode"></span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
+<header class="club"><div><img id="club-logo" alt="" hidden><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-mode" class="mode"></span><span id="club-etat" class="etat" aria-live="polite"></span></div><button type="button" id="theme-btn" class="theme-btn" aria-pressed="false" title="Mode clair">☀️</button></header>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
   <button role="tab" data-tab="planif" aria-selected="true"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 13h2M14 13h2M8 17h2M14 17h2"/></svg><span class="tl">Planification</span><span class="ts">Planif.</span></button>
   <button role="tab" data-tab="semaine" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Semaine</span></button>
@@ -2085,7 +2090,22 @@ setInterval(check, VERIF);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - (CHECKED || 0) > 60000) check(); });
 window.addEventListener("online", check);
 // passage téléphone / grand écran : la planification change de disposition
-if(window.matchMedia) matchMedia("(max-width:560px)").addEventListener("change", () => { if(typeof D !== "undefined" && D && D.meta) render(true); });
+// téléphone : un mode clair au choix (par défaut, la page suit le téléphone, comme avant) ; rangé sur
+// ce téléphone seulement ; la version PC ne change pas
+const THEME = "hbpsm:theme";
+function applyTheme(){
+  const narrow = window.matchMedia && matchMedia("(max-width:560px)").matches;
+  const light = narrow && stored(THEME) === "clair", root = document.documentElement, btn = document.getElementById("theme-btn");
+  if(light){ root.dataset.theme = "light"; root.style.colorScheme = "light"; }
+  else { delete root.dataset.theme; root.style.colorScheme = ""; }
+  if(btn){ btn.setAttribute("aria-pressed", String(light)); btn.textContent = light ? "🌓" : "☀️"; btn.title = light ? "Revenir au réglage du téléphone" : "Mode clair"; }
+}
+document.getElementById("theme-btn").addEventListener("click", () => {
+  try { stored(THEME) === "clair" ? localStorage.removeItem(THEME) : localStorage.setItem(THEME, "clair"); } catch (e) {}
+  applyTheme();
+});
+applyTheme();
+if(window.matchMedia) matchMedia("(max-width:560px)").addEventListener("change", () => { applyTheme(); if(typeof D !== "undefined" && D && D.meta) render(true); });
 async function start(phrase){
   if(!window.crypto || !window.crypto.subtle){ gate("Ce navigateur ne sait pas déchiffrer les données. Essaie avec Chrome, Edge ou Firefox récents."); return; }
   if(!phrase){ gate(""); return; }

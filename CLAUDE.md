@@ -261,6 +261,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   tableaux masquées (`.opt`), planification un match à la fois (pastilles du haut, `S.pm`) à
   colonne des noms fixe, mode « explique » (`S.tap`) qui montre la raison d'une case au doigt,
   faute de survol. Le test Chrome vérifie l'absence de débordement à 360 px.
+- Mode clair sur téléphone (demande de l'auteur, 05/10/2026) : bouton ☀️ dans le bandeau, visible sous
+  560 px seulement ; par défaut la page suit le réglage du téléphone (comme avant) ; « clair » force
+  `data-theme="light"` (rangé dans `localStorage` « hbpsm:theme », ce téléphone seulement) ; le PC ne
+  change pas (`applyTheme` ne force rien au-delà de 560 px).
 - Rendu plus graphique (demande de l'auteur, 05/10/2026) : logos des clubs pris sur le site de la
   fédération (`structureNLogo` de la rencontre, quand `equipeNShowLogo` vaut 1 ; `D.logos`,
   `analyze.team_logos`, adresse `media-logos-clubs.ffhandball.fr/128/<fichier>.webp`), initiales

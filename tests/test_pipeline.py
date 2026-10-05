@@ -467,6 +467,13 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
                        "maps": "https://www.google.com/maps/search/?api=1&query=GYMNASE%20DU%20PARC%2C%201%20RUE%20DU%20STADE%2C%2038000%20VILLE"}
         # téléphone : aucun onglet ne déborde ; « explique » montre la raison d'une case sans la changer
         page.set_viewport_size({"width": 360, "height": 780})
+        # téléphone : un mode clair au choix (par défaut, la page suit le téléphone) ; rien sur PC
+        page.wait_for_timeout(200)
+        assert page.locator("#theme-btn").is_visible() and page.evaluate("document.documentElement.dataset.theme") is None
+        page.click("#theme-btn")
+        assert page.evaluate("document.documentElement.dataset.theme") == "light"
+        page.click("#theme-btn")
+        assert page.evaluate("document.documentElement.dataset.theme") is None
         for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
             page.evaluate("t => { S.tab = t; render(false); }", tab)
             assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0, tab
@@ -489,6 +496,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.evaluate("getComputedStyle(document.querySelector('nav.tabs')).position") == "fixed"
         page.set_viewport_size({"width": 1100, "height": 900})
         page.wait_for_function("document.querySelectorAll('.plan .h.foot').length > 1", timeout=3000)
+        assert not page.locator("#theme-btn").is_visible()
         assert page.locator(".plan .h.foot").count() == n and page.locator("button.pm").count() == 0
         page.evaluate("S.pm = 0; save()")
         # un match de coupe dans la planification : nommé comme tel, la rotation y passe d'abord
