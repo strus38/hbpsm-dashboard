@@ -140,7 +140,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   sort celui qui a le plus joué sur la période, poste pour poste si possible, sans découvrir un
   poste clef (`postes_clefs` dans config.yml, choix de l'auteur : 2 pivots, 4 arrières ARG/DC/ARD ;
   l'effectif n'a aucun ARD déclaré ; 2e poste facultatif dans la fiche joueur). Fiabilité de chaque note (`analyze.reliability`,
-  `FIABLE`) affichée en points ; avec 1 feuille au 05/10/2026, les choix restent des tendances. Gymnase des 4 prochains
+  `FIABLE`) affichée en points ; avec 1 feuille au 05/10/2026, les choix restent des tendances.
+  Notes ramenées vers la moyenne du groupe (`analyze.shrink_notes`, `PRUDENCE` = 2 matchs moyens,
+  demande de l'auteur) ; `scores_bruts` garde la note d'avant. Conséquence assumée : un joueur
+  peu vu remonte vers la moyenne, devant un joueur souvent vu mais en dessous ; les joueurs
+  jamais alignés restent sans note (NON_NOTE dans la page). Gymnase des 4 prochains
   matchs du club lu sur la page de la rencontre ; heure de rendez-vous saisie par l'entraîneur.
   Disponibilités, choix et rendez-vous restent dans le navigateur de l'entraîneur (`S` dans
   `localStorage`), avec export / import en fichier ; jamais publiés.

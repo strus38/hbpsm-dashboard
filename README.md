@@ -79,7 +79,10 @@ remplacement se fait poste pour poste quand c'est possible, et jamais au point d
 poste clef. Chaque note
 dit sur combien de matchs elle repose (saison passée comptée pour moitié) : fragile sous 3,
 indicative sous 6, solide au-delà ; tant que le club a moins de 5 feuilles lues ou des notes
-fragiles, la planification le rappelle. Chaque case
+fragiles, la planification le rappelle. Chaque note est ramenée vers la moyenne de l'effectif
+(gardiens et joueurs de champ à part), comme si le joueur avait aussi joué 2 matchs moyens :
+une note sur un ou deux matchs reste près de la moyenne, une note sur huit matchs bouge de
+1 à 3 points ; la fiche garde la note brute. Chaque case
 dit pourquoi au survol ; un minimum impossible à tenir est signalé en rouge. La force
 alignée rapporte la valeur des 12 retenus à celle de l'équipe type ; la victoire estimée part
 de celle calculée sur GitHub (équipe au complet) et baisse avec la force ; le risque multiplie

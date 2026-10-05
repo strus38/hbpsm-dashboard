@@ -399,6 +399,28 @@ def reliability(m, m_past):
     return dict(matchs=round(n, 1), saison=m, passee=m_past, niveau=level)
 
 
+PRUDENCE = 2  # matchs « moyens » ajoutés à chaque note (choix de l'auteur, 05/10/2026)
+
+
+def shrink_notes(players):
+    """Ramène chaque note vers la moyenne de l'effectif, gardiens et joueurs de champ à part,
+    d'autant plus qu'elle repose sur peu de matchs : comme si chacun avait aussi joué PRUDENCE
+    matchs moyens. Un seul bon match ne fait plus passer un joueur devant un autre beaucoup plus
+    vu ; une note sur huit matchs bouge peu. La moyenne pèse chaque joueur par ses matchs comptés.
+    La note d'avant reste dans scores_bruts."""
+    for gk in (True, False):
+        group = [p for p in players if bool(p["gardien"]) == gk and p["fiabilite"]["matchs"]]
+        total = sum(p["fiabilite"]["matchs"] for p in group)
+        if not total:
+            continue
+        for plan in PLANS:
+            mean = sum(p["scores"][plan] * p["fiabilite"]["matchs"] for p in group) / total
+            for p in group:
+                n, raw = p["fiabilite"]["matchs"], p["scores"][plan]
+                p.setdefault("scores_bruts", {})[plan] = raw
+                p["scores"][plan] = round(mean + (raw - mean) * n / (n + PRUDENCE))
+
+
 def club_matches_of(matches, config):
     """[(match, côté du club, adversaire, buts pour, buts contre)] dans l'ordre des dates."""
     out = []
@@ -563,6 +585,7 @@ def club_players(matches, config, roster, history=()):
             comps={k: round(v, 2) for k, v in comps.items()},
             scores=scores, journal=r["journal"], passe=passe, fiabilite=reliability(m, h["m"]),
             note_base="saison" if m and not h["m"] else "saison et " + saison_passee if m else saison_passee))
+    shrink_notes(out)
     out.sort(key=lambda p: -p["scores"]["equilibre"])
     # joueurs de l'effectif jamais inscrits sur une feuille : listés, sans note
     for rkey, ros in sorted(roster.items(), key=lambda kv: norm(kv[1].get("nom") or kv[0])):
@@ -871,6 +894,7 @@ def analyze(today=None, roster=None):
                   demo=any((m.get("source") or {}).get("demo") for m in matches),
                   matchs=len(matches), feuilles=n_fdme, effectif=squad,
                   gardiens=int(config.get("gardiens_feuille", 2)), postes_clefs=config.get("postes_clefs") or [],
+                  prudence=PRUDENCE,
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
                   historique=[x.get("saison") for x in seasons]),
         prochain=nxt,

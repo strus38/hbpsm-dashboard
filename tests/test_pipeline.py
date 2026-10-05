@@ -486,6 +486,17 @@ def test_fiabilite_des_notes():
     assert an.reliability(0, 8)["niveau"] == "indicative" and an.reliability(1, 14)["niveau"] == "solide"
 
 
+def test_notes_fragiles_ramenees():
+    """Une note sur peu de matchs est ramenée vers la moyenne de son groupe ; une note solide bouge peu."""
+    mk = lambda note, n, gk=False: dict(gardien=gk, scores={k: note for k in an.PLANS}, fiabilite=dict(matchs=n))
+    solide, fragile, gb = mk(70, 10), mk(30, 1), mk(90, 1, gk=True)
+    an.shrink_notes([solide, fragile, gb])
+    mean = (70 * 10 + 30) / 11
+    assert fragile["scores"]["equilibre"] == round(mean + (30 - mean) / 3) and fragile["scores_bruts"]["equilibre"] == 30
+    assert abs(solide["scores"]["equilibre"] - 70) <= 1
+    assert gb["scores"]["equilibre"] == 90  # seul gardien noté : sa propre moyenne
+
+
 def test_heure_de_paris():
     """Heures et dates sont celles de Paris, même sur une machine en UTC (runner GitHub)."""
     now = common.paris_now()
