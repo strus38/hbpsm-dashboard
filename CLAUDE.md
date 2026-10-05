@@ -174,8 +174,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   (écart de division compris), continuité = part retrouvée ; `origines` (vus, retrouves, equipes),
   aussi dans le résumé public (noms d'équipes et nombres seulement). Limite : seules les poules où
   jouaient nos équipes d'aujourd'hui sont lues.
-- Saison 2024-2025 (demande de l'auteur, 05/10/2026) : le club jouait en 1re division P16 AURA (ce
-  que l'auteur appelle « départementale 1 », 25096, poule 6, 10e sur 12). Entrée `historique` avec
+- Saison 2024-2025 (demande de l'auteur, 05/10/2026) : le club jouait en 1re division P16 AURA (confirmé
+  par l'auteur ; 25096, poule 6, 10e sur 12). Entrée `historique` avec
   `club_seul: true` (seuls nos matchs et leurs feuilles) ; `club_players(older=)` la compte pour HIST2
   (un quart de match) : `merged`, `season_line`, `avant` sur chaque joueur, `reliability(m, passée,
   avant)`. Elle n'entre pas dans la force des adversaires (seule la saison la plus récente y sert).
