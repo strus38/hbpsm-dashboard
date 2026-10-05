@@ -313,6 +313,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   matchs du club lu sur la page de la rencontre ; heure de rendez-vous saisie par l'entraîneur.
   Disponibilités, choix et rendez-vous restent dans le navigateur de l'entraîneur (`S` dans
   `localStorage`), avec export / import en fichier ; jamais publiés.
+- Risque d'une feuille (précisé à la demande de l'auteur, 05/10/2026) : ce qu'elle coûte en chances
+  d'atteindre l'objectif par rapport à la meilleure équipe (tout le monde présent) = (victoire au
+  complet − victoire avec cette feuille) × enjeu ; faible < 1 point, modéré 1 à 3, élevé > 3 ou feuille
+  incomplète ou poste clef découvert ; coupe : faible. L'étiquette montre le coût (`riskCost`), un
+  toucher ou le survol donne le calcul du match (`riskWhy`, `data-why-text`).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

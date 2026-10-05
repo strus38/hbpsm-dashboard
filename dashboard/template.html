@@ -209,6 +209,7 @@ nav.tabs[hidden]{display:none}
 .plan .past+.h:not(.past),.plan .pc+div:not(.pc){box-shadow:inset 2px 0 0 var(--rule)}
 .cell.hurt{background:color-mix(in srgb,var(--loss) 14%,var(--surface));color:var(--loss);border-color:color-mix(in srgb,var(--loss) 45%,transparent)}
 .injury-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+button.risk{border:0;font:inherit;cursor:help;line-height:inherit}
 .tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
@@ -969,9 +970,21 @@ function retireCtl(r, compact){   // retirer une validation : les joueurs reverr
 const squadTitle = r => ["choix","publiee"].includes(r.etat) ? "Les 12 choisis par l'entraîneur" : COACH ? "Les 12 pour ce match" : "Suggestion : 12 joueurs proposés";
 const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+retireCtl(r)+'</p>';
 // le risque en un mot, pour les colonnes étroites du téléphone
-const riskShort = r => '<span class="risk '+r.level+'" title="'+esc(!r.ok ? "feuille incomplète" : !r.postesOk ? "poste clef non couvert" : RISK[r.level])+'">'
-  + (!r.ok ? "incompl." : !r.postesOk ? "poste" : {ok:"faible", mid:"modéré", hi:"élevé"}[r.level])+'</span>';
-const riskTag = r => '<span class="risk '+r.level+'">'+(!r.ok ? "feuille incomplète" : !r.postesOk ? "poste clef non couvert" : RISK[r.level])+'</span>';
+// le risque d'une feuille : ce qu'elle coûte en chances d'atteindre l'objectif de la saison, par rapport
+// à la meilleure équipe (tout le monde présent) = baisse de la victoire estimée × enjeu du match
+const RISK_SEUILS = "faible : moins d'1 point de chance ; modéré : de 1 à 3 ; élevé : plus de 3";
+const riskWhy = r => !r.ok ? "Risque élevé : feuille incomplète, il manque "+(r.missingGK > 0 ? "un gardien" : r.missing+" joueur"+(r.missing > 1 ? "s" : ""))+"."
+  : !r.postesOk ? "Risque élevé : un poste clef (gardiens, pivots, arrières) n'est pas couvert sur cette feuille."
+  : r.m.coupe ? "Risque faible : match de coupe, sans enjeu pour le classement. Avec cette feuille, victoire estimée "+pct(r.pAdj)+" (au lieu de "+pct(r.m.p_victoire)+" avec la meilleure équipe)."
+  : r.impact == null ? "Risque non chiffré : l'enjeu de ce match pour la saison n'est pas encore connu."
+  : "Risque "+{ok:"faible", mid:"modéré", hi:"élevé"}[r.level]+" : avec cette feuille (force "+Math.round(100 * r.force)+" %), victoire estimée "+r.pAdj+" % au lieu de "+r.m.p_victoire
+    + " % avec la meilleure équipe. Ce match vaut "+(r.m.enjeu > 0 ? "+" : "")+r.m.enjeu+" points de chance de "+objectif((D.saison || {}).cible)
+    + " : la feuille en coûte "+fr(r.impact.toFixed(1))+" ("+(r.m.p_victoire - r.pAdj)+" % de victoire en moins × "+r.m.enjeu+" points). Seuils : "+RISK_SEUILS+".";
+const riskCost = r => r.ok && r.postesOk && r.impact != null && !r.m.coupe ? (r.impact < 0.05 ? " · 0 pt" : " · −"+fr(r.impact.toFixed(1))+" pt") : "";
+const riskShort = r => '<button type="button" class="risk '+r.level+'" data-why-text="'+esc(riskWhy(r))+'" title="'+esc(riskWhy(r))+'">'
+  + (!r.ok ? "incompl." : !r.postesOk ? "poste" : {ok:"faible", mid:"modéré", hi:"élevé"}[r.level])+'</button>';
+const riskTag = r => '<button type="button" class="risk '+r.level+'" data-why-text="'+esc(riskWhy(r))+'" title="'+esc(riskWhy(r))+'">'
+  + (!r.ok ? "feuille incomplète" : !r.postesOk ? "poste clef non couvert" : RISK[r.level] + riskCost(r))+'</button>';
 const manquePostes = r => r.postes.filter(c => c.n < c.min).map(c => (c.min - c.n)+" "+(c.min - c.n > 1 ? c.nom : c.nom.replace(/s$/, "")));
 function advice(r){
   const m = r.m;
@@ -1177,10 +1190,13 @@ function viewPlanif(){
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'
     + (r.gbSuite ? '<br><small class="low" title="Aucun autre gardien disponible pour reposer celui qui enchaîne">gardien : '+GB_SUITE+' matchs de suite dépassés</small>' : '')
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
-    + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
+
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
   h += '<p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
-  h += '<p class="note">Force : valeur des 12 proposés rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos réglages restent sur cet ordinateur ; seule une feuille validée est publiée, chiffrée, pour les joueurs.</p>';
+  h += '<p class="note">Force : valeur des 12 proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
+    + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
+    + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
+    + 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.</p>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
 }
@@ -1835,6 +1851,7 @@ function importPlan(file){
 document.addEventListener("click", ev => {
   const t = ev.target.closest("button"); if(!t) return;
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
+  else if(t.dataset.whyText){ showWhy(t.dataset.whyText); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }

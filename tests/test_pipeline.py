@@ -388,6 +388,10 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           D.joueurs.forEach((p, i) => p.age = keep[i]); S.regle = 1; return ok; })()""")
         assert older_out and "experimente" not in page.inner_text("main") and "+40" not in page.inner_text("main")
         assert "proposé" in page.inner_text(".plan") and "retenu" not in page.inner_text(".plan .h")
+        # le risque s'explique : son coût dans l'étiquette, le calcul au toucher
+        page.locator(".plan .h.foot button.risk").first.click()
+        assert page.inner_text("#why").startswith("Risque ")
+        page.locator("#why button").first.click()
         page.click("nav.tabs button[data-tab=semaine]")
         assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
