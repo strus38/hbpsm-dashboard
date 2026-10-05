@@ -1088,13 +1088,16 @@ def team_logos(fixtures):
 PLANIF = "planif.json"  # entrées de la planification figées (data/, repris de etat.enc)
 
 
-def freeze_plan(players, matchs, sheets, roster, config):
+def freeze_plan(players, matchs, sheets, roster, config, history=()):
     """Les propositions de la planification ne bougent qu'après un match du club (une feuille de plus
     lue) ou un changement d'effectif : d'ici là, notes des joueurs et chances de victoire servant à la
     rotation restent celles du moment où elles ont été posées (scores_plan, p_plan, cle), quoi que
     les publications suivantes recalculent. Un match qui entre dans l'horizon reçoit ses valeurs du
     jour. Même résultat pour tout le monde, et d'une ouverture à l'autre."""
+    # history : saisons passées et jeunes, avec leurs feuilles lues ; une saison ajoutée relâche aussi
     key = dict(feuilles=sorted(str(s) for s in sheets), forfaits=sorted(config.get("forfaits") or []),
+               historique=sorted([x.get("saison") or "", x.get("niveau") or 0, x.get("categorie") or "",
+                                  sum(1 for m in x.get("matches") or [] if (m.get("source") or {}).get("fdme"))] for x in history),
                effectif=hashlib.sha256(json.dumps(roster, sort_keys=True, ensure_ascii=False, default=str)
                                        .encode("utf-8")).hexdigest()[:16])
     prev = read_json(DATA / PLANIF, {}) or {}
@@ -1207,7 +1210,7 @@ def analyze(today=None, roster=None):
     for team, prof in profiles.items():
         if norm(team) in gone:
             prof["forfait"] = True
-    history = load_history()
+    history = all_history = load_history()
     youth = [m for x in history if x.get("categorie") for m in x.get("matches") or []]   # nos jeunes : joueurs seulement
     history = [x for x in history if not x.get("categorie")]
     seasons = [x for x in history if not x.get("niveau")]   # notre division
@@ -1264,7 +1267,8 @@ def analyze(today=None, roster=None):
                 m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
                                              profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
                                              gap, priors.get(m["adversaire"]), m["domicile"])
-    plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config)
+    plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
+                             all_history)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
