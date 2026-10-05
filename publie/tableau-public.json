@@ -1,22 +1,27 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-05 10:01",
+ "genere": "2026-10-05 10:35",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
  "feuilles": 1,
  "prochain": {
   "id": "2727558",
-  "date": "2026-10-10",
-  "provisoire": true,
-  "salle": null,
+  "date": "2026-10-10T20:30",
+  "provisoire": false,
+  "salle": {
+   "nom": "GYMNASE JOSEPH PLAT",
+   "rue": "IMPASSE JEAN BOUIN",
+   "code_postal": "38150",
+   "ville": "SALAISE SUR SANNE"
+  },
   "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
   "domicile": false,
   "journee": 2,
   "poule": "71",
   "p_victoire": 77,
-  "enjeu": 10,
+  "enjeu": 11,
   "cle": false,
   "rang_adv": 5
  },
@@ -277,24 +282,24 @@
   "proba": 94,
   "proba_tout": 100,
   "rangs": [
-   64.5,
-   20.9,
-   8.4,
-   3.9,
-   1.7,
-   0.5,
+   64.7,
+   20.6,
+   8.6,
+   3.8,
+   1.6,
+   0.6,
    0.1
   ],
   "pts_max": 36,
   "matchs": [
    {
     "journee": 2,
-    "date": "2026-10-10",
-    "provisoire": true,
+    "date": "2026-10-10T20:30",
+    "provisoire": false,
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": false,
     "p_victoire": 77,
-    "enjeu": 10,
+    "enjeu": 11,
     "cle": false,
     "rang_adv": 5
    },
@@ -316,7 +321,7 @@
     "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
     "domicile": false,
     "p_victoire": 69,
-    "enjeu": 11,
+    "enjeu": 10,
     "cle": false,
     "rang_adv": 7
    },
@@ -349,7 +354,7 @@
     "adversaire": "HBC PILAT-2",
     "domicile": false,
     "p_victoire": 78,
-    "enjeu": 10,
+    "enjeu": 11,
     "cle": false,
     "rang_adv": 6
    },
@@ -371,7 +376,7 @@
     "adversaire": "HBC ST DONAT",
     "domicile": false,
     "p_victoire": 72,
-    "enjeu": 11,
+    "enjeu": 12,
     "cle": false,
     "rang_adv": 4
    },
@@ -382,7 +387,7 @@
     "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
     "domicile": true,
     "p_victoire": 85,
-    "enjeu": 15,
+    "enjeu": 16,
     "cle": true,
     "rang_adv": 7
    },
