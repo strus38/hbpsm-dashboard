@@ -294,6 +294,17 @@ Ce qu'elle apporte :
 - dans la simulation, la force de départ d'une équipe connue est celle de la saison passée,
   d'autant plus que son effectif est resté, au lieu de la moyenne de la poule.
 
+La division du dessus (1re division P16 AURA) est aussi lue pour la saison passée (entrée
+`niveau: 1` de `historique`), mais seulement pour les équipes de nos poules et nos adversaires
+de coupe qui y jouaient. Une équipe qui en descend compte plus forte : son bilan d'alors est
+relevé de l'écart entre deux divisions (`ecart_division`, 12 % de buts marqués en plus et
+encaissés en moins, hypothèse à revoir avec les résultats de coupe), d'autant plus qu'elle a
+gardé ses joueurs. Un club présent dans les deux divisions voit ses deux bilans pesés selon la
+part de son effectif de cette saison qui jouait dans chacune. L'équipe 2 d'un club n'est jamais
+confondue avec son équipe 1. De même, un adversaire de coupe qui joue cette saison dans la
+division du dessus (`voisines`, `niveau: 1`) reçoit une victoire estimée qui tient compte de
+l'écart. Adversaires le signale : « niveau potentiellement supérieur au nôtre ».
+
 ## Lien avec l'application de préparation des entraînements
 
 Le fichier chiffré contient une séance au format d'échange `.hbt.json` de HANDBALL-training :

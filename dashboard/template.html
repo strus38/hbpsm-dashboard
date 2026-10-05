@@ -1160,7 +1160,13 @@ function pastBlock(e){   // ce que la saison passée dit de cet adversaire
   const x = e.passe;
   if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
   const rangs = x.rangs.map(r => ord(r.rang)+" de la poule "+esc(r.poule)+" ("+r.equipes+" équipes)").join(", ");
-  let h = '<h2>Saison '+esc(x.saison)+'</h2><div class="panel">'
+  const div = y => y.division || "division du dessus", haut = y => y.niveau > 0 ? " en "+esc(div(y))+" (au-dessus de la nôtre)" : "";
+  let h = '<h2>Saison '+esc(x.saison)+haut(x)+'</h2><div class="panel">'
+    + (x.niveau > 0 ? '<p class="note">Une division au-dessus la saison passée : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus, d\'autant plus qu\'elle a gardé ses joueurs'+(x.continuite ? ' ('+x.continuite.deja+' sur '+x.continuite.sur+')' : '')+'. Niveau potentiellement supérieur au nôtre.</p>' : '')
+    + (e.dessus ? '<p class="note">Le club jouait aussi en '+esc(div(e.dessus))+' : '+e.dessus.v+'-'+e.dessus.n+'-'+e.dessus.d+', '
+      + e.dessus.rangs.map(r => ord(r.rang)+" sur "+r.equipes).join(", ")
+      + (e.dessus.continuite ? ' ; '+e.dessus.continuite.deja+' de leurs '+e.dessus.continuite.sur+' joueurs de cette saison y jouaient' : ' ; part de ses joueurs encore là : à voir sur leurs feuilles')
+      + '. Ce bilan compte dans leur force, avec l\'écart de division : niveau potentiellement plus élevé que leur bilan dans notre division.</p>' : '')
     + '<div class="kpis"><div><b class="num">'+x.v+'-'+x.n+'-'+x.d+'</b><span>victoires, nuls, défaites</span></div>'
     + '<div><b class="num">'+fr(x.bp_moy)+'</b><span>buts marqués par match</span></div><div><b class="num">'+fr(x.bc_moy)+'</b><span>buts encaissés par match</span></div>'
     + (x.continuite ? '<div><b class="num">'+x.continuite.deja+'/'+x.continuite.sur+'</b><span>joueurs de cette saison déjà là</span></div>' : "")+'</div>'
@@ -1204,6 +1210,7 @@ function viewAdv(){
   const next = PLAN.find(r => r.m.adversaire === adv);
   let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : esc(pouleLabel(e)))+'</p><h1>'+teamCell(adv)+'</h1></header>'
     + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].forfait?" (forfait)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+  if(e.niveau > 0) h += '<p class="note">Joue cette saison une division au-dessus de la nôtre : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus que ses résultats, ce qui fait une victoire estimée plus basse en coupe. Niveau potentiellement supérieur au nôtre.</p>';
   if(e.forfait) h += '<p class="note">Forfait général pour la saison : cette équipe ne jouera pas ; ses matchs ne comptent ni au classement ni dans les chances de la saison.</p>';
   h += '<div class="panel"><p>'+esc(pouleLabel(e))+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'

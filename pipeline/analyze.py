@@ -349,16 +349,34 @@ def past_players(mine, now, matches, team):
     return out
 
 
-def history_profiles(seasons, profiles, matches, config):
+ECART = 0.12  # écart de force entre deux divisions voisines, si config.yml ne le donne pas
+
+
+def division_label(competition):
+    """« …/1ere-division-masculine-… » -> « 1re division »."""
+    m = re.search(r"/(\d+)(?:ere|eme)-division", competition or "")
+    return f"{m.group(1)}{'re' if m.group(1) == '1' else 'e'} division" if m else None
+
+
+def history_profiles(seasons, profiles, matches, config, above=()):
     """Ce que la saison passée dit des équipes d'aujourd'hui : bilan et classement, confrontations
     avec le club, part de l'effectif de cette saison déjà là, devenir des meilleurs buteurs, et
     chaque joueur de la saison passée avec ses chiffres et s'il est revu cette saison.
+    above : la même saison dans la division du dessus (niveau 1) ; une équipe qui y jouait compte
+    plus forte de l'écart de division, d'autant plus qu'elle a gardé ses joueurs.
     Renvoie aussi, pour la simulation, la force relative de chaque équipe et sa continuité."""
     priors = {}
     same = lambda a, b: same_team(a, b) or (is_club(a, config) and is_club(b, config))
+    gap = 1 + float(config.get("ecart_division", ECART))
     for prof in profiles.values():
         prof.setdefault("passe", None)
-    for season in seasons[-1:]:  # la saison la plus récente
+        prof.setdefault("dessus", None)
+    latest = seasons[-1:]  # la saison la plus récente
+    year = latest[0].get("saison") if latest else None
+    levels = [(s, 0) for s in latest] + [(s, int(s.get("niveau") or 1)) for s in above
+                                         if year is None or s.get("saison") == year]
+    found = defaultdict(list)  # équipe -> [(niveau, bilan, force, joueurs)]
+    for season, level in levels:
         played = season.get("matches") or []
         if not played:
             continue
@@ -393,23 +411,68 @@ def history_profiles(seasons, profiles, matches, config):
             buteurs = [dict(nom=names[k][0], num=names[k][1], buts=b, present=(k in now) if now else None)
                        for k, b in scorers.most_common(3) if b]
             cont = dict(deja=len(now & last), sur=len(now)) if now and last else None
-            joueurs = past_players(mine, now, matches, team)
-            # les joueurs de cette saison déjà là la saison passée : leurs chiffres d'alors
-            before = {name_key(j["nom"]): j for j in joueurs}
-            for b in prof.get("buteurs") or []:
-                j = before.get(name_key(b.get("nom") or ""))
-                b["avant"] = j and dict(m=j["m"], buts=j["buts"], moy=j["moy"], reussite=j["reussite"])
-            for g in prof.get("gardiens") or []:
-                j = before.get(name_key(g.get("nom") or ""))
-                g["avant"] = j and dict(m=j["m"], arrets=j["arrets"], pct=j["pct"])
-            prof["passe"] = dict(saison=season["saison"], j=len(mine), v=res.count("V"), n=res.count("N"),
-                                 d=res.count("D"), bp_moy=round(bp / len(mine), 1), bc_moy=round(bc / len(mine), 1),
-                                 rangs=rangs, face_a_face=face, continuite=cont, buteurs=buteurs, joueurs=joueurs,
-                                 feuilles=sum(1 for m, side in mine if (m.get("players") or {}).get(side)))
+            rec = dict(saison=season["saison"], niveau=level, division=division_label(season.get("competition")),
+                       j=len(mine), v=res.count("V"), n=res.count("N"), d=res.count("D"),
+                       bp_moy=round(bp / len(mine), 1), bc_moy=round(bc / len(mine), 1),
+                       rangs=rangs, face_a_face=face, continuite=cont, buteurs=buteurs,
+                       feuilles=sum(1 for m, side in mine if (m.get("players") or {}).get(side)))
             # continuité inconnue (pas encore de feuille cette saison) : la saison passée compte à moitié
             c = cont["deja"] / cont["sur"] if cont else 0.5
-            priors[team] = ((bp / len(mine)) / avg, (bc / len(mine)) / avg, c)
+            force = ((bp / len(mine)) / avg * gap ** level, (bc / len(mine)) / avg / gap ** level, c)
+            found[team].append((level, rec, force, past_players(mine, now, matches, team)))
+    for team, recs in found.items():
+        prof = profiles[team]
+        recs.sort(key=lambda r: r[0])  # notre division d'abord ; celle du dessus en complément
+        level, rec, _, joueurs = recs[0]
+        # les joueurs de cette saison déjà là la saison passée : leurs chiffres d'alors
+        before = {name_key(j["nom"]): j for j in joueurs}
+        for b in prof.get("buteurs") or []:
+            j = before.get(name_key(b.get("nom") or ""))
+            b["avant"] = j and dict(m=j["m"], buts=j["buts"], moy=j["moy"], reussite=j["reussite"])
+        for g in prof.get("gardiens") or []:
+            j = before.get(name_key(g.get("nom") or ""))
+            g["avant"] = j and dict(m=j["m"], arrets=j["arrets"], pct=j["pct"])
+        prof["passe"] = dict(rec, joueurs=joueurs)
+        prof["dessus"] = recs[1][1] if len(recs) > 1 else None
+        # deux bilans (les deux divisions) : chacun pèse selon la part de l'effectif qui y jouait
+        w = [r[2][2] for r in recs]
+        w = w if sum(w) else [1] * len(recs)
+        priors[team] = (sum(wi * r[2][0] for wi, r in zip(w, recs)) / sum(w),
+                        sum(wi * r[2][1] for wi, r in zip(w, recs)) / sum(w), max(r[2][2] for r in recs))
     return priors
+
+
+def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=4000, seed=38160):
+    """Chances de gagner un match de coupe contre une équipe d'une autre poule, ou d'une autre
+    division (level : 1 = celle du dessus). Sa force se lit sur ses matchs, rapportés à ce qu'on
+    marque dans sa poule, puis se décale de l'écart de division ; elle part de la moyenne de sa
+    division, ou de sa saison passée d'autant plus que l'effectif est resté. Un nul se joue aux
+    tirs au but : une chance sur deux."""
+    if not forces or club not in forces or not avg:
+        return None
+    j = prof.get("j") or 0
+    c = prior[2] if prior else 0.0
+    k = 3 + 2 * c
+    out = []
+    for scored, sign in (("bp_moy", 1), ("bc_moy", -1)):
+        base = gap ** (sign * level)
+        if prior:
+            base = (1 - c) * base + c * prior[0 if sign > 0 else 1]
+        seen = base
+        if j and prof.get("bp_moy") is not None and prof.get("bc_moy") is not None:
+            ref = (prof["bp_moy"] + prof["bc_moy"]) / 2 or avg
+            seen = prof[scored] / ref * gap ** (sign * level)
+        out.append((seen * j + base * k) / (j + k))
+    att_t, dfn_t = out
+    att_u, dfn_u = forces[club]
+    rng, won = random.Random(seed), 0.0
+    for _ in range(sims):
+        fu, ft = math.exp(rng.gauss(0, UNSURE)), math.exp(rng.gauss(0, 1.5 * UNSURE))
+        mu = avg * att_u * fu * dfn_t / ft * (1.04 if home else 0.96)
+        mt = avg * att_t * ft * dfn_u / fu * (0.96 if home else 1.04)
+        gu, gt = max(0, round(rng.gauss(mu, mu ** 0.5))), max(0, round(rng.gauss(mt, mt ** 0.5)))
+        won += 1 if gu > gt else 0.5 if gu == gt else 0
+    return round(100 * won / sims)
 
 
 def fr(x):
@@ -821,6 +884,9 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
     for m in base["matchs"]:
         m["cle"] = m["id"] in keys
     base["statut"] = "en_cours"
+    # forces de départ (relatives à la moyenne de la poule) : pour estimer les matchs de coupe
+    base["forces"] = {t: [round(att0[t], 3), round(dfn0[t], 3)] for t in table}
+    base["moyenne"] = round(avg, 2)
     return base
 
 
@@ -976,6 +1042,7 @@ def analyze(today=None, roster=None):
     roster = roster if roster is not None else load_roster()
     # les coupes comptent pour les joueurs (statistiques, rotation), pas pour le classement
     every_match, every_fixture = matches, fixtures
+    all_fixtures = fixtures
     # les matchs d'un adversaire de coupe dans sa propre poule : pour sa fiche, rien d'autre
     outside = [m for m in every_match if m.get("externe")]
     every_match = [m for m in every_match if not m.get("externe")]
@@ -1013,8 +1080,18 @@ def analyze(today=None, roster=None):
     for team, prof in profiles.items():
         if norm(team) in gone:
             prof["forfait"] = True
-    seasons = load_history()
-    priors = history_profiles(seasons, profiles, matches, config)
+    history = load_history()
+    seasons = [x for x in history if not x.get("niveau")]   # notre division
+    above = [x for x in history if x.get("niveau")]         # la division du dessus
+    levels = {}  # adversaire de coupe d'une autre poule : niveau de sa division (1 = au-dessus)
+    for f in all_fixtures:
+        if f.get("externe"):
+            for side in ("home", "away"):
+                levels[f[side]] = int(f.get("niveau") or 0)
+    for team in rivals:
+        if levels.get(team):
+            profiles[team]["niveau"] = levels[team]
+    priors = history_profiles(seasons, profiles, matches, config, above)
     for team, prof in profiles.items():
         plan, why = recommend_plan(prof, league_profiles)
         prof["plan"], prof["plan_raison"] = plan, why
@@ -1049,6 +1126,12 @@ def analyze(today=None, roster=None):
     if saison and saison.get("matchs") is not None:  # les matchs de coupe à venir, à leur date
         saison["matchs"] = sorted(saison["matchs"] + cup_ahead(every_fixture, config, today, saison["matchs"]),
                                   key=lambda m: m.get("date") or "9999")
+        gap = 1 + float(config.get("ecart_division", ECART))
+        for m in saison["matchs"]:  # adversaire d'une autre poule ou d'une autre division
+            if m.get("coupe") and m.get("p_victoire") is None:
+                m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
+                                             profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
+                                             gap, priors.get(m["adversaire"]), m["domicile"])
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
@@ -1059,7 +1142,8 @@ def analyze(today=None, roster=None):
                   gardiens=int(config.get("gardiens_feuille", 2)), postes_clefs=config.get("postes_clefs") or [],
                   prudence=PRUDENCE,
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
-                  historique=[x.get("saison") for x in seasons]),
+                  historique=[x.get("saison") for x in seasons],
+                  ecart_division=float(config.get("ecart_division", ECART))),
         prochain=nxt,
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)
                 for p in sorted(set(by_poule) | set(teams))},

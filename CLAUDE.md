@@ -155,6 +155,17 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
+- Division du dessus (demande de l'auteur, 05/10/2026 : « une division au-dessus » = 1re division
+  masculine P16 AURA, 27884 en 2025-2026, 30499 en 2026-2027) : entrée `historique` avec `niveau: 1`
+  (fichier `<saison>-niveau1.json`, seules nos équipes et nos adversaires de coupe), `voisines` en
+  {url, niveau}, `ecart_division` (0,12, hypothèse). `history_profiles(above)` : bilan d'en haut
+  relevé de l'écart, pondéré par la continuité ; `passe.niveau`, `passe.division`, `dessus` quand
+  le club était dans les deux. `cup_chance` : victoire estimée d'un match de coupe contre une
+  équipe d'une autre poule ou division (forces de `outlook`). `same_team` exige le même numéro
+  d'équipe (`team_number`). Constat au 05/10/2026 : seule Hand Bièvre Terres Froides (poule 72)
+  jouait en 1re division en 2025-2026 (12e sur 12) ; Meylan 2, Drac Isère 2, Sablons, Nord Drôme 2,
+  Chirens-Coublevie et Nord Drôme (coupe, en 1re division cette saison) n'étaient ni en 1re ni en
+  2e division ; le club Drac Isère avait son équipe 1 en 1re division, pas son équipe 2.
 - Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
   config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
   (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du

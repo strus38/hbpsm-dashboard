@@ -64,10 +64,18 @@ def team_key(name):
     return frozenset(w for w in n.split() if w not in TEAM_WORDS)
 
 
+def team_number(name):
+    """Numéro d'équipe : « … 2 » est l'équipe réserve du club ; 1 quand il n'y en a pas."""
+    nums = [w for w in norm(re.sub(r"\(.*?\)", " ", str(name or ""))).split() if re.fullmatch(r"[2-9]", w)]
+    return nums[-1] if nums else "1"
+
+
 def same_team(a, b):
-    """Même équipe sous deux écritures : mêmes mots distinctifs, ou l'une contenue dans l'autre."""
+    """Même équipe sous deux écritures : même numéro d'équipe (l'équipe 2 d'un club n'est pas son
+    équipe 1), et mêmes mots distinctifs, ou l'une contenue dans l'autre."""
     ka, kb = team_key(a), team_key(b)
-    return bool(ka and kb) and (ka == kb or (len(ka & kb) >= 2 and (ka <= kb or kb <= ka)))
+    return (bool(ka and kb) and team_number(a) == team_number(b)
+            and (ka == kb or (len(ka & kb) >= 2 and (ka <= kb or kb <= ka))))
 
 
 def is_club(name, config):

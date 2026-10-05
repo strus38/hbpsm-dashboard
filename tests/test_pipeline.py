@@ -754,14 +754,16 @@ def test_adversaire_de_coupe_venu_d_ailleurs(monkeypatch):
         return {r["id"]: r for r in rows if only(r)}, {"entetes": [], "lignes": []}
 
     monkeypatch.setattr(collect, "crawl_poule", poule)
-    config = dict(common.load_config(), voisines=["https://exemple/1ere-division-1/"])
+    config = dict(common.load_config(), voisines=[{"url": "https://exemple/1ere-division-1/", "niveau": 1}])
     club = config["club"]["motifs"][0]
     old = {"c1": dict(id="c1", coupe="Coupe de France", home="CLUB LOINTAIN", away=club),
            "l1": dict(id="l1", poule="71", home=club, away="CLUB BRAVO")}
     fixtures, officials = collect.crawl_rivals(config, {}, old, "2026-10-05T07:00")
     assert calls[0]["id"] == "ext-4242" and calls[0]["url"] == "https://exemple/1ere-division-1/poule-4242/"
     assert list(fixtures) == ["1"] and fixtures["1"]["externe"] == "1re division masculine P16 AURA, poule 6"
-    assert list(officials) == ["ext-4242"]
+    assert fixtures["1"]["niveau"] == 1 and list(officials) == ["ext-4242"]
+    # une compétition voisine donnée par sa seule adresse : notre niveau
+    assert collect.crawl_rivals(dict(config, voisines=["https://exemple/1ere-division-1/"]), {}, old, "2026-10-05T07:00")[0]["1"]["niveau"] == 0
     # un adversaire de coupe déjà dans nos poules n'est pas recherché ailleurs
     calls.clear()
     old["c1"]["home"] = "CLUB BRAVO"
@@ -944,6 +946,39 @@ def test_seance_publique_sans_nom(sandbox, monkeypatch):
     for fuite in ('{"objectif": "Surveiller EXEMPLE Isidore"}', '{"titre": "Joueur 03 en forme"}'):
         with pytest.raises(vault.VaultError):
             publish.check_public(fuite, names)
+
+
+def test_division_du_dessus():
+    """Une équipe de la division du dessus la saison passée compte plus forte, d'autant plus qu'elle a
+    gardé ses joueurs ; l'équipe 2 d'un club n'est pas son équipe 1 ; un adversaire de coupe d'une
+    division au-dessus fait une victoire estimée plus basse."""
+    assert not common.same_team("CLUB ALPHA 2", "P16M DIV1 - CLUB ALPHA")
+    assert common.same_team("P16M DIV - CLUB ALPHA- 2", "CLUB ALPHA 2 (FG)") and common.same_team("HBC ALPHA-2", "HBC ALPHA 2")
+    config = dict(common.load_config(), ecart_division=0.12)
+    pl = lambda *names: [dict(name=n, num=i + 1, goals=1) for i, n in enumerate(names)]
+    game = lambda h, a, ph=(), pa=(): dict(home=dict(name=h, score=25), away=dict(name=a, score=25),
+                                           players=dict(home=list(ph), away=list(pa)), date="2025-11-01")
+    ours = dict(saison="2025-2026", competition="https://exemple/2eme-division-masculine-1/", poules={},
+                matches=[game("CLUB BRAVO", "CLUB CHARLIE"), game("CLUB ECHO", "CLUB CHARLIE")])
+    above = dict(saison="2025-2026", niveau=1, competition="https://exemple/1ere-division-masculine-2/", poules={},
+                 matches=[game("CLUB DELTA", "CLUB ECHO", pl("Zéphyrin Alpha", "Onésime Beta"), pl("Hilarion Gamma")),
+                          game("CLUB ECHO", "CLUB DELTA", pl("Hilarion Gamma"), pl("Zéphyrin Alpha", "Onésime Beta"))])
+    # cette saison, Delta a gardé ses deux joueurs ; Echo, sans feuille, a joué dans les deux divisions
+    now = [game("CLUB DELTA", "CLUB BRAVO", pl("Zéphyrin Alpha", "Onésime Beta"), pl("Eudes Gamma"))]
+    profiles = {t: {} for t in ("CLUB BRAVO", "CLUB DELTA", "CLUB ECHO")}
+    priors = an.history_profiles([ours], profiles, now, config, [above])
+    assert priors["CLUB BRAVO"] == (1.0, 1.0, 0.5) and profiles["CLUB BRAVO"]["dessus"] is None
+    assert priors["CLUB DELTA"] == pytest.approx((1.12, 1 / 1.12, 1.0))
+    delta = profiles["CLUB DELTA"]["passe"]
+    assert (delta["niveau"], delta["division"], delta["continuite"]) == (1, "1re division", {"deja": 2, "sur": 2})
+    assert priors["CLUB ECHO"] == pytest.approx(((1 + 1.12) / 2, (1 + 1 / 1.12) / 2, 0.5))   # les deux bilans, à poids égal
+    assert profiles["CLUB ECHO"]["passe"]["niveau"] == 0 and profiles["CLUB ECHO"]["dessus"]["niveau"] == 1
+    # en coupe : le même bilan vaut moins de chances face à une équipe de la division du dessus
+    forces, prof = {"CLUB BRAVO": [1.0, 1.0]}, dict(j=4, bp_moy=25.0, bc_moy=25.0)
+    same_div = an.cup_chance(forces, 25.0, "CLUB BRAVO", prof, 0, 1.12)
+    above_div = an.cup_chance(forces, 25.0, "CLUB BRAVO", prof, 1, 1.12)
+    assert 45 <= same_div <= 65 and above_div <= same_div - 15
+    assert an.cup_chance({}, 25.0, "CLUB BRAVO", prof, 1, 1.12) is None
 
 
 def test_forfait_general(sandbox, monkeypatch):

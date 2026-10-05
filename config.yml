@@ -25,9 +25,18 @@ coupes:
 # Où chercher un adversaire de coupe qui ne joue pas dans nos poules : la collecte retrouve sa
 # poule dans ces compétitions et lit ses matchs (et leurs feuilles) pour sa fiche dans
 # Adversaires, hors de nos classements.
+# niveau : 1 = la division au-dessus de la nôtre, 0 = la nôtre.
 voisines:
-  - "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/1ere-division-masculine-p16-aura-30499/"
-  - "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/"
+  - url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/1ere-division-masculine-p16-aura-30499/"
+    niveau: 1
+  - url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/"
+    niveau: 0
+# Écart entre deux divisions voisines : une équipe moyenne de la division du dessus marque 12 % de
+# buts de plus, et en encaisse 12 % de moins, qu'une équipe moyenne de la nôtre. Hypothèse de
+# départ (05/10/2026) : elle compte pour une équipe descendue de la division du dessus ou un
+# adversaire de coupe qui y joue, d'autant plus qu'il a gardé ses joueurs ; à revoir avec les
+# résultats de coupe entre divisions.
+ecart_division: 0.12
 # Postes clefs : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un des postes
 # du groupe (choix de l'entraîneur, 05/10/2026) ; un joueur à deux postes, « ARG/DC », compte pour
 # un seul groupe. Postes : ALG ARG DC ARD ALD PIV.
@@ -52,6 +61,11 @@ objectif:
 historique:
   - saison: "2025-2026"
     competition: "https://www.ffhandball.fr/competitions/saison-2025-2026-21/regional/2eme-division-masculine-p16-aura-27886/"
+  # la division au-dessus (1re division P16 AURA) : seulement les équipes de nos poules et nos
+  # adversaires de coupe qui y jouaient, leur bilan compté avec l'écart de division
+  - saison: "2025-2026"
+    competition: "https://www.ffhandball.fr/competitions/saison-2025-2026-21/regional/1ere-division-masculine-p16-aura-27884/"
+    niveau: 1
 # Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
 entrainement:
   equipe: "Seniors garçons"

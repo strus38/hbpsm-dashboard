@@ -122,14 +122,19 @@ def team_public(e):
     if not e:
         return None
     keep = ("equipe", "poule", "j", "bp_moy", "bc_moy", "forme", "mt1_bp", "mt2_bp", "mt1_bc", "mt2_bc",
-            "deux_min_moy", "jaunes_moy", "rouges", "arrets_pct", "periodes_bp", "periodes_bc", "plan", "plan_raison")
+            "deux_min_moy", "jaunes_moy", "rouges", "arrets_pct", "periodes_bp", "periodes_bc", "plan", "plan_raison",
+            "niveau", "poule_libelle", "forfait")
     out = {k: e.get(k) for k in keep}
     out["buteurs"] = [{k: b.get(k) for k in ("num", "buts", "pen", "m", "moy", "tirs", "reussite")} for b in e.get("buteurs") or []]
     out["gardiens"] = [{k: g.get(k) for k in ("num", "m", "arrets", "pris", "pct", "estime")} for g in e.get("gardiens") or []]
     x = e.get("passe")
     out["passe"] = None if not x else dict(
-        {k: x.get(k) for k in ("saison", "j", "v", "n", "d", "bp_moy", "bc_moy", "rangs", "face_a_face", "continuite", "feuilles")},
+        {k: x.get(k) for k in ("saison", "niveau", "division", "j", "v", "n", "d", "bp_moy", "bc_moy", "rangs",
+                               "face_a_face", "continuite", "feuilles")},
         buteurs=[{k: b.get(k) for k in ("num", "buts", "present")} for b in x.get("buteurs") or []])
+    y = e.get("dessus")
+    out["dessus"] = None if not y else {k: y.get(k) for k in ("saison", "niveau", "division", "j", "v", "n", "d",
+                                                              "bp_moy", "bc_moy", "rangs", "continuite")}
     return out
 
 

@@ -297,9 +297,10 @@ def crawl_rivals(config, known, old, now):
               if f.get("coupe") and (ours(f.get("home")) or ours(f.get("away")))}
     wanted -= league
     fixtures, officials = {}, {}
-    for comp in config.get("voisines") or []:
+    for entry in config.get("voisines") or []:
         if not wanted:
             break
+        comp, level = (entry, 0) if isinstance(entry, str) else (entry["url"], int(entry.get("niveau") or 0))
         comp = comp.rstrip("/") + "/"
         data = page_data(comp, "voisine_" + comp.rstrip("/").rsplit("-", 1)[-1])
         sel = data.get("competitions---poule-selector") or {}
@@ -316,7 +317,7 @@ def crawl_rivals(config, known, old, now):
             got, official = crawl_poule(dict(id=pid, url=f"{comp}poule-{p['ext_pouleId']}/"), known, old, now,
                                         only=lambda f, n=name: n in (norm(f["home"]), norm(f["away"])))
             for f in got.values():
-                f["externe"] = label
+                f["externe"], f["niveau"] = label, level
             fixtures.update(got)
             if official:
                 officials[pid] = official

@@ -4,7 +4,8 @@ Usage : python -m pipeline.history [--force]
 Entrées : config.yml (historique : saison et adresse de la compétition), data/fixtures.json
           (équipes de la saison en cours)
 Sorties : data/historique/<saison>.json  rencontres, classements et feuilles lues (jamais versionné ;
-                                         publié chiffré dans publie/historique.enc)
+                                         publié chiffré dans publie/historique.enc) ; une division
+                                         au-dessus de la nôtre : <saison>-niveau1.json
           raw/historique/<saison>/fdme/  feuilles PDF (jamais versionnées)
 
 Une saison finie ne change plus : elle est collectée une fois, puis gardée. La collecte lit
@@ -132,23 +133,29 @@ def main():
     config = load_config()
     force = "--force" in sys.argv
     is_ours = lambda t: is_club(t, config)
-    current = {f[side] for f in read_json(DATA / "fixtures.json", []) or [] for side in ("home", "away") if f.get(side)}
+    fixtures = read_json(DATA / "fixtures.json", []) or []
+    current = {f[side] for f in fixtures for side in ("home", "away") if f.get(side)}
+    # au-dessus de notre division : les seules équipes de nos poules et nos adversaires de coupe
+    ours = {f[side] for f in fixtures if not f.get("externe") for side in ("home", "away") if f.get(side)}
+    deadline = collect.time.monotonic() + SHEET_BUDGET  # un budget pour toutes les saisons du passage
     for entry in config.get("historique") or []:
-        target = HISTORY / f"{entry['saison']}.json"
+        level = int(entry.get("niveau") or 0)
+        target = HISTORY / (f"{entry['saison']}-niveau{level}.json" if level else f"{entry['saison']}.json")
         season = None if force else read_json(target)
         if season is None:
             if not current:
                 print("[historique] calendrier de la saison en cours inconnu : collecte remise à plus tard", file=sys.stderr)
                 return 0
             try:
-                season = collect_season(entry["saison"], entry["competition"], current, is_ours)
+                season = collect_season(entry["saison"], entry["competition"], ours if level else current, is_ours)
+                season["niveau"] = level
             except (urllib.error.URLError, OSError) as exc:  # site injoignable : on réessaiera au prochain passage
                 print(f"[historique] {entry['saison']} : {exc}", file=sys.stderr)
                 continue
             write_json(target, season)
-        left = fetch_sheets(season, target, is_ours)
+        left = fetch_sheets(season, target, is_ours, budget=max(0, deadline - collect.time.monotonic()))
         read = sum(1 for m in season["matches"] if m["source"].get("fdme"))
-        print(f"[historique] {entry['saison']} : {read} feuilles lues" + (f", {left} à venir" if left else ", complète"))
+        print(f"[historique] {target.stem} : {read} feuilles lues" + (f", {left} à venir" if left else ", complète"))
     return 0
 
 
