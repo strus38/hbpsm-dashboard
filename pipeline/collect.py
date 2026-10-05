@@ -208,10 +208,11 @@ def finished(fixtures, known, now):
         for f in fixtures)
 
 
-def crawl_poule(poule, known, old, now, is_ours=None):
+def crawl_poule(poule, known, old, now, is_ours=None, only=None):
     """Rencontres et classement d'une poule. Une journée close n'est pas relue.
     now : date et heure de Paris, '2026-10-04T19:30'.
-    is_ours : reconnaît le club, dont on lit aussi le gymnase des prochains matchs."""
+    is_ours : reconnaît le club, dont on lit aussi le gymnase des prochains matchs.
+    only : ne garder que certaines rencontres (celles d'un adversaire de coupe, par exemple)."""
     base = poule["url"].rstrip("/") + "/"
     pid = str(poule["id"])
     first = page_data(base, f"{pid}_poule")
@@ -234,7 +235,8 @@ def crawl_poule(poule, known, old, now, is_ours=None):
         for r in rows:
             if r.get("ext_rencontreId"):
                 fx = fixture(r, pid, base, days.get(n))
-                fixtures[fx["id"]] = fx
+                if only is None or only(fx):
+                    fixtures[fx["id"]] = fx
     if is_ours:
         add_venues(fixtures, old, is_ours)
     sheets = fetch_sheets(fixtures, known, now)
@@ -267,6 +269,53 @@ def fetch_sheets(fixtures, known, now):
             print(f"[collecte] feuille {fx['id']}: {exc}", file=sys.stderr)
         time.sleep(PAUSE)
     return sheets
+
+
+def pretty_label(text):
+    """« 1ERE DIVISION MASCULINE P16 AURA, POULE 6 » -> « 1re division masculine P16 AURA, poule 6 »."""
+    t = re.sub(r"\b1ere\b", "1re", text.lower())
+    t = re.sub(r"\b(\d+)eme\b", r"\1e", t)
+    t = re.sub(r"\b(p\d+|aura|cdf)\b", lambda m: m.group(1).upper(), t)
+    return t[:1].upper() + t[1:]
+
+
+def crawl_rivals(config, known, old, now):
+    """Adversaires de coupe venus d'une autre poule : retrouvés dans les compétitions voisines,
+    leurs matchs de championnat (et leurs feuilles) seulement, pour leur fiche dans Adversaires.
+    Marqués « externe » : ils n'entrent jamais dans le classement de nos poules."""
+    ours = lambda t: is_club(t, config)
+    league = {norm(f[s]) for f in old.values() if not f.get("coupe") and not f.get("externe")
+              for s in ("home", "away") if f.get(s)}
+    wanted = {norm(f["away"] if ours(f["home"]) else f["home"]) for f in old.values()
+              if f.get("coupe") and (ours(f.get("home")) or ours(f.get("away")))}
+    wanted -= league
+    fixtures, officials = {}, {}
+    for comp in config.get("voisines") or []:
+        if not wanted:
+            break
+        comp = comp.rstrip("/") + "/"
+        data = page_data(comp, "voisine_" + comp.rstrip("/").rsplit("-", 1)[-1])
+        sel = data.get("competitions---poule-selector") or {}
+        poules = {str(p.get("id")): p for p in sel.get("poules") or []}
+        phase = clean(((sel.get("phases") or [{}])[0]).get("libelle"))
+        teams = (data.get("competitions---calendar-button") or {}).get("equipes") or sel.get("equipe_options") or []
+        for team in teams:
+            name, p = norm(team.get("libelle")), poules.get(str(team.get("pouleId")))
+            if name not in wanted or not p or not p.get("ext_pouleId"):
+                continue
+            wanted.discard(name)
+            pid = f"ext-{p['ext_pouleId']}"
+            label = pretty_label(f"{phase}, {clean(p.get('libelle'))}".strip(", "))
+            got, official = crawl_poule(dict(id=pid, url=f"{comp}poule-{p['ext_pouleId']}/"), known, old, now,
+                                        only=lambda f, n=name: n in (norm(f["home"]), norm(f["away"])))
+            for f in got.values():
+                f["externe"] = label
+            fixtures.update(got)
+            if official:
+                officials[pid] = official
+    if wanted:
+        print(f"[collecte] adversaire de coupe introuvable dans les compétitions voisines : {len(wanted)}", file=sys.stderr)
+    return fixtures, officials
 
 
 def crawl_cup(cup, known, old, now, is_ours):
@@ -342,6 +391,12 @@ def main():
             old.update(crawl_cup(cup, known, old, now, lambda t: is_club(t, config)))
         except (urllib.error.URLError, OSError) as exc:  # la coupe attendra le prochain passage
             print(f"[collecte] {cup.get('nom')}: {exc}", file=sys.stderr)
+    try:   # les adversaires de coupe venus d'ailleurs : leur fiche, hors classement
+        rivals, rival_tables = crawl_rivals(config, known, old, now)
+        old.update(rivals)
+        officials.update(rival_tables)
+    except (urllib.error.URLError, OSError) as exc:
+        print(f"[collecte] adversaires de coupe : {exc}", file=sys.stderr)
     write_json(DATA / "fixtures.json", sorted(old.values(), key=lambda f: (f.get("date") or "9999", f["id"])))
     write_json(DATA / "official_standings.json", officials)
     return 0 if not missing else 2

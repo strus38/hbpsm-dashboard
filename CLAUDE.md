@@ -137,6 +137,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   ajoute les matchs de coupe à `saison.matchs` (enjeu nul, jamais clé) ; `coupes` = parcours.
   Page : `roundOf` / `roundShort`, rotation d'abord sur la coupe, 2 gardiens changés possibles.
   Résumé public : champs `coupe`, `tour` (HANDBALL-training 1.16.2 les affiche).
+- Adversaires de coupe venus d'ailleurs (demande de l'auteur, 05/10/2026) : `voisines` dans
+  config.yml (1re division P16 AURA 30499, 2e division 30501) ; `collect.crawl_rivals` retrouve
+  leur poule (liste `calendar-button` des équipes) et lit leurs seuls matchs (`crawl_poule(only=)`),
+  marqués `externe` (poule « ext-<id> », classement officiel sous la même clé). `analyze` : fiche
+  avec `poule_libelle` et `coupe`, sans toucher nos poules. 1er tour 2026-2027 : 1re division, poule 6.
 - Noms courts : le numéro d'équipe est gardé (« Nord Drome 2 » ≠ « Nord Drome »).
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris

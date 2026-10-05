@@ -22,6 +22,12 @@ gardiens_feuille: 2
 coupes:
   - nom: Coupe de France
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/coupe-de-france/coupe-de-france-departementale-masculine-2026-2027-33244/"
+# Où chercher un adversaire de coupe qui ne joue pas dans nos poules : la collecte retrouve sa
+# poule dans ces compétitions et lit ses matchs (et leurs feuilles) pour sa fiche dans
+# Adversaires, hors de nos classements.
+voisines:
+  - "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/1ere-division-masculine-p16-aura-30499/"
+  - "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/"
 # Postes clefs : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un des postes
 # du groupe (choix de l'entraîneur, 05/10/2026) ; un joueur à deux postes, « ARG/DC », compte pour
 # un seul groupe. Postes : ALG ARG DC ARD ALD PIV.

@@ -954,6 +954,11 @@ def analyze(today=None, roster=None):
     roster = roster if roster is not None else load_roster()
     # les coupes comptent pour les joueurs (statistiques, rotation), pas pour le classement
     every_match, every_fixture = matches, fixtures
+    # les matchs d'un adversaire de coupe dans sa propre poule : pour sa fiche, rien d'autre
+    outside = [m for m in every_match if m.get("externe")]
+    every_match = [m for m in every_match if not m.get("externe")]
+    every_fixture = [f for f in every_fixture if not f.get("externe")]
+    official = {k: v for k, v in official.items() if not str(k).startswith("ext-")}
     matches = [m for m in every_match if not m.get("coupe")]
     fixtures = [f for f in every_fixture if not f.get("coupe")]
 
@@ -962,10 +967,23 @@ def analyze(today=None, roster=None):
         by_poule[str(m.get("poule"))].append(m)
     teams = known_teams(fixtures, official)
     profiles = team_profiles(matches, teams)
+    league_profiles = dict(profiles)
+    rivals = {(f["away"] if is_club(f.get("home"), config) else f["home"]) for f in every_fixture
+              if f.get("coupe") and (is_club(f.get("home"), config) or is_club(f.get("away"), config))}
+    for team, prof in team_profiles(outside).items():   # adversaires de coupe venus d'ailleurs
+        if team in rivals and team not in profiles:
+            prof["poule_libelle"] = next((m["externe"] for m in outside if team in (m["home"]["name"], m["away"]["name"])), None)
+            profiles[team] = prof
+    for team in rivals - set(profiles):   # pas encore de match lu : une fiche vide, pour le situer
+        profiles[team] = dict(team_profiles([]).get(team) or {}, equipe=team, poule=None, j=0, matches=[], forme=[],
+                              bp_moy=None, bc_moy=None, buteurs=[], gardiens=[], jaunes_moy=None, deux_min_moy=None,
+                              rouges=None, arrets_pct=None)
+    for team in rivals:
+        profiles[team]["coupe"] = True
     seasons = load_history()
     priors = history_profiles(seasons, profiles, matches, config)
     for team, prof in profiles.items():
-        plan, why = recommend_plan(prof, profiles)
+        plan, why = recommend_plan(prof, league_profiles)
         prof["plan"], prof["plan_raison"] = plan, why
     players, club_matches, with_sheet = club_players(every_match, config, roster,
                                                      history=(seasons[-1].get("matches") or []) if seasons else ())

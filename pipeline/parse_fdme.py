@@ -267,6 +267,8 @@ def build_match(fx, parsed=None):
         source=dict(fdme=False, url=fx.get("url")))
     if fx.get("coupe"):  # match de coupe : statistiques des joueurs, pas classement
         match.update(coupe=fx["coupe"], tour=fx.get("tour"))
+    if fx.get("externe"):  # match d'un adversaire de coupe, dans sa propre poule : sa fiche seulement
+        match["externe"] = fx["externe"]
     if parsed:
         match["players"] = parsed["players"]
         match["events"] = parsed["events"]

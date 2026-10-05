@@ -314,6 +314,8 @@ body:not(.lecture) .lecture-only{display:none!important}
   .plan .h.foot .link{font-size:.72rem;padding:4px 0}
   .plan>.footlab{align-items:flex-start;padding-top:19px;line-height:1.5}
   .plan .tag.key{margin:0;font-size:.62rem;padding:0 4px}
+  .plan .tag{white-space:nowrap}
+  .plan .tag.cup{display:none}   /* la ligne au-dessus dit déjà « Coupe » */
   .cell{width:40px;height:32px}
   .legend-plan{gap:4px}
   .legend-plan .cell{margin-left:4px}
@@ -752,7 +754,7 @@ function viewPlanif(){
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
-      + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key">Match clé</span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
+      + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key"><span class="tl">Match clé</span><span class="ts">Clé</span></span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
       + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div></div>').join("")
     + '<div class="h" title="Matchs où il est retenu"><span class="tl">retenu</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
@@ -927,6 +929,8 @@ function viewDuos(){
 }
 
 // ---------------------------------------------------------------- adversaires
+// où joue une équipe : nos poules, ou la compétition d'un adversaire de coupe venu d'ailleurs
+const pouleLabel = e => e.poule_libelle || (e.poule ? "Poule " + e.poule : "Adversaire de coupe, poule pas encore trouvée");
 function opponent(){
   const names = [...Object.keys(D.equipes).filter(isUs), ...Object.keys(D.equipes).filter(t => !isUs(t)).sort()];
   let adv = S.adv && D.equipes[S.adv] ? S.adv : (D.prochain && D.prochain.adversaire);
@@ -1003,9 +1007,9 @@ function viewAdv(){
   if(!adv) return '<header class="top"><h1>Adversaires</h1></header>'+emptyPanel();
   const e = D.equipes[adv], us = isUs(adv);
   const next = PLAN.find(r => r.m.adversaire === adv);
-  let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : "Poule "+esc(e.poule))+'</p><h1>'+teamCell(adv)+'</h1></header>'
-    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":"")+'</option>').join("")+'</select></div>';
-  h += '<div class="panel"><p>Poule '+esc(e.poule)+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
+  let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : esc(pouleLabel(e)))+'</p><h1>'+teamCell(adv)+'</h1></header>'
+    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+  h += '<div class="panel"><p>'+esc(pouleLabel(e))+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
     + (e.arrets_pct!=null ? '<div><b class="num">'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : "")
     + (e.mt1_bp!=null ? '<div><b class="num half">'+fr(e.mt1_bp)+" - "+fr(e.mt1_bc)+'</b><span>1re mi-temps</span></div><div><b class="num half">'+fr(e.mt2_bp)+" - "+fr(e.mt2_bc)+'</b><span>2e mi-temps</span></div>' : "")

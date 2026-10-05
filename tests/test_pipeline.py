@@ -676,6 +676,37 @@ def test_coupe_collectee(monkeypatch):
     assert pages == [cup["url"]]
 
 
+def test_adversaire_de_coupe_venu_d_ailleurs(monkeypatch):
+    """Un adversaire de coupe d'une autre division : retrouvé dans les compétitions voisines, seuls
+    ses matchs sont lus, marqués « externe » avec le nom de sa compétition."""
+    voisine = {"competitions---poule-selector": {
+        "phases": [{"libelle": "1ERE DIVISION MASCULINE P16 AURA"}],
+        "poules": [{"id": "900", "ext_pouleId": "4242", "libelle": "POULE 6"}]},
+        "competitions---calendar-button": {"equipes": [{"libelle": "CLUB LOINTAIN", "pouleId": "900"},
+                                                       {"libelle": "CLUB TIERS", "pouleId": "900"}]}}
+    monkeypatch.setattr(collect, "page_data", lambda url, name: voisine)
+    calls = []
+
+    def poule(p, known, old, now, is_ours=None, only=None):
+        calls.append(p)
+        rows = [dict(id="1", home="CLUB LOINTAIN", away="CLUB TIERS"), dict(id="2", home="CLUB TIERS", away="CLUB AUTRE")]
+        return {r["id"]: r for r in rows if only(r)}, {"entetes": [], "lignes": []}
+
+    monkeypatch.setattr(collect, "crawl_poule", poule)
+    config = dict(common.load_config(), voisines=["https://exemple/1ere-division-1/"])
+    club = config["club"]["motifs"][0]
+    old = {"c1": dict(id="c1", coupe="Coupe de France", home="CLUB LOINTAIN", away=club),
+           "l1": dict(id="l1", poule="71", home=club, away="CLUB BRAVO")}
+    fixtures, officials = collect.crawl_rivals(config, {}, old, "2026-10-05T07:00")
+    assert calls[0]["id"] == "ext-4242" and calls[0]["url"] == "https://exemple/1ere-division-1/poule-4242/"
+    assert list(fixtures) == ["1"] and fixtures["1"]["externe"] == "1re division masculine P16 AURA, poule 6"
+    assert list(officials) == ["ext-4242"]
+    # un adversaire de coupe déjà dans nos poules n'est pas recherché ailleurs
+    calls.clear()
+    old["c1"]["home"] = "CLUB BRAVO"
+    assert collect.crawl_rivals(config, {}, old, "2026-10-05T07:00") == ({}, {}) and calls == []
+
+
 def test_coupe_dans_la_saison(sandbox):
     """Un match de coupe : hors classement, dans les statistiques des joueurs, dans les matchs à venir."""
     demo(sandbox)
@@ -701,7 +732,8 @@ def test_coupe_dans_la_saison(sandbox):
     d = an.analyze("2026-10-04")
     # hors classement : ni poule, ni résultat, ni adversaire nouveau dans les équipes
     assert "coupe" not in d["poules"] and all(r["id"] != "9001" for r in d["resultats"])
-    assert "Club Lointain" not in d["equipes"] and d["poules"] == before["poules"]
+    assert d["equipes"]["Club Lointain"]["coupe"] and d["equipes"]["Club Lointain"]["j"] == 0  # sa fiche, vide pour l'instant
+    assert d["poules"] == before["poules"]
     # dans les statistiques : chaque joueur de la feuille compte un match de plus
     m_before = {p["cle"]: p["m"] for p in before["joueurs"]}
     on_sheet = {p["name"] for p in club_match["players"][side]}
@@ -713,6 +745,19 @@ def test_coupe_dans_la_saison(sandbox):
     dates = [m["date"] for m in d["saison"]["matchs"]]
     assert dates == sorted(dates)
     assert [c["id"] for c in d["coupes"]] == ["9001", "9002"] and d["coupes"][0]["res"] in "VND"
+    # l'adversaire du 2e tour joue ailleurs : un de ses matchs, lu dans sa poule, lui fait une fiche
+    label = "1re division masculine P16 AURA, poule 6"
+    away = dict(club_match, id="9101", poule="ext-4242", journee=1, date="2026-09-27T20:00", externe=label)
+    away["home"] = dict(club_match["home"], name="Club Lointain 2")
+    away["away"] = dict(club_match["away"], name="Club Tiers")
+    common.write_json(matches / "9101.json", away)
+    fixtures.append(dict(id="9101", poule="ext-4242", externe=label, journee=1, date=away["date"], home="Club Lointain 2",
+                         away="Club Tiers", score_home=away["home"]["score"], score_away=away["away"]["score"]))
+    common.write_json(sandbox / "data" / "fixtures.json", fixtures)
+    d2 = an.analyze("2026-10-04")
+    rival = d2["equipes"]["Club Lointain 2"]
+    assert rival["poule_libelle"] == label and rival["coupe"] and rival["j"] == 1
+    assert "Club Tiers" not in d2["equipes"] and d2["poules"] == d["poules"] and d2["resultats"] == d["resultats"]
 
 
 def test_noms_ancienne_feuille():

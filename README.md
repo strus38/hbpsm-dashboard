@@ -127,6 +127,11 @@ et la rotation y passe en premier (les gagner compte moins qu'en championnat). I
 ni dans le classement ni dans les chances de la saison ; l'onglet Saison montre le parcours du
 club en coupe.
 
+Un adversaire de coupe qui ne joue pas dans nos poules a lui aussi sa fiche dans Adversaires,
+marquée « (coupe) » : la collecte le retrouve dans les compétitions de `voisines` (la 1re et la
+2e division P16 AURA) et ne lit que ses matchs de championnat, avec leurs feuilles. Ils servent
+à sa fiche seulement, jamais au classement de nos poules.
+
 ## Feuille validée par l'entraîneur
 
 Tant que l'entraîneur n'a pas validé un match, tout le monde voit sur la page une
