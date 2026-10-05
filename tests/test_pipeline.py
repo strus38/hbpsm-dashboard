@@ -685,7 +685,7 @@ def test_trois_sanctions(sandbox):
 def test_fiabilite_des_notes():
     """Une note dit sur combien de matchs elle repose : la saison passée compte pour moitié."""
     assert an.reliability(0, 0)["niveau"] == "aucune"
-    assert an.reliability(1, 2) == dict(matchs=2.0, saison=1, passee=2, niveau="fragile")
+    assert an.reliability(1, 2) == dict(matchs=2.0, saison=1, passee=2, avant=0, niveau="fragile")
     assert an.reliability(0, 8)["niveau"] == "indicative" and an.reliability(1, 14)["niveau"] == "solide"
 
 
@@ -1003,6 +1003,26 @@ def test_division_du_dessus():
     above_div = an.cup_chance(forces, 25.0, "CLUB BRAVO", prof, 1, 1.12)
     assert 45 <= same_div <= 65 and above_div <= same_div - 15
     assert an.cup_chance({}, 25.0, "CLUB BRAVO", prof, 1, 1.12) is None
+
+
+def test_saison_d_avant(sandbox):
+    """La saison d'avant (2024-2025) complète les chiffres de nos joueurs, pour un quart de match."""
+    assert an.reliability(2, 4, 8) == dict(matchs=6.0, saison=2, passee=4, avant=8, niveau="solide")
+    m = an.merged(dict(an.EMPTY, m=2, buts=4, w=1.0, w_buts=2.0), dict(an.EMPTY, m=4, buts=8, w=0.5, w_buts=1.0))
+    assert (m["m"], m["buts"], m["w"], m["w_buts"]) == (4.0, 8.0, 1.5, 3.0)
+    demo(sandbox)
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]]
+    older = [dict(x, id="old" + str(x["id"]), date="2024-11-0" + str(i + 1), saison="2024-2025") for i, x in enumerate(club[:3])]
+    common.write_json(sandbox / "data" / "historique" / "2024-2025-niveau1.json",
+                      dict(saison="2024-2025", niveau=1, competition="https://exemple/1ere-division-masculine-1/", poules={}, matches=older))
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", competition="https://exemple/2eme-division-masculine-1/", poules={}, matches=[]))
+    d = an.analyze("2026-10-04")
+    seen = [p for p in d["joueurs"] if p.get("avant")]
+    assert seen and all(p["avant"]["saison"] == "2024-2025" and p["avant"]["m"] >= 1 for p in seen)
+    assert all(p["fiabilite"]["avant"] == p["avant"]["m"] for p in seen)
+    assert any("2024-2025" in (p.get("note_base") or "") for p in seen)
 
 
 def test_planification_figee_entre_deux_matchs(sandbox):

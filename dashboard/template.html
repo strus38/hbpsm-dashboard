@@ -564,9 +564,11 @@ const rated = p => p.scores && p.scores.equilibre != null;
 const val = (p, m) => rated(p) ? ((p.scores_plan || p.scores)[planOf(m)] ?? NON_NOTE) : NON_NOTE;
 const pv = m => m.p_plan ?? m.p_victoire;
 // saison passée, en une ligne : « 2025-2026 : 14 matchs, 52 buts (61 %) »
-const passeLine = p => !p.passe ? "" : p.passe.saison+" : "+p.passe.m+" match"+(p.passe.m>1?"s":"")+", "
-  + (isGK(p) ? (p.passe.pct_arrets != null ? p.passe.pct_arrets+" % d'arrêts" : p.passe.arrets+" arrêts")
-             : p.passe.buts+" buts"+(p.passe.tirs ? " ("+p.passe.reussite+" %)" : ""));
+const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
+  + (isGK(p) ? (x.pct_arrets != null ? x.pct_arrets+" % d'arrêts" : x.arrets+" arrêts")
+             : x.buts+" buts"+(x.tirs ? " ("+x.reussite+" %)" : ""));
+// les saisons passées en une ligne : 2025-2026, puis 2024-2025 (comptée pour un quart)
+const passeLine = p => [p.passe, p.avant].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
 const availOf = (p, m) => !dispo(p) ? "a" : ((SP().dm[m.id] || {})[p.cle] || "d");
 const pinOf = (p, m) => (SP().pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
@@ -637,7 +639,8 @@ function fia(p){
   if(!f) return "";
   const [n, what] = FIA[f.niveau] || FIA.aucune;
   const sur = !f.matchs ? "" : " : "+f.saison+" match"+(f.saison>1?"s":"")+" cette saison"
-    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "");
+    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "")
+    + (f.avant ? " et "+f.avant+" en "+(p.avant ? p.avant.saison : "saison d'avant")+" (pour un quart)" : "");
   return '<span class="fia" title="'+esc(what+sur+brute(p))+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
 }
 // la note avant d'être ramenée vers la moyenne, quand l'écart compte
@@ -1140,7 +1143,7 @@ function playerCard(p, plan, refs){
     + (p.m ? spark(p.journal.map(j => gk ? j.arrets : j.buts), gk) : "")
     + (gk ? bar(p.pct_arrets, refs.gk, "Arrêts sur tirs cadrés"+(p.pris_estime ? " (estimé)" : ""))
           : bar(p.reussite, refs.tir, "Réussite au tir"+(p.tirs ? " · "+p.buts+"/"+p.tirs : "")))
-    + (p.passe ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
+    + (p.passe || p.avant ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
     + '<div class="chips">'+chips+'<span class="chip avenir">proposé '+planned+'/'+PLAN.length+' à venir</span></div></div>';
 }
 function viewJoueurs(){

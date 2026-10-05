@@ -554,15 +554,41 @@ def load_roster():
 
 
 HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
+HIST2 = HIST * HIST  # la saison d'avant (2024-2025) : un quart de match
 FIABLE = (3, 6)  # matchs comptés (saison passée pour HIST) : en deçà du 1er, note fragile ; du 2e, indicative
 
 
-def reliability(m, m_past):
+def reliability(m, m_past, m_older=0):
     """Sur combien de matchs repose une note : ceux de la saison, plus ceux de la saison passée
-    comptés pour HIST, et ce que cela vaut (fragile, indicative, solide ; aucune sans match)."""
-    n = m + HIST * m_past
+    comptés pour HIST et ceux de la saison d'avant pour HIST2, et ce que cela vaut (fragile,
+    indicative, solide ; aucune sans match)."""
+    n = m + HIST * m_past + HIST2 * m_older
     level = "aucune" if not n else "fragile" if n < FIABLE[0] else "indicative" if n < FIABLE[1] else "solide"
-    return dict(matchs=round(n, 1), saison=m, passee=m_past, niveau=level)
+    return dict(matchs=round(n, 1), saison=m, passee=m_past, avant=m_older, niveau=level)
+
+
+COUNTS = ("m", "buts", "pen", "tirs", "tirs_connus", "arrets", "jaunes", "deux_min", "rouges", "pris", "cadres")
+
+
+def merged(h, o):
+    """Saison passée et saison d'avant en une seule : les comptes de la seconde pèsent HIST2/HIST de
+    ceux de la première (blend les multiplie ensuite par HIST) ; forme et numéros s'additionnent."""
+    if not o.get("m"):
+        return h
+    out = dict(h)
+    for k in COUNTS:
+        out[k] = (h.get(k) or 0) + HIST2 / HIST * (o.get(k) or 0)
+    out["w_buts"], out["w"] = (h.get("w_buts") or 0) + (o.get("w_buts") or 0), (h.get("w") or 0) + (o.get("w") or 0)
+    out["nums"] = (h.get("nums") or Counter()) + (o.get("nums") or Counter())
+    return out
+
+
+def season_line(x, saison):
+    """Les chiffres d'une saison passée, tels que la fiche du joueur les montre."""
+    return dict(saison=saison, m=x["m"], buts=x["buts"], pen=x["pen"], tirs=x["tirs"] or None,
+                reussite=round(100 * x["tirs_connus"] / x["tirs"]) if x["tirs"] else None,
+                arrets=x["arrets"], pct_arrets=save_pct(x["cadres"] - x["pris"], x["pris"]),
+                jaunes=x["jaunes"], deux_min=x["deux_min"], rouges=x["rouges"]) if x["m"] else None
 
 
 PRUDENCE = 2  # matchs « moyens » ajoutés à chaque note (choix de l'auteur, 05/10/2026)
@@ -661,7 +687,7 @@ EMPTY = dict(m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux
              w_buts=0.0, w=0.0, pris=0, cadres=0, nums=Counter())
 
 
-def club_players(matches, config, roster, history=()):
+def club_players(matches, config, roster, history=(), older=()):
     """Statistiques individuelles du club et notes. La saison passée (history : matchs) sert de
     point de départ : ses matchs comptent pour HIST dans la forme, le tir, la discipline, les
     arrêts et l'assiduité ; l'impact et les fins de match restent ceux de la saison en cours,
@@ -675,13 +701,18 @@ def club_players(matches, config, roster, history=()):
     n_past = len(past_ws)
     past, _ = player_stats(past_ws, lambda i: HIST * DECAY ** (n_sheet + n_past - 1 - i))
     saison_passee = max((c[0].get("saison") or "" for c in past_ws), default="") or None
-    for key, h in past.items():  # joueurs de la saison passée encore dans l'effectif
+    # la saison d'avant (older) : un quart de match chacun
+    old_ws = [c for c in club_matches_of(older, config) if c[0].get("players", {}).get(c[1])]
+    n_old = len(old_ws)
+    old, _ = player_stats(old_ws, lambda i: HIST2 * DECAY ** (n_sheet + n_past + n_old - 1 - i))
+    saison_avant = max((c[0].get("saison") or "" for c in old_ws), default="") or None
+    for key, h in list(past.items()) + list(old.items()):  # joueurs des saisons passées encore dans l'effectif
         if key not in players and match_name(h["nom"], roster):
             players[key] = dict(EMPTY, cle=key, nom=h["nom"], nums=Counter(), clutch=0, diffs=[], journal=[],
                                 tranches=0, m_deroule=0, estime=False)
     all_diffs = [gf - ga for _, _, _, gf, ga in with_sheet]
     blend = lambda r, h, k: r[k] + HIST * h[k]
-    hist_of = lambda r: past.get(r["cle"], EMPTY)
+    hist_of = lambda r: merged(past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY))
     form = lambda r, h: (r["w_buts"] + h["w_buts"]) / (r["w"] + h["w"]) if r["w"] + h["w"] else 0
     max_form = max((form(r, hist_of(r)) for r in players.values()), default=0) or 1
     max_clutch = max((r["clutch"] / r["m"] for r in players.values() if r["m"]), default=0) or 1
@@ -716,7 +747,7 @@ def club_players(matches, config, roster, history=()):
             disc=max(0.0, 1 - penal / 2),
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
             clutch=(r["clutch"] / m) / max_clutch if any_events and m else 0.5,
-            assid=mw / (n_sheet + HIST * n_past) if n_sheet + n_past else 0,
+            assid=mw / (n_sheet + HIST * n_past + HIST2 * n_old) if n_sheet + n_past + n_old else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
             gk_vol=(saves / mw) / max_saves if gk else 0,
         )
@@ -727,10 +758,9 @@ def club_players(matches, config, roster, history=()):
             else:
                 val = sum(w[k] * comps[k] for k in w)
             scores[plan] = round(100 * val)
-        passe = dict(saison=saison_passee, m=h["m"], buts=h["buts"], pen=h["pen"], tirs=h["tirs"] or None,
-                     reussite=round(100 * h["tirs_connus"] / h["tirs"]) if h["tirs"] else None,
-                     arrets=h["arrets"], pct_arrets=save_pct(h["cadres"] - h["pris"], h["pris"]),
-                     jaunes=h["jaunes"], deux_min=h["deux_min"], rouges=h["rouges"]) if h["m"] else None
+        hp, ho = past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY)
+        passe, avant = season_line(hp, saison_passee), season_line(ho, saison_avant)
+        bases = [s for s, x in ((saison_passee, hp), (saison_avant, ho)) if x["m"]]
         nums = r["nums"] + h["nums"]
         out.append(dict(
             # clé stable : un poste saisi avant le premier match reste attaché au joueur
@@ -750,8 +780,9 @@ def club_players(matches, config, roster, history=()):
             forme_buts=round(form(r, h), 1),
             impact=round(impact, 1), decisifs=r["clutch"],
             comps={k: round(v, 2) for k, v in comps.items()},
-            scores=scores, journal=r["journal"], passe=passe, fiabilite=reliability(m, h["m"]),
-            note_base="saison" if m and not h["m"] else "saison et " + saison_passee if m else saison_passee))
+            scores=scores, journal=r["journal"], passe=passe, avant=avant,
+            fiabilite=reliability(m, hp["m"], ho["m"]),
+            note_base=("saison" + "".join(" et " + s for s in bases)) if m else (" et ".join(bases) or None)))
     shrink_notes(out)
     out.sort(key=lambda p: -p["scores"]["equilibre"])
     # joueurs de l'effectif jamais inscrits sur une feuille : listés, sans note
@@ -766,7 +797,7 @@ def club_players(matches, config, roster, history=()):
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
             comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
-            scores={plan: None for plan in PLANS}, journal=[], passe=None, note_base=None,
+            scores={plan: None for plan in PLANS}, journal=[], passe=None, avant=None, note_base=None,
             fiabilite=reliability(0, 0)))
     return out, club_matches, with_sheet
 
@@ -1160,8 +1191,11 @@ def analyze(today=None, roster=None):
     for team, prof in profiles.items():
         plan, why = recommend_plan(prof, league_profiles)
         prof["plan"], prof["plan_raison"] = plan, why
+    latest = seasons[-1].get("saison") if seasons else None
+    older = [m for x in history if latest and (x.get("saison") or "") < latest for m in x.get("matches") or []]
     players, club_matches, with_sheet = club_players(every_match, config, roster,
-                                                     history=(seasons[-1].get("matches") or []) if seasons else ())
+                                                     history=(seasons[-1].get("matches") or []) if seasons else (),
+                                                     older=older)
 
     club_name = next((t for t in profiles if is_club(t, config)), None)
     upcoming = sorted((f for f in every_fixture if f.get("score_home") is None

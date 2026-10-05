@@ -147,7 +147,8 @@ def main():
                 print("[historique] calendrier de la saison en cours inconnu : collecte remise à plus tard", file=sys.stderr)
                 return 0
             try:
-                season = collect_season(entry["saison"], entry["competition"], ours if level else current, is_ours)
+                teams = set() if entry.get("club_seul") else ours if level else current  # club_seul : nos matchs
+                season = collect_season(entry["saison"], entry["competition"], teams, is_ours)
                 season["niveau"] = level
             except (urllib.error.URLError, OSError) as exc:  # site injoignable : on réessaiera au prochain passage
                 print(f"[historique] {entry['saison']} : {exc}", file=sys.stderr)
