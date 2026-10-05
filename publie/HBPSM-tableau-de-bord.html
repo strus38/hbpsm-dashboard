@@ -199,6 +199,15 @@ nav.tabs[hidden]{display:none}
 .plan .h b{color:var(--heading);font-size:.84rem}
 .plan .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plan .who b{color:var(--link);display:inline-block;min-width:20px}
+.plan.pp1{grid-template-columns:minmax(190px,1.6fr) minmax(64px,.6fr) repeat(var(--n),minmax(92px,1fr)) 46px}
+.plan.pp2{grid-template-columns:minmax(190px,1.6fr) repeat(2,minmax(64px,.6fr)) repeat(var(--n),minmax(92px,1fr)) 46px}
+.plan .past,.plan .pc{background:color-mix(in srgb,var(--structure-500) 6%,transparent)}
+.plan .pc{display:flex;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-weight:600}
+.plan .pc.on{color:var(--structure-700)}
+.plan .pc small{font-size:.7rem;color:var(--muted);font-weight:500}
+.plan .pc.foot{flex-direction:column;font-size:.74rem}
+.plan .past+.h:not(.past),.plan .pc+div:not(.pc){box-shadow:inset 2px 0 0 var(--rule)}
+.tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
 .cell:hover{border-color:var(--track)}
@@ -396,6 +405,10 @@ body:not(.lecture) .lecture-only{display:none!important}
   .hero-row{grid-template-columns:auto 1fr;gap:10px}
   .hero-row .kpis{grid-template-columns:1fr}
   .plan.single{grid-template-columns:minmax(0,1.3fr) minmax(124px,1fr) 34px}
+  .plan.single.pp1{grid-template-columns:minmax(0,1.2fr) 36px minmax(112px,1fr) 30px}
+  .plan.single.pp2{grid-template-columns:minmax(0,1.2fr) 36px 36px minmax(104px,1fr) 30px}
+  .plan.single .pc small,.plan.single .tag.done{display:none}
+  .plan.single.pp1 .cell.wide,.plan.single.pp2 .cell.wide{min-width:0;width:calc(100% - 4px);padding:0 6px}
   .plan.single .h{font-size:.74rem}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .prop{grid-template-columns:28px 1fr}.prop-btn{grid-column:2}
@@ -450,7 +463,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "17b06b8bdc9d", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "7374e660355e", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -492,9 +505,13 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fr = n => n == null ? "–" : String(n).replace(".", ",");
 const isUs = t => t === D.meta.club;
-const poste = p => (S.postes[p.cle] ?? p.poste ?? "");
+// En consultation, la proposition ne dépend que des données partagées : rien de ce qui a pu être
+// saisi dans ce navigateur (en mode entraîneur un autre jour) ne la change ; la même pour tous.
+const NEUTRE = {postes:{}, absents:{}, depannage:{}, dm:{}, pin:{}, regle:1};
+const SP = () => COACH ? S : NEUTRE;
+const poste = p => (SP().postes[p.cle] ?? p.poste ?? "");
 const isGK = p => poste(p) ? poste(p).split("/").includes("GB") : p.gardien;
-const dispo = p => S.absents[p.cle] === undefined ? p.disponible !== false : !S.absents[p.cle];
+const dispo = p => SP().absents[p.cle] === undefined ? p.disponible !== false : !SP().absents[p.cle];
 
 function fmtDate(iso, provisoire){
   if(!iso) return "date à confirmer";
@@ -535,6 +552,10 @@ function reasons(p){
 // disponibilités et les choix de l'entraîneur restent sur cet ordinateur. La page en déduit la
 // feuille proposée (12 joueurs dont 2 gardiens), la force alignée et le risque.
 const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
+// classe d'âge (effectif) : à valeur proche, les changements font jouer d'abord les plus jeunes
+const AGE_RANG = {jeune: 0, intermediaire: 1, experimente: 2};   // paramètre seulement : jamais affiché (choix de l'auteur)
+const ageRank = p => AGE_RANG[p.age] ?? 1;
+const MIN_CHANGES = 2;   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
 const horizon = () => {
   const ms = (D.saison && D.saison.matchs) || [];
   if(ms.length) return ms.slice(0, HORIZON);
@@ -542,13 +563,17 @@ const horizon = () => {
 };
 const planOf = m => (D.equipes[m.adversaire] && D.equipes[m.adversaire].plan) || "equilibre";
 const rated = p => p.scores && p.scores.equilibre != null;
-const val = (p, m) => rated(p) ? (p.scores[planOf(m)] ?? NON_NOTE) : NON_NOTE;
+// notes figées entre deux matchs du club (scores_plan) : la proposition ne bouge pas d'une publication à l'autre
+const val = (p, m) => rated(p) ? ((p.scores_plan || p.scores)[planOf(m)] ?? NON_NOTE) : NON_NOTE;
+const pv = m => m.p_plan ?? m.p_victoire;
 // saison passée, en une ligne : « 2025-2026 : 14 matchs, 52 buts (61 %) »
-const passeLine = p => !p.passe ? "" : p.passe.saison+" : "+p.passe.m+" match"+(p.passe.m>1?"s":"")+", "
-  + (isGK(p) ? (p.passe.pct_arrets != null ? p.passe.pct_arrets+" % d'arrêts" : p.passe.arrets+" arrêts")
-             : p.passe.buts+" buts"+(p.passe.tirs ? " ("+p.passe.reussite+" %)" : ""));
-const availOf = (p, m) => !dispo(p) ? "a" : ((S.dm[m.id] || {})[p.cle] || "d");
-const pinOf = (p, m) => (S.pin[m.id] || {})[p.cle];
+const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
+  + (isGK(p) ? (x.pct_arrets != null ? x.pct_arrets+" % d'arrêts" : x.arrets+" arrêts")
+             : x.buts+" buts"+(x.tirs ? " ("+x.reussite+" %)" : ""));
+// les saisons passées en une ligne : 2025-2026, puis 2024-2025 (comptée pour un quart)
+const passeLine = p => [p.passe, p.avant].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
+const availOf = (p, m) => !dispo(p) ? "a" : ((SP().dm[m.id] || {})[p.cle] || "d");
+const pinOf = (p, m) => (SP().pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
   const w = String(t).replace(/^P\d+[MF]?\s*(DIV\d*)?\s*-?\s*/i, "").split(/\s+/)
     .filter(x => !/^(HB|HBC|HANDBALL|CLUB|RTE|ENTENTE|-)$/i.test(x));
@@ -617,7 +642,8 @@ function fia(p){
   if(!f) return "";
   const [n, what] = FIA[f.niveau] || FIA.aucune;
   const sur = !f.matchs ? "" : " : "+f.saison+" match"+(f.saison>1?"s":"")+" cette saison"
-    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "");
+    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "")
+    + (f.avant ? " et "+f.avant+" en "+(p.avant ? p.avant.saison : "saison d'avant")+" (pour un quart)" : "");
   return '<span class="fia" title="'+esc(what+sur+brute(p))+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
 }
 // la note avant d'être ramenée vers la moyenne, quand l'écart compte
@@ -633,7 +659,7 @@ function brute(p, plan = "equilibre"){
 // match ; sort celui qui a le plus joué sur la période, à égalité le moins bien noté. Si le minimum
 // n'est pas tenu pour les gardiens, les deux sont changés sur un match à votre portée (victoire
 // estimée d'au moins ROT_GB2 %).
-const ruleOf = n => Math.min(Number(S.regle) || 0, n);
+const ruleOf = n => Math.min(Number(SP().regle) || 0, n);
 // Feuille validée : celle de l'entraîneur sur son ordinateur (null = retouchée depuis), sinon
 // celle qu'il a publiée ; les autres voient la publiée. Elle reste telle quelle, hors rotation.
 const byCle = k => D.joueurs.find(p => p.cle === k);
@@ -642,7 +668,7 @@ const retiredOf = m => COACH && S.retire && S.retire[m.id];   // retirée ici, r
 const fixedOf = m => retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
 // En dépannage (effectif ou fiche du joueur) : retenu seulement s'il manque des joueurs ou un poste
 // clef, et jamais compté dans la rotation.
-const depOf = p => (S.depannage || {})[p.cle] ?? !!p.depannage;
+const depOf = p => (SP().depannage || {})[p.cle] ?? !!p.depannage;
 // Postes clefs (config.yml) : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un
 // des postes du groupe ; un joueur à deux postes (« ARG/DC ») ne tient qu'une place.
 const KEYS = () => D.meta.postes_clefs || [];
@@ -698,7 +724,7 @@ function planning(){
       const fill = (gk, n) => { for(const p of [...sure, ...unsure]) if(isGK(p) === gk && (gk ? gks : field).length < n && !gks.includes(p) && !field.includes(p)) (gk ? gks : field).push(p); };
       if(broken.length){ fill(true, nGK); fill(false, size - gks.length); }
     } else { gks = pick(true, nGK); field = pick(false, size - gks.length); }
-    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, fixed: !!fixed, broken};
+    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], peu: null, fixed: !!fixed, broken};
   });
   // 2. la rotation, sur l'ensemble des matchs
   const quota = ruleOf(H.length);
@@ -706,15 +732,15 @@ function planning(){
   const need = p => depOf(p) ? 0 : Math.min(quota, H.filter(m => availOf(p, m) === "d" && pinOf(p, m) !== "out").length);
   if(quota){
     const easy = P.filter(r => !r.m.cle && !r.fixed).sort((a, b) => (b.m.coupe ? 1 : 0) - (a.m.coupe ? 1 : 0)
-      || (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
+      || (pv(b.m) ?? 50) - (pv(a.m) ?? 50)
       || (a.m.enjeu ?? 0) - (b.m.enjeu ?? 0) || a.k - b.k);
-    const capsOf = gk => gk ? [r => ROT_GB, r => r.m.coupe || (r.m.p_victoire ?? 0) >= ROT_GB2 ? 2 : ROT_GB] : [r => ROT_CHAMP];
+    const capsOf = gk => gk ? [r => ROT_GB, r => r.m.coupe || (pv(r.m) ?? 0) >= ROT_GB2 ? 2 : ROT_GB] : [r => ROT_CHAMP];
     for(const gk of [true, false]) for(const cap of capsOf(gk)){
       const team = r => gk ? r.gks : r.field, used = P.map(r => r.rotated.filter(p => isGK(p) === gk).length);
       for(let moved = true; moved;){
         moved = false;
         const owed = D.joueurs.filter(p => isGK(p) === gk && apps(p) < need(p))
-          .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || val(b, H[0]) - val(a, H[0]));
+          .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || ageRank(a) - ageRank(b) || val(b, H[0]) - val(a, H[0]));
         for(const p of owed){
           for(const r of easy){
             if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
@@ -722,7 +748,7 @@ function planning(){
             const like = q => postesOf(q).some(x => postesOf(p).includes(x));
             const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q)
                 && (gk || filled(team(r).map(x => x === q ? p : x)) >= filled(team(r))))
-              .sort((a, b) => like(b) - like(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+              .sort((a, b) => like(b) - like(a) || ageRank(b) - ageRank(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
             team(r)[team(r).indexOf(out)] = p;
             r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
@@ -733,8 +759,41 @@ function planning(){
       }
     }
   }
+  // 2 bis. jamais deux fois de suite la même équipe : au moins MIN_CHANGES joueurs (gardiens compris)
+  // changent d'un match au suivant, à commencer par le dernier match joué ; chaque échange est celui
+  // qui coûte le moins, poste pour poste si possible, sans découvrir un poste clef
+  const last = (D.derniers || []).slice(-1)[0];
+  // (un match de la saison passée ne compte pas : l'effectif a changé depuis)
+  let prev = last && (!last.saison || last.saison === D.meta.saison) ? D.joueurs.filter(p => (last.joueurs || {})[p.cle]) : null;
+  for(const r of P){
+    const team = () => [...r.gks, ...r.field];
+    if(prev && prev.length && !r.fixed){
+      for(let changes = team().filter(p => !prev.includes(p)).length; changes < MIN_CHANGES; changes++){
+        let best = null;
+        for(const gk of [true, false]){
+          const list = gk ? r.gks : r.field;
+          const outs = list.filter(q => prev.includes(q) && !r.pinned.includes(q) && !r.forced.includes(q));
+          const ins = [...r.sure, ...D.joueurs.filter(p => availOf(p, r.m) === "i" && pinOf(p, r.m) !== "out")]
+            .filter(p => isGK(p) === gk && !depOf(p) && !team().includes(p) && !prev.includes(p));   // jamais le dépannage
+          for(const o of outs) for(const i of ins){
+            if(!gk && filled(list.map(x => x === o ? i : x)) < filled(list)) continue;
+            const like = postesOf(i).some(x => postesOf(o).includes(x)) ? 0 : 1;
+            const cost = [availOf(i, r.m) === "i" ? 1 : 0, ageRank(i) - ageRank(o), like, val(o, r.m) - val(i, r.m), -apps(o)];
+            if(!best || cost.some((c, n) => c !== best.cost[n] && cost.slice(0, n).every((d, z) => d === best.cost[z]) && c < best.cost[n]))
+              best = {gk, o, i, cost};
+          }
+        }
+        if(!best){ r.peu = changes; break; }   // pas assez de joueurs pour changer : signalé
+        const list = best.gk ? r.gks : r.field;
+        list[list.indexOf(best.o)] = best.i;
+        r.rotated.push(best.i); r.resting.push(best.o); r.forced.push(best.i, best.o);
+        r.why[best.i.cle] = best.o; r.why[best.o.cle] = best.i;
+      }
+    }
+    prev = team();
+  }
   // 3. force et risque de chaque feuille
-  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken}) => {
+  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken, forced, peu}) => {
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
@@ -758,7 +817,7 @@ function planning(){
       : broken.length ? "a_revoir"
       : pub && keyset(pub) === mine && (!local || keyset(local) === mine) ? "publiee" : "attente";
     const valideLe = (local || pub || {}).le || null;
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, postes, postesOk, fixed, broken, etat, valideLe,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, forced, peu, postes, postesOk, fixed, broken, etat, valideLe,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
@@ -776,6 +835,7 @@ const ETAT = {
 const dayShort = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("fr-FR", {day:"numeric", month:"short"}); };
 const ETAT_COURT = {suggestion:"Sugg.", choix:"Choix", publiee:"Validée", attente:"À publier", modifiee:"Modifiée", a_revoir:"À revoir", retrait:"Retrait"};
 const PENDING = ["attente", "retrait"];   // ce que les joueurs ne voient pas encore
+const DECIDE = ["choix", "publiee", "attente", "modifiee", "a_revoir"];   // l'entraîneur a décidé : « retenu »
 const etatTag = (r, compact) => { const [c, t, why] = ETAT[r.etat] || ETAT.suggestion;
   const date = ["choix","publiee"].includes(r.etat) && r.valideLe ? " le "+esc(dayShort(r.valideLe)) : "";
   return '<span class="feuille '+c+'" title="'+esc(why)+'">'+(compact ? '<span class="tl">'+t+date+'</span><span class="ts">'+ETAT_COURT[r.etat]+'</span>' : t+date)+'</span>'; };
@@ -944,13 +1004,22 @@ function viewPlanif(){
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
-  h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
+  // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
+  const done = D.derniers || [], jr = (p, x) => (x.joueurs || {})[p.cle];
+  const pastCell = (p, x) => { const j = jr(p, x);
+    if(!j) return '<div class="pc" title="'+esc(p.nom)+' : pas sur la feuille contre '+esc(x.adversaire)+'">·</div>';
+    const what = isGK(p) ? j.arrets+' arrêt'+(j.arrets > 1 ? "s" : "") : j.buts+' but'+(j.buts > 1 ? "s" : "");
+    return '<div class="pc on" title="'+esc(p.nom)+' : sur la feuille contre '+esc(x.adversaire)+', '+what+'">✓<small>'+(isGK(p) ? j.arrets : j.buts || "")+'</small></div>'; };
+  h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+(done.length ? " pp"+done.length : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
+    + done.map(x => '<div class="h past" title="Joué : '+esc(x.adversaire)+'"><div class="c"><span class="tag done">joué</span><br>'+logo(x.adversaire)
+      + '<br><span class="tl"><b>'+esc(teamShort(x.adversaire))+'</b><br>'+esc(roundShort(x))+' · '+(x.saison && x.saison !== D.meta.saison ? esc(x.saison) : esc(fmtDate((x.date || "").slice(0, 10))))+'<br></span>'
+      + '<span class="ts">'+esc(roundShort(x))+(x.saison && x.saison !== D.meta.saison ? '<br>'+esc(x.saison.slice(2, 4)+"-"+x.saison.slice(7)) : '')+'<br></span><span class="form"><i class="'+x.res+'">'+x.res+'</i></span> <span class="tl">'+x.bp+'-'+x.bc+'</span></div></div>').join("")
     + cols.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c">'+logo(r.m.adversaire, "md")+'<b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
       + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key"><span class="tl">Match clé</span><span class="ts">Clé</span></span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
       + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div></div>').join("")
-    + '<div class="h" title="Matchs où il est retenu"><span class="tl">retenu</span><span class="ts">✓</span></div>';
+    + '<div class="h" title="Matchs où il est proposé (retenu une fois la feuille validée par l\'entraîneur)"><span class="tl">proposé</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
@@ -960,39 +1029,45 @@ function viewPlanif(){
         + '<span class="tl">'+esc(p.nom)+'</span><span class="ts">'+esc(playerShort(p.nom))+'</span>'
         + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
         + (depOf(p) ? ' <small class="dep tl" title="Joue seulement s\'il manque des joueurs ; hors rotation">dépannage</small>' : '')+'</div>';
+      h += done.map(x => pastCell(p, x)).join("");
       for(const r of cols){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle];
         const cls = av === "a" ? "a" : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
         const sym = av === "a" ? "✕" : sel ? (rot ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
-        const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "";
+        const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
+        const forced = r.forced.includes(p);
         const what = av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
+          : rot && forced ? "entre : au moins "+MIN_CHANGES+" changements d'un match au suivant, à la place de "+other.nom+samePoste(p, other)
+          : rest && forced ? "au repos : au moins "+MIN_CHANGES+" changements d'un match au suivant, laisse sa place à "+other.nom+samePoste(p, other)
           : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom+samePoste(p, other)
           : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom+samePoste(p, other)
-          : sel && depOf(p) ? "retenu en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
-          : sel ? (av === "i" ? "retenu, mais incertain" : "retenu : parmi les mieux notés disponibles pour ce match")
-          : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non retenu";
+          : sel && depOf(p) ? w+" en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
+          : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match")
+          : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym
-          + (single ? '<span>'+(av === "a" ? "absent" : sel ? (rot ? "entre" : av === "i" ? "incertain" : "retenu") : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
+          + (single ? '<span>'+(av === "a" ? "absent" : sel ? (rot ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
-  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + cols.map(r => '<div class="h small"><div class="c">'
+  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + done.map(() => '<div class="pc"></div>').join("") + cols.map(r => '<div class="h small"><div class="c">'
       + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus"><span class="tl">'+esc(c.nom)+'</span><span class="ts">'+esc(c.nom.slice(0, 3).toUpperCase())+'</span> '+c.n+'/'+c.min+'</span>').join(" ")
       + '</div></div>').join("") + '<div></div>';
   h += '<div class="who muted small footlab"><span class="tl">Avec ces choix</span><span class="ts">force<br>victoire<br>risque</span></div>'
+    + done.map(x => '<div class="pc foot"><span class="form"><i class="'+x.res+'">'+x.res+'</i></span><br><small>'+x.bp+'-'+x.bc+'</small></div>').join("")
     + cols.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
-    + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
+    + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'
+    + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
-  h += '<p class="note">Force : valeur des 12 retenus rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos réglages restent sur cet ordinateur ; seule une feuille validée est publiée, chiffrée, pour les joueurs.</p>';
+  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
+  h += '<p class="note">Force : valeur des 12 proposés rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos réglages restent sur cet ordinateur ; seule une feuille validée est publiée, chiffrée, pour les joueurs.</p>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
 }
@@ -1072,8 +1147,8 @@ function playerCard(p, plan, refs){
     + (p.m ? spark(p.journal.map(j => gk ? j.arrets : j.buts), gk) : "")
     + (gk ? bar(p.pct_arrets, refs.gk, "Arrêts sur tirs cadrés"+(p.pris_estime ? " (estimé)" : ""))
           : bar(p.reussite, refs.tir, "Réussite au tir"+(p.tirs ? " · "+p.buts+"/"+p.tirs : "")))
-    + (p.passe ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
-    + '<div class="chips">'+chips+'<span class="chip avenir">retenu '+planned+'/'+PLAN.length+' à venir</span></div></div>';
+    + (p.passe || p.avant ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
+    + '<div class="chips">'+chips+'<span class="chip avenir">proposé '+planned+'/'+PLAN.length+' à venir</span></div></div>';
 }
 function viewJoueurs(){
   if(!D.joueurs.length) return '<header class="top"><h1>Joueurs</h1></header>'+emptyPanel();
@@ -1156,13 +1231,23 @@ function common(adv){
 // un joueur de cette saison vu la saison passée : ses chiffres d'alors, sinon « pas là »
 const avant = (e, a, txt) => !e.passe || !e.passe.feuilles ? ""
   : '<br><span class="why prev">'+(a ? '<b>Déjà là en '+esc(e.passe.saison)+'</b> : '+txt(a) : 'Pas là en '+esc(e.passe.saison))+'</span>';
+// d'où viennent ses joueurs : l'équipe de chacun la saison passée, tous clubs et divisions confondus
+function origins(e){
+  const o = e.origines;
+  if(!o || !o.vus) return "";
+  if(!o.retrouves) return '<p class="small muted">Aucun de leurs '+o.vus+' joueurs vus cette saison n\'apparaît sur les feuilles '+esc(o.saison || "de la saison passée")+' que nous avons lues : ils jouaient sans doute dans d\'autres poules ou divisions.</p>';
+  const where = o.equipes.map(t => t.joueurs+' avec '+esc(teamShort(t.equipe))+(t.division ? ' ('+esc(t.division)+')' : '')).join(", ");
+  return '<p><b>Leurs joueurs en '+esc(o.saison)+'</b> : '+o.retrouves+' de leurs '+o.vus+' joueurs retrouvés, '+where+'. Leur force de départ en tient compte'+(o.retrouves < o.vus ? ', pour la part retrouvée' : '')+'.</p>';
+}
 function pastBlock(e){   // ce que la saison passée dit de cet adversaire
   const x = e.passe;
-  if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
+  if(!x) return '<h2>Saison passée</h2><div class="panel">'+(e.origines && e.origines.vus ? '<p class="small muted">Pas d\'équipe sous ce nom la saison passée : nouvelle équipe ou nouvelle entente.</p>'+origins(e)
+    : '<p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas d'équipe sous ce nom la saison passée (nouvelle équipe ou nouvelle entente) ; leurs joueurs seront recherchés dès leur première feuille de match." : "Saison passée pas encore collectée.")+'</p>')+'</div>';
   const rangs = x.rangs.map(r => ord(r.rang)+" de la poule "+esc(r.poule)+" ("+r.equipes+" équipes)").join(", ");
   const div = y => y.division || "division du dessus", haut = y => y.niveau > 0 ? " en "+esc(div(y))+" (au-dessus de la nôtre)" : "";
   let h = '<h2>Saison '+esc(x.saison)+haut(x)+'</h2><div class="panel">'
     + (x.niveau > 0 ? '<p class="note">Une division au-dessus la saison passée : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus, d\'autant plus qu\'elle a gardé ses joueurs'+(x.continuite ? ' ('+x.continuite.deja+' sur '+x.continuite.sur+')' : '')+'. Niveau potentiellement supérieur au nôtre.</p>' : '')
+    + origins(e)
     + (e.dessus ? '<p class="note">Le club jouait aussi en '+esc(div(e.dessus))+' : '+e.dessus.v+'-'+e.dessus.n+'-'+e.dessus.d+', '
       + e.dessus.rangs.map(r => ord(r.rang)+" sur "+r.equipes).join(", ")
       + (e.dessus.continuite ? ' ; '+e.dessus.continuite.deja+' de leurs '+e.dessus.continuite.sur+' joueurs de cette saison y jouaient' : ' ; part de ses joueurs encore là : à voir sur leurs feuilles')
