@@ -46,7 +46,9 @@
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
-main{max-width:760px;margin:0 auto;padding:0 16px 48px}
+/* largeur : la place des grands écrans pour les tableaux et les fiches, le texte reste lisible */
+main{max-width:var(--page);margin:0 auto;padding:0 16px 48px}
+:root{--page:1200px}
 h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.05;margin:0;color:var(--heading)}
 h1{font-size:2.1rem;letter-spacing:.01em}
 h2{font-size:1.45rem;margin:28px 0 10px}
@@ -55,7 +57,7 @@ p{margin:0 0 8px}
 .muted{color:var(--muted)} .small{font-size:.86rem}
 .num{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
 .club{background:var(--structure-900);color:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
-.club div{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.club div{max-width:calc(var(--page) - 32px);margin:0 auto;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
 .club b{font:700 1.25rem var(--display);letter-spacing:.03em;color:var(--accent)}
 .club span{font-size:.86rem;color:var(--structure-100)}
 .club .etat{margin-left:auto;font-size:.78rem}
@@ -160,7 +162,7 @@ section[hidden]{display:none}
 .status{font-size:.8rem;color:var(--muted);margin:10px 0 0}
 .status a,.status button{color:var(--link)}
 nav.tabs[hidden]{display:none}
-.note{border-left:3px solid var(--accent);padding:6px 0 6px 10px;margin:12px 0;font-size:.88rem;color:var(--muted)}
+.note{max-width:78ch;border-left:3px solid var(--accent);padding:6px 0 6px 10px;margin:12px 0;font-size:.88rem;color:var(--muted)}
 .hero{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:0;padding:12px 14px;margin-top:12px}
 .hero .kpis{margin-top:0}
 .advice{font-weight:500;margin:10px 0 6px}
@@ -261,6 +263,7 @@ body.lecture .coach{display:none!important}
 .etat-ligne .btn{margin-top:0}
 .jeton input{flex:1;min-width:180px;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:9px 10px}
 body:not(.lecture) .lecture-only{display:none!important}
+@media (min-width:1000px){.duo-semaine{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:16px;align-items:start}.duo-semaine .court{margin:0}}
 .club .mode{font-size:.74rem;padding:0 8px;border-radius:99px;border:1px solid var(--structure-500);color:var(--structure-100)}
 #why{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;gap:12px;align-items:flex-start;
   max-width:560px;margin:0 auto;padding:12px 14px;background:var(--structure-900);color:#fff;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.92rem}
@@ -669,12 +672,13 @@ function viewSemaine(){
     + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")
     + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
   const conv = COACH && S.convoque[m.id];
-  h += '<h2>'+squadTitle(r)+'</h2><div class="panel">'+etatLine(r)+squadChips(r)
+  h += '<h2>'+squadTitle(r)+'</h2><div class="duo-semaine"><div class="panel">'+etatLine(r)+squadChips(r)
     + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : COACH ? "Convocation pas encore envoyée." : "")
     + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+" ; au repos : "+r.resting.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
     + '<div class="edit noprint"><button class="btn" data-tab="planif">'+(COACH ? "Ajuster dans la planification" : "Voir la planification")+'</button>'
     + '<button class="btn ghost" data-tab="convoc">'+(COACH ? "Préparer la convocation" : "Voir la convocation")+'</button></div></div>';
   if(r.ok && r.sel.some(p => poste(p))) h += courtSVG(startSeven(r));
+  h += '</div>';   // la feuille et le sept de départ côte à côte sur grand écran
   h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b>'+esc(x.m.adversaire)+'</b>'
     + (x.m.cle ? ' <span class="tag key">Match clé</span>' : '')+'<p class="small" style="margin:6px 0 0">'+riskTag(x)+' victoire '+pct(x.pAdj)+'</p></div>').join("")+'</div>';
   const s = D.saison;
