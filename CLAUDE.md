@@ -198,6 +198,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
   passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
   de la saison passée ne compte pas pour la règle des 2 changements.
+- Saison qui avance (demande de l'auteur, 05/10/2026) : les saisons passées (et les -18) pèsent
+  HIST × `fade(n)` = HIST × FONDU / (FONDU + n), n = feuilles du club lues cette saison (FONDU = 6) :
+  0,5 au départ, 0,43 après 1 match, 0,25 après 6, 0,11 en fin de saison ; `reliability` porte
+  `poids_passee` / `poids_avant`. Côté adversaires, c'était déjà progressif : départ sur la saison
+  passée (3 à 5 matchs de poids selon la continuité), incertitude réduite par les matchs joués.
 - Poste pour poste (demande de l'auteur, 05/10/2026) : le 2e poste ARD de tous les droitiers faisait
   passer presque tout échange pour « même poste ». `compat(entrant, sortant)` : 3 même poste principal,
   2 l'entrant tient le poste principal du sortant, 1 un poste en commun, 0 aucun ; `fit` = min(compat,

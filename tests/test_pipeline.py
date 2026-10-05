@@ -734,7 +734,7 @@ def test_trois_sanctions(sandbox):
 def test_fiabilite_des_notes():
     """Une note dit sur combien de matchs elle repose : la saison passée compte pour moitié."""
     assert an.reliability(0, 0)["niveau"] == "aucune"
-    assert an.reliability(1, 2) == dict(matchs=2.0, saison=1, passee=2, avant=0, niveau="fragile")
+    assert an.reliability(1, 2) == dict(matchs=2.0, saison=1, passee=2, avant=0, niveau="fragile", poids_passee=0.5, poids_avant=0.25)
     assert an.reliability(0, 8)["niveau"] == "indicative" and an.reliability(1, 14)["niveau"] == "solide"
 
 
@@ -1063,7 +1063,10 @@ def test_division_du_dessus():
 
 def test_saison_d_avant(sandbox):
     """La saison d'avant (2024-2025) complète les chiffres de nos joueurs, pour un quart de match."""
-    assert an.reliability(2, 4, 8) == dict(matchs=6.0, saison=2, passee=4, avant=8, niveau="solide")
+    assert an.reliability(2, 4, 8) == dict(matchs=6.0, saison=2, passee=4, avant=8, niveau="solide", poids_passee=0.5, poids_avant=0.25)
+    # les saisons passées s'effacent à mesure que la saison avance
+    assert an.fade(0) == 1 and an.HIST * an.fade(6) == 0.25 and an.fade(12) < an.fade(6) < an.fade(1)
+    assert an.reliability(2, 4, 8, an.HIST * an.fade(6), an.HIST2 * an.fade(6))["matchs"] == 4.0
     m = an.merged(dict(an.EMPTY, m=2, buts=4, w=1.0, w_buts=2.0), dict(an.EMPTY, m=4, buts=8, w=0.5, w_buts=1.0))
     assert (m["m"], m["buts"], m["w"], m["w_buts"]) == (4.0, 8.0, 1.5, 3.0)
     demo(sandbox)

@@ -562,15 +562,25 @@ AGES = {"JEUNE": "jeune", "INTERMEDIAIRE": "intermediaire", "EXPERIMENTE": "expe
 HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
 HIST2 = HIST * HIST  # la saison d'avant (2024-2025) : un quart de match
 FIABLE = (3, 6)  # matchs comptés (saison passée pour HIST) : en deçà du 1er, note fragile ; du 2e, indicative
+# Les saisons passées s'effacent à mesure que la saison avance (demande de l'auteur, 05/10/2026) : un
+# match d'avant pèse HIST × FONDU / (FONDU + matchs de la saison lus) ; au début la saison passée guide,
+# puis chaque match joué compte davantage (0,5 au départ, 0,43 après 1 match, 0,25 après 6).
+FONDU = 6
 
 
-def reliability(m, m_past, m_older=0):
+def fade(n_season):
+    """Facteur des saisons passées après n_season matchs de la saison en cours."""
+    return FONDU / (FONDU + n_season)
+
+
+def reliability(m, m_past, m_older=0, w=HIST, w2=HIST2):
     """Sur combien de matchs repose une note : ceux de la saison, plus ceux de la saison passée
-    comptés pour HIST et ceux de la saison d'avant pour HIST2, et ce que cela vaut (fragile,
+    comptés pour w et ceux de la saison d'avant pour w2, et ce que cela vaut (fragile,
     indicative, solide ; aucune sans match)."""
-    n = m + HIST * m_past + HIST2 * m_older
+    n = m + w * m_past + w2 * m_older
     level = "aucune" if not n else "fragile" if n < FIABLE[0] else "indicative" if n < FIABLE[1] else "solide"
-    return dict(matchs=round(n, 1), saison=m, passee=m_past, avant=m_older, niveau=level)
+    return dict(matchs=round(n, 1), saison=m, passee=m_past, avant=m_older, niveau=level,
+                poids_passee=round(w, 2), poids_avant=round(w2, 2))
 
 
 COUNTS = ("m", "buts", "pen", "tirs", "tirs_connus", "arrets", "jaunes", "deux_min", "rouges", "pris", "cadres")
@@ -705,17 +715,19 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
     players, any_events = player_stats(with_sheet, lambda i: DECAY ** (n_sheet - 1 - i))
     past_ws = [c for c in club_matches_of(history, config) if c[0].get("players", {}).get(c[1])]
     n_past = len(past_ws)
-    past, _ = player_stats(past_ws, lambda i: HIST * DECAY ** (n_sheet + n_past - 1 - i))
+    hw = HIST * fade(n_sheet)   # un match de la saison passée, à ce point de la saison
+    hw2 = HIST2 * fade(n_sheet)
+    past, _ = player_stats(past_ws, lambda i: hw * DECAY ** (n_sheet + n_past - 1 - i))
     saison_passee = max((c[0].get("saison") or "" for c in past_ws), default="") or None
     # la saison d'avant (older) : un quart de match chacun
     old_ws = [c for c in club_matches_of(older, config) if c[0].get("players", {}).get(c[1])]
     n_old = len(old_ws)
-    old, _ = player_stats(old_ws, lambda i: HIST2 * DECAY ** (n_sheet + n_past + n_old - 1 - i))
+    old, _ = player_stats(old_ws, lambda i: hw2 * DECAY ** (n_sheet + n_past + n_old - 1 - i))
     saison_avant = max((c[0].get("saison") or "" for c in old_ws), default="") or None
     # les jeunes du club (youth : matchs des moins de 18 ans) : un quart de match, et seulement pour un
     # joueur sans aucun match senior, pour qu'il ait une note
     young_ws = [c for c in club_matches_of(youth, config) if c[0].get("players", {}).get(c[1])]
-    young, _ = player_stats(young_ws, lambda i: HIST2 * DECAY ** (len(young_ws) - 1 - i))
+    young, _ = player_stats(young_ws, lambda i: hw2 * DECAY ** (len(young_ws) - 1 - i))
     young = {k: h for k, h in young.items() if k not in players and k not in past and k not in old}
     saison_jeunes = max((c[0].get("saison") or "" for c in young_ws), default="") or None
     for key, h in list(past.items()) + list(old.items()) + list(young.items()):  # joueurs des saisons passées encore dans l'effectif
@@ -723,7 +735,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             players[key] = dict(EMPTY, cle=key, nom=h["nom"], nums=Counter(), clutch=0, diffs=[], journal=[],
                                 tranches=0, m_deroule=0, estime=False)
     all_diffs = [gf - ga for _, _, _, gf, ga in with_sheet]
-    blend = lambda r, h, k: r[k] + HIST * h[k]
+    blend = lambda r, h, k: r[k] + hw * h[k]
     hist_of = lambda r: merged(merged(past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY)), young.get(r["cle"], EMPTY))
     form = lambda r, h: (r["w_buts"] + h["w_buts"]) / (r["w"] + h["w"]) if r["w"] + h["w"] else 0
     max_form = max((form(r, hist_of(r)) for r in players.values()), default=0) or 1
@@ -759,7 +771,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             disc=max(0.0, 1 - penal / 2),
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
             clutch=(r["clutch"] / m) / max_clutch if any_events and m else 0.5,
-            assid=min(1.0, mw / (n_sheet + HIST * n_past + HIST2 * n_old)) if n_sheet + n_past + n_old else 0,
+            assid=min(1.0, mw / (n_sheet + hw * n_past + hw2 * n_old)) if n_sheet + n_past + n_old else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
             gk_vol=(saves / mw) / max_saves if gk else 0,
         )
@@ -794,7 +806,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             impact=round(impact, 1), decisifs=r["clutch"],
             comps={k: round(v, 2) for k, v in comps.items()},
             scores=scores, journal=r["journal"], passe=passe, avant=avant, jeunes=jeunes,
-            fiabilite=reliability(m, hp["m"], ho["m"] + hy["m"]),
+            fiabilite=reliability(m, hp["m"], ho["m"] + hy["m"], hw, hw2),
             note_base=("saison" + "".join(" et " + s for s in bases)) if m else (" et ".join(bases) or None)))
     shrink_notes(out)
     out.sort(key=lambda p: -p["scores"]["equilibre"])
@@ -811,7 +823,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
             comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
             scores={plan: None for plan in PLANS}, journal=[], passe=None, avant=None, jeunes=None, note_base=None,
-            fiabilite=reliability(0, 0)))
+            fiabilite=reliability(0, 0, 0, hw, hw2)))
     return out, club_matches, with_sheet
 
 

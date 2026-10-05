@@ -304,8 +304,9 @@ attribués exactement au gardien en place, et à aucun quand il était sorti (je
 mentions de commotion ne sont jamais conservées.
 
 Ce qu'elle apporte :
-- les notes des joueurs partent de la saison passée (un match de l'an dernier compte pour la
-  moitié d'un match de cette saison) ; un joueur de l'effectif pas encore aligné reçoit une note
+- les notes des joueurs partent de la saison passée : un match de l'an dernier compte pour la
+  moitié d'un match de cette saison au départ, puis de moins en moins à mesure que la saison avance
+  (0,43 après un match, 0,25 après six) : les matchs joués aident de plus en plus à choisir ; un joueur de l'effectif pas encore aligné reçoit une note
   provisoire ; un joueur parti n'est pas repris ;
 - pour chaque adversaire déjà vu : bilan et classement, confrontations avec le club, joueurs de
   cette saison déjà là l'an dernier, devenir de ses meilleurs buteurs ;
