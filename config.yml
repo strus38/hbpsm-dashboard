@@ -73,6 +73,12 @@ historique:
     competition: "https://www.ffhandball.fr/competitions/saison-2024-2025-20/regional/1ere-division-masculine-p16-aura-25096/"
     niveau: 1
     club_seul: true
+  # 2025-2026, moins de 18 ans du club (2e phase, poule 12) : seulement pour un joueur de l'effectif
+  # sans aucun match senior, qui y jouait (demande de l'auteur, 05/10/2026) ; jamais pour les adversaires
+  - saison: "2025-2026"
+    competition: "https://www.ffhandball.fr/competitions/saison-2025-2026-21/regional/m18-ans-masculin-division-2-aura-30005/"
+    categorie: "M18"
+    club_seul: true
 # Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
 entrainement:
   equipe: "Seniors garçons"

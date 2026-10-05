@@ -1073,6 +1073,29 @@ def test_saison_d_avant(sandbox):
     assert any("2024-2025" in (p.get("note_base") or "") for p in seen)
 
 
+def test_jeunes_pour_un_joueur_sans_match_senior(sandbox):
+    """Les matchs de nos moins de 18 ans donnent une note au joueur de l'effectif qui n'a aucun match
+    senior ; ils ne touchent pas aux autres, ni à la force des adversaires."""
+    demo(sandbox)
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]][:2]
+    young = []
+    for i, x in enumerate(club):
+        side = "home" if x["home"]["name"] == demo_data.CLUB else "away"
+        y = json.loads(json.dumps(x))
+        y.update(id=f"m18-{i}", date=f"2026-03-0{i + 1}", saison="2025-2026")
+        y["players"][side] = [dict(y["players"][side][0], name="ALIGNE Jamais", goals=4, num=99)] + y["players"][side][1:]
+        young.append(y)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026-m18.json",
+                      dict(saison="2025-2026", categorie="M18", competition="https://exemple/m18-1/", poules={}, matches=young))
+    regular = club[0]["players"]["home" if club[0]["home"]["name"] == demo_data.CLUB else "away"][1]["name"]
+    roster = {common.name_key(n): dict(nom=n, poste="", disponible=True) for n in ("Jamais Aligné", regular)}
+    d = an.analyze("2026-10-04", roster=roster)
+    new = next(p for p in d["joueurs"] if p["nom"] == "Jamais Aligné")
+    assert new["m"] == 0 and new["jeunes"]["m"] == 2 and new["jeunes"]["buts"] == 8 and new["scores"]["equilibre"] is not None
+    assert all(not p.get("jeunes") for p in d["joueurs"] if p["nom"] != "Jamais Aligné")   # les autres : rien des -18
+
+
 def test_planification_figee_entre_deux_matchs(sandbox):
     """Les entrées de la planification (notes, chances de victoire, match clé) restent celles posées
     tant qu'aucune feuille du club n'arrive : mêmes propositions d'une publication à l'autre."""

@@ -70,7 +70,7 @@ def collect_state():
 
 
 def history_state():
-    """Saisons passées collectées : {saison: contenu}."""
+    """Saisons passées collectées (et matchs de nos jeunes) : {fichier: contenu}."""
     return {p.stem: json.loads(p.read_text("utf-8")) for p in sorted((DATA / "historique").glob("*.json"))}
 
 

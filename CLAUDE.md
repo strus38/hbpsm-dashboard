@@ -179,6 +179,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `club_seul: true` (seuls nos matchs et leurs feuilles) ; `club_players(older=)` la compte pour HIST2
   (un quart de match) : `merged`, `season_line`, `avant` sur chaque joueur, `reliability(m, passée,
   avant)`. Elle n'entre pas dans la force des adversaires (seule la saison la plus récente y sert).
+- Moins de 18 ans du club (demande de l'auteur, 05/10/2026) : entrée `historique` avec `categorie: "M18"`
+  (M18 masculin division 2 AURA 2025-2026, 30005, 2e phase poule 12 ; la 1re phase n'est pas dans la
+  M18 Excellence 27887, sans doute départementale : non trouvée). Fichier `<saison>-m18.json`, jamais
+  pour les adversaires ; `club_players(youth=)` : un quart de match, seulement pour un joueur sans aucun
+  match senior (cette saison, la passée, celle d'avant), ligne `jeunes` sur sa fiche (« -18 2025-2026 »).
 - Propositions stables et communes (demande de l'auteur, 05/10/2026) : en consultation, la
   planification ignore tout ce qui est rangé dans le navigateur (`SP()` renvoie `NEUTRE` hors mode
   entraîneur) ; `analyze.freeze_plan` fige les entrées de la rotation (`scores_plan`, `p_plan`, `cle`)
