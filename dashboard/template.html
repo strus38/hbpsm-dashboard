@@ -293,8 +293,8 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 <body>
 <header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
-  <button role="tab" data-tab="planif" aria-selected="false"><span class="tl">Planification</span><span class="ts">Planif.</span></button>
-  <button role="tab" data-tab="semaine" aria-selected="true">Semaine</button>
+  <button role="tab" data-tab="planif" aria-selected="true"><span class="tl">Planification</span><span class="ts">Planif.</span></button>
+  <button role="tab" data-tab="semaine" aria-selected="false">Semaine</button>
   <button role="tab" data-tab="convoc" aria-selected="false"><span class="tl">Convocation</span><span class="ts">Convoc.</span></button>
   <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
   <button role="tab" data-tab="adv" aria-selected="false"><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
@@ -321,11 +321,12 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, depannage:{}, adv:null, tab:"semaine", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
+let S = {postes:{}, absents:{}, depannage:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 // avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
 normRule();
+S.tab = "planif";   // la page s'ouvre toujours sur la planification (demande de l'auteur, 05/10/2026)
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fr = n => n == null ? "–" : String(n).replace(".", ",");
@@ -1035,7 +1036,7 @@ document.addEventListener("toggle", ev => {
   const d = ev.target; if(!d.dataset || !d.dataset.cle) return;
   d.open ? OPEN.add(d.dataset.cle) : OPEN.delete(d.dataset.cle);
 }, true);
-if(!VIEWS[S.tab]) S.tab = "semaine";
+if(!VIEWS[S.tab]) S.tab = "planif";
 
 const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 async function openVault(env, phrase){

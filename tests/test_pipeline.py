@@ -350,7 +350,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.fill("#phrase", PHRASE)
         page.click("#unlock")
         page.wait_for_selector("header.top h1")
-        assert "HBPSM contre" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        # la page s'ouvre sur la planification
+        assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
+        assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        page.click("nav.tabs button[data-tab=semaine]")
+        assert "HBPSM contre" in page.inner_text("h1")
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
         sheet = "(k => { const r = planning()[k]; return [r.sel.length, r.gks.length, r.missing, r.missingGK]; })"
         assert [page.evaluate(sheet + "(%d)" % k) for k in range(4)] == [[12, 2, 0, 0]] * 4
@@ -433,6 +437,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.reload()
         page.wait_for_selector("header.top h1")
         assert page.evaluate("D.meta.matchs") == 24  # la copie gardée est la plus récente
+        # rouverte, la page revient sur la planification, même après la saison
+        assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
+        page.click("nav.tabs button[data-tab=saison]")
         assert "hors connexion" in page.inner_text(".status") and "hors connexion" in page.inner_text("#club-etat")
         browser.close()
     assert errors == []

@@ -135,7 +135,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   dans `dashboard/template.html` avec les mêmes rôles (bleu marine = ossature, jaune = actif ou
   mis en avant, toujours avec un texte foncé). Si le club change sa palette, changer les deux.
 - Organisation de la page (demande de l'auteur, 04/10/2026, pour l'entraîneur qui convoque les
-  12 joueurs après l'entraînement du vendredi) : Planification (4 prochains matchs), Semaine,
+  12 joueurs après l'entraînement du vendredi) : Planification (4 prochains matchs, onglet
+  ouvert à chaque ouverture de la page), Semaine,
   Convocation, Joueurs, Adversaires, Saison. Feuille : 12 joueurs dont 2 gardiens
   (`effectif_feuille`, `gardiens_feuille`). Rotation (refaite le 05/10/2026, l'ancienne,
   match par match, tombait sur les matchs difficiles et ne reposait jamais le 1er gardien) :
