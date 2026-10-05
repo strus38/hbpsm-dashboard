@@ -97,6 +97,13 @@ axes de travail) est fait par la collecte sur GitHub. La page ne fait que ces ca
 parce que les disponibilités, les choix et les postes se saisissent sur l'ordinateur de
 l'entraîneur et n'en sortent pas (un fichier « Sauvegarder mon planning » les emporte ailleurs).
 
+Deux modes. Ouverte depuis HANDBALL-training, dont le lien se termine par `#entraineur`, la
+page est en mode entraîneur : disponibilités, choix, rotation, rendez-vous, convocation et
+postes se modifient. Ouverte directement (GitHub Pages ou fichier), elle se consulte seulement :
+aucun contrôle de modification, une note rappelle que la feuille affichée est la proposition du
+tableau de bord et que la convocation de l'entraîneur fait foi, et toucher une case en donne la
+raison. Ce n'est pas un verrou : rien de ce qu'on modifie ne quitte le navigateur.
+
 Sur téléphone, la page se resserre : menu sur une ligne, noms courts, tableaux sans les
 colonnes secondaires, planification avec la colonne des noms fixe et des cases plus grandes. Le
 survol n'existant pas au doigt, « Toucher une case : explique » affiche la raison d'une case

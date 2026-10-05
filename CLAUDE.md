@@ -112,7 +112,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `publie/seance-prochaine.hbt.json`, et ouvre la page complète sur GitHub Pages
   (https://strus38.github.io/hbpsm-dashboard/), qui demande la phrase une fois par poste.
   Contrat à ne pas rompre : ces deux chemins sur `main`, `format` « hbpsm-public » `v` 1,
-  `.hbt.json` v3, l'adresse Pages.
+  `.hbt.json` v3, l'adresse Pages suivie de `#entraineur`.
+- Modes (demande de l'auteur, 05/10/2026) : seul l'entraîneur modifie Planification, Semaine,
+  Convocation et les réglages des fiches, et seulement depuis HANDBALL-training (`COACH` : marqueur
+  `#entraineur` dans l'adresse, posé par le profil HBPSM de l'application, 1.16.1). Ouverte
+  autrement : consultation (`body.lecture`, classes `.coach` / `.lecture-only`, saisies ignorées).
+  Pas un verrou : les choix restent dans chaque navigateur ; viser seulement à ne pas tromper un
+  joueur. Les choix de l'entraîneur ne sont pas publiés : un joueur voit la proposition automatique.
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris
   exacts) ; PROTOCOLECOMMOTION, COMMOTION et TEMPSDEREGULATIONCOMPORTEMENTAL sont ignorés
   (donnée de santé, sans intérêt). Feuille en 404 : `pdf_absent`, plus redemandée.

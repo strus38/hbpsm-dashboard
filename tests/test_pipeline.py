@@ -341,7 +341,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page = ctx.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.goto(page_file.as_uri())
+        page.goto(page_file.as_uri() + "#entraineur")  # comme depuis HANDBALL-training : l'entraîneur modifie
         page.wait_for_selector("#phrase")
         page.fill("#phrase", "mauvaise phrase secrete")
         page.click("#unlock")
@@ -441,6 +441,18 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         page.click("nav.tabs button[data-tab=saison]")
         assert "hors connexion" in page.inner_text(".status") and "hors connexion" in page.inner_text("#club-etat")
+        # ouverte directement (sans « #entraineur ») : consultation seulement, rien ne se modifie
+        ro = ctx.new_page()
+        ro.on("pageerror", lambda e: errors.append(str(e)))
+        ro.goto(page_file.as_uri())
+        ro.wait_for_selector("header.top h1")
+        assert ro.inner_text("#club-mode") == "consultation" and ro.locator(".lecture-only").first.is_visible()
+        assert not ro.locator("#regle").is_visible() and not ro.locator("[data-export]").is_visible()
+        before = ro.evaluate("JSON.stringify([S.pin, S.dm])")
+        ro.locator("button.cell.in").first.click()
+        assert ro.locator("#why").is_visible() and ro.evaluate("JSON.stringify([S.pin, S.dm])") == before
+        ro.click("nav.tabs button[data-tab=convoc]")
+        assert ro.locator("#rdv").count() == 0 and not ro.locator("[data-copy]").is_visible()
         browser.close()
     assert errors == []
 
