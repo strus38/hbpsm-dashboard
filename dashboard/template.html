@@ -259,6 +259,34 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 .ts{display:none}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:end;margin:12px 0}
+.marche{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.marche.m1{border-color:var(--accent-trait);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.marche .medaille{font-size:1.6rem}.marche span{font-size:.8rem;color:var(--muted)}
+.prop{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.prop:first-of-type{border-top:0}
+.prop-groupe{border-top:1px solid var(--rule)}.prop-groupe>summary{list-style:none;cursor:pointer;border-top:0}
+.prop-groupe>.prop{padding-left:20px}
+.anges{margin:10px 0 0;color:var(--muted)}.prop .emoji,.tile .emoji{font-size:1.5rem;text-align:center}
+.prop-btn{display:flex;gap:6px}.prop-btn .btn{margin-top:0;padding:8px 12px}
+.montant{font-weight:700;white-space:nowrap}
+.article{display:inline-block;margin-top:2px}
+.picker .step{font-weight:700;margin:12px 0 6px}
+.cchips{display:flex;flex-wrap:wrap;gap:6px}
+.cchip{border:1px solid var(--rule);background:var(--surface);border-radius:99px;padding:7px 12px;cursor:pointer;font:inherit;font-size:.9rem}
+.cchip.on,.tile.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent-fonce)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--rule);background:var(--surface);border-radius:10px;padding:10px;cursor:pointer;font:inherit}
+.tile .small{color:inherit;opacity:.8}
+.stepper{display:inline-flex;align-items:center;gap:10px}.stepper .btn{margin-top:0;padding:6px 14px;font-size:1.1rem}
+.cnote{width:100%;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:9px 10px;margin-top:8px}
+.picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
+.compte{border-top:1px solid var(--rule)}.compte:first-child{border-top:0}
+.compte summary{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 0}
+.compte .reste{font-weight:700;color:var(--muted)}.compte .reste.du{color:var(--loss)}
+.lignes li{padding:4px 0;border-top:1px dashed var(--rule)}
+.feed li{padding:6px 0;border-top:1px solid var(--rule)}.feed li:first-child{border-top:0}
+.reglement summary{cursor:pointer}.reglement li{padding:4px 0}
 body.lecture .coach{display:none!important}
 .feuille{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:99px;white-space:nowrap;margin-top:3px}
 .feuille.sugg{border:1px dashed var(--muted);color:var(--muted)}
@@ -288,8 +316,11 @@ body:not(.lecture) .lecture-only{display:none!important}
   h2{font-size:1.3rem;margin:22px 0 8px}
   header.top .when{font-size:1rem}
   .panel{padding:12px}
-  nav.tabs{display:grid;grid-template-columns:repeat(6,1fr)}
-  nav.tabs button{max-width:none;min-width:0;padding:12px 0 9px;font-size:.84rem;letter-spacing:0}
+  nav.tabs{display:grid;grid-template-columns:repeat(7,1fr)}
+  nav.tabs button{max-width:none;min-width:0;padding:12px 0 9px;font-size:.76rem;letter-spacing:0}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .prop{grid-template-columns:28px 1fr}.prop-btn{grid-column:2}
+  .podium .marche b{font-size:.85rem}
   th.opt,td.opt{display:none}
   td.team{min-width:0;white-space:normal}
   th,td{padding:7px 4px}
@@ -336,6 +367,7 @@ body:not(.lecture) .lecture-only{display:none!important}
   <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
   <button role="tab" data-tab="adv" aria-selected="false"><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
   <button role="tab" data-tab="saison" aria-selected="false">Saison</button>
+  <button role="tab" data-tab="caisse" aria-selected="false"><span class="tl">Caisse noire</span><span class="ts">Caisse</span></button>
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">__DATA__</script>
@@ -1069,6 +1101,219 @@ function viewSaison(){
   h += '</div>';
   return h;
 }
+// ---------------------------------------------------------------- caisse noire
+// Le registre (amendes, refus, annulations, paiements) est publié chiffré dans publie/caisse.enc.
+// Seuls les trésoriers (et l'entraîneur), qui ont le jeton de publication, y écrivent : chaque
+// saisie attend dans une boîte d'envoi locale jusqu'à ce qu'on la retrouve publiée, et peut être
+// renvoyée sans être comptée deux fois. Les autres consultent, et peuvent dénoncer.
+const CAISSE_KEY = "hbpsm:caisse", OUTBOX = "hbpsm:caisse-envoi", ME = "hbpsm:moi";
+let CAISSE = null, CAISSE_SIG = null, CPUB = "", CPOLL = null, CJETON = false;
+let PICK = {joueur: null, regle: null, n: 1, montant: "", note: "", date: "", partie: "Match"};
+const RULE = c => ((D.caisse && D.caisse.reglement) || []).find(r => r.code === c)
+  || {code: c, titre: c, partie: "", montant: null, unite: "", emoji: "💰", texte: ""};
+const euros = x => x == null ? "–" : (Math.round(x * 100) / 100).toLocaleString("fr-FR", {minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2}) + " €";
+const memberName = cle => cle === (D.caisse && D.caisse.coach) ? "Coach" : ((D.joueurs.find(p => p.cle === cle) || {}).nom || String(cle || "?").replace(/^R:/, ""));
+const members = () => [...D.joueurs.filter(p => String(p.cle).startsWith("R:")).map(p => p.cle), D.caisse.coach];
+const canWrite = () => !!stored(TOKEN);
+const whoAmI = () => stored(ME) || "";
+const outbox = () => { try { return JSON.parse(stored(OUTBOX) || "[]"); } catch (e) { return []; } };
+const setOutbox = list => { try { localStorage.setItem(OUTBOX, JSON.stringify(list)); } catch (e) {} };
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+const nextMonth = m => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? (y + 1) + "-01" : y + "-" + String(mo + 1).padStart(2, "0"); };
+const monthName = m => new Date(m + "-15T12:00").toLocaleDateString("fr-FR", {month: "long", year: "numeric"});
+const ruleLine = r => r.partie + " · " + r.titre + (r.nature ? " — en nature" : r.montant == null ? " — montant voté" : " — " + euros(r.montant) + " / " + r.unite);
+
+function ledger(){   // l'état de la caisse : amendes, paiements, propositions déjà tranchées, soldes
+  const pub = (CAISSE && CAISSE.ops) || [], seen = new Set(pub.map(o => o.id));
+  const ops = [...pub, ...outbox().filter(o => !seen.has(o.id)).map(o => Object.assign({envoi: true}, o))];
+  const gone = new Set(ops.filter(o => o.t === "annule").map(o => o.cible));
+  const fines = ops.filter(o => o.t === "amende" && !gone.has(o.id));
+  const pays = ops.filter(o => o.t === "paiement" && !gone.has(o.id));
+  const decided = new Set([...fines.map(o => o.auto), ...ops.filter(o => o.t === "refus").map(o => o.auto)].filter(Boolean));
+  const bal = {};
+  const of = c => bal[c] = bal[c] || {du: 0, paye: 0, n: 0, tournees: 0};
+  for(const c of members()) of(c);
+  for(const f of fines){ const b = of(f.joueur); b.n++; if(f.montant == null) b.tournees++; else b.du += f.montant; }
+  for(const p of pays) of(p.joueur).paye += p.montant || 0;
+  return {ops, fines, pays, decided, bal};
+}
+function caisseProposals(L){   // d'après les feuilles (calculées sur GitHub), plus les « Bon point ! » des mois finis
+  const props = (D.caisse.propositions || []).filter(p => !L.decided.has(p.id));
+  const first = L.ops.map(o => (o.le || "").slice(0, 7)).filter(Boolean).sort()[0];
+  const cur = new Date().toISOString().slice(0, 7);
+  for(let m = first; m && m < cur; m = nextMonth(m)){
+    const fined = new Set(L.fines.filter(f => (f.date || "").slice(0, 7) === m && f.regle !== "bon_point").map(f => f.joueur));
+    for(const c of members()){
+      const id = "bon_point:" + m + ":" + c;
+      if(!fined.has(c) && !L.decided.has(id)) props.push({id, regle: "bon_point", joueur: c, n: 1, montant: 1, date: m + "-28", match: null, motif: "aucune amende en " + monthName(m)});
+    }
+  }
+  return props.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+}
+function fineOp(p, auto){
+  return {id: auto ? "v:" + p.id : uid(), t: "amende", joueur: p.joueur, regle: p.regle, n: p.n || 1, montant: p.montant,
+          date: p.date || new Date().toISOString().slice(0, 10), match: p.match || null, note: p.motif || p.note || "",
+          auto: auto ? p.id : null, par: whoAmI(), le: new Date().toISOString()};
+}
+function addOps(list){ setOutbox([...outbox(), ...list]); render(true); flushCaisse(); }
+async function fetchCaisse(){   // vrai si le registre publié a changé
+  const phrase = stored(PASS);
+  if(!CFG.caisse || !phrase) return false;
+  let env = null;
+  try {
+    const r = await fetch(CFG.caisse + "?t=" + Date.now(), {cache: "no-store"});
+    if(r.status === 404){ const had = !!CAISSE; CAISSE = null; CAISSE_SIG = null; return had; }
+    if(r.ok) env = await r.json();
+  } catch (e) {}
+  if(!env){ try { env = JSON.parse(stored(CAISSE_KEY) || "null"); } catch (e) {} }
+  if(!env || env.donnees === CAISSE_SIG) return false;
+  try { CAISSE = await openVault(env, phrase); CAISSE_SIG = env.donnees; } catch (e) { return false; }
+  try { localStorage.setItem(CAISSE_KEY, JSON.stringify(env)); } catch (e) {}
+  const known = new Set((CAISSE.ops || []).map(o => o.id));
+  setOutbox(outbox().filter(o => !known.has(o.id)));   // publiées : plus rien à envoyer
+  return true;
+}
+async function flushCaisse(){
+  const box = outbox(), token = stored(TOKEN), phrase = stored(PASS);
+  if(!box.length) return;
+  if(!token){ CPUB = "jeton"; render(true); return; }
+  if(!CFG.depot || !phrase){ CPUB = "erreur"; render(true); return; }
+  CPUB = "envoi"; render(true);
+  try {
+    const env = await sealVault({format: "hbpsm-caisse-ops", v: 1, ops: box}, phrase);
+    const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/caisse.yml/dispatches", {
+      method: "POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {ops: JSON.stringify(env)}}),
+      headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
+    CPUB = r.status === 204 ? "envoyee" : [401, 403, 404].includes(r.status) ? "refuse" : "erreur";
+  } catch (e) { CPUB = "erreur"; }
+  render(true);
+  if(CPUB === "envoyee") watchCaisse();
+}
+function watchCaisse(){   // la mise en ligne prend une minute ou deux
+  clearInterval(CPOLL);
+  let n = 0;
+  CPOLL = setInterval(async () => {
+    n++;
+    if(await fetchCaisse()) render(true);
+    if(!outbox().length){ CPUB = ""; render(true); clearInterval(CPOLL); }
+    else if(n >= 16){ CPUB = "lent"; render(true); clearInterval(CPOLL); }
+  }, 15000);
+}
+const CPUB_TXT = {envoi: "Envoi…", envoyee: "Envoyé : visible par tous d'ici une à deux minutes.",
+  refuse: "Jeton refusé par GitHub (expiré, ou sans le droit « Actions ») : collez-en un nouveau.",
+  erreur: "Envoi impossible pour l'instant (connexion ?) : réessayez.", lent: "Toujours pas en ligne : renvoyez (rien ne sera compté deux fois).",
+  jeton: "Collez d'abord le jeton de publication."};
+function caisseStatus(){
+  const w = canWrite(), box = outbox().length, me = whoAmI();
+  const tres = [...(D.caisse.tresoriers || []), D.caisse.coach];
+  if(!w) return '<p class="note">Consultation. Seuls les trésoriers saisissent les amendes. Vous en avez vu une ? Préparez la dénonciation plus bas et envoyez-la au groupe (une fausse dénonciation coûte 1 €). '
+    + '<button class="link" data-cjeton-show="1">Je suis trésorier</button></p>'
+    + (CJETON || CPUB === "jeton" ? '<div class="panel jeton"><p><b>Trésorier ?</b> Collez le jeton de publication donné par le club : une fois sur cet ordinateur, il y reste.</p>'
+      + '<div class="edit"><input id="cjeton" type="password" autocomplete="off" aria-label="Jeton de publication"><button class="btn" data-cjeton-save="1">Enregistrer</button></div></div>' : '');
+  return '<div class="note"><b>Mode trésorier.</b> Vos saisies partent chiffrées et sont vues de tous en une minute ou deux. '
+    + '<label class="small">Vous êtes <select id="cme"><option value="">—</option>'+tres.map(c => '<option value="'+esc(c)+'"'+(c === me ? " selected" : "")+'>'+esc(memberName(c))+'</option>').join("")+'</select></label>'
+    + (box ? ' <b>'+box+' saisie'+(box > 1 ? "s" : "")+' en attente.</b> <button class="link" data-cflush="1">Renvoyer</button>' : '')
+    + (CPUB && CPUB_TXT[CPUB] ? ' <span class="small">'+esc(CPUB_TXT[CPUB])+'</span>' : '')
+    + (CPUB === "refuse" ? '<div class="edit"><input id="cjeton" type="password" autocomplete="off" aria-label="Nouveau jeton"><button class="btn" data-cjeton-save="1">Enregistrer</button></div>' : '')+'</div>';
+}
+function podium(L){
+  const rows = Object.entries(L.bal).filter(([, b]) => b.du > 0).sort((a, b) => b[1].du - a[1].du).slice(0, 3);
+  if(!rows.length) return "";
+  const medal = ["🥇", "🥈", "🥉"];
+  return '<div class="podium">'+rows.map(([c, b], i) => '<div class="marche m'+(i + 1)+'"><span class="medaille">'+medal[i]+'</span><b>'+esc(memberName(c))+'</b><span>'+euros(b.du)+' · '+b.n+' amende'+(b.n > 1 ? "s" : "")+'</span></div>').join("")+'</div>';
+}
+function proposalsBlock(L){
+  const props = caisseProposals(L), w = canWrite();
+  if(!props.length) return "";
+  const card = p => { const r = RULE(p.regle);
+    return '<div class="prop"><span class="emoji">'+r.emoji+'</span><div><b>'+esc(memberName(p.joueur))+'</b> · '+esc(r.titre)
+      + ' <span class="montant">'+(r.nature ? "🍻 tournée" : euros(p.montant))+'</span><br><span class="small">'+esc(p.motif || "")+'</span>'
+      + '<br><span class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+'</span></div>'
+      + (w ? '<div class="prop-btn"><button class="btn" data-cval="'+esc(p.id)+'">Valider</button><button class="btn ghost" data-cref="'+esc(p.id)+'">Refuser</button></div>' : '')+'</div>'; };
+  const groups = {};
+  for(const p of props) (groups[p.regle] = groups[p.regle] || []).push(p);
+  const group = (code, list) => { const r = RULE(code), sum = list.reduce((a, p) => a + (p.montant || 0), 0);
+    return '<details class="prop-groupe"><summary class="prop"><span class="emoji">'+r.emoji+'</span><div><b>'+esc(r.titre)+'</b> · '+list.length+' personnes'
+      + ' <span class="montant">'+(r.nature ? "🍻" : euros(sum))+'</span><br><span class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+'</span></div>'
+      + (w ? '<div class="prop-btn"><button class="btn" data-cvalrule="'+esc(code)+'">Valider les '+list.length+'</button></div>' : '')+'</summary>'
+      + list.map(card).join("")+'</details>'; };
+  const body = Object.entries(groups).map(([code, list]) => list.length > 3 ? group(code, list) : list.map(card).join("")).join("");
+  return '<h2>À valider <span class="small muted">('+props.length+')</span></h2><div class="panel">'
+    + '<p class="small muted">Proposées d\'après les feuilles de match et le règlement'+(w ? "" : " : un trésorier les valide ou les refuse")+'.'
+    + (w && props.length > 1 ? ' <button class="link" data-cvalall="1">Tout valider</button>' : '')+'</p>'+body+'</div>';
+}
+function pickerBlock(){
+  const w = canWrite(), r = PICK.regle ? RULE(PICK.regle) : null;
+  const parts = ["Match", "Entraînement", "Saison"];
+  const rules = (D.caisse.reglement || []).filter(x => x.partie === PICK.partie);
+  const unit = r && r.montant != null && !r.nature, amount = !r ? null : r.nature ? null : r.montant != null ? r.montant * PICK.n : (Number(String(PICK.montant).replace(",", ".")) || 0);
+  let h = '<h2>'+(w ? "Mettre une amende" : "Dénoncer")+'</h2><div class="panel picker">'
+    + '<p class="step">1. Qui ?</p><div class="cchips">'+members().map(c => '<button class="cchip'+(PICK.joueur === c ? " on" : "")+'" data-cpick-j="'+esc(c)+'">'+esc(memberName(c))+'</button>').join("")+'</div>'
+    + '<p class="step">2. Quoi ?</p><div class="seg" role="group" aria-label="Partie du règlement">'+parts.map(p => '<button data-cpart="'+p+'" aria-pressed="'+(PICK.partie === p)+'">'+p+'</button>').join("")+'</div>'
+    + '<div class="tiles">'+rules.map(x => '<button class="tile'+(PICK.regle === x.code ? " on" : "")+'" data-cpick-r="'+esc(x.code)+'"><span class="emoji">'+x.emoji+'</span><b>'+esc(x.titre)+'</b>'
+      + '<span class="small">'+(x.nature ? "en nature" : x.montant == null ? "montant voté" : euros(x.montant)+" / "+esc(x.unite))+'</span></button>').join("")+'</div>';
+  if(r) h += '<p class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+'</p>'
+    + '<p class="step">3. Combien ?</p><div class="edit">'
+    + (unit ? '<div class="stepper"><button class="btn ghost" data-cn="-1" aria-label="Moins">−</button><b>'+PICK.n+'</b><button class="btn ghost" data-cn="1" aria-label="Plus">+</button></div><span class="small muted">'+esc(r.unite)+'</span>'
+       : r.nature ? '<span>🍻 tournée (pas de montant)</span>'
+       : '<label class="small muted">Montant voté <input id="cmontant" inputmode="decimal" value="'+esc(PICK.montant)+'" size="5"> €</label>')
+    + '<label class="small muted">Le <input id="cdate" type="date" value="'+esc(PICK.date || new Date().toISOString().slice(0, 10))+'"></label></div>'
+    + '<input id="cnote" class="cnote" placeholder="Précision (facultatif) : oubli de la gourde, retard de 10 min…" value="'+esc(PICK.note)+'">'
+    + '<div class="edit"><button class="btn" '+(PICK.joueur ? "" : "disabled ")+(w ? 'data-cgo="1">Mettre l\'amende' : 'data-cdenonce="1">Copier la dénonciation')
+    + (amount != null ? ' · '+euros(amount) : '')+'</button></div>';
+  return h + '</div>';
+}
+function balancesBlock(L){
+  const w = canWrite();
+  const all = Object.entries(L.bal).sort((a, b) => (b[1].du - b[1].paye) - (a[1].du - a[1].paye) || memberName(a[0]).localeCompare(memberName(b[0])));
+  const rows = all.filter(([, b]) => b.n || b.paye), clean = all.filter(([, b]) => !b.n && !b.paye);
+  const angels = clean.length ? '<p class="small anges">😇 Sans amende : '+clean.map(([c]) => esc(memberName(c))).join(", ")+'</p>' : '';
+  return '<h2>Les comptes</h2><div class="panel comptes">'+(rows.length ? "" : '<p class="small muted">Aucune amende pour l\'instant.</p>')+rows.map(([c, b]) => {
+    const reste = b.du - b.paye, mine = L.fines.filter(f => f.joueur === c).sort((x, y) => (y.date || "").localeCompare(x.date || ""));
+    const paid = L.pays.filter(p => p.joueur === c);
+    return '<details class="compte"><summary><b>'+esc(memberName(c))+'</b><span class="small muted">'+b.n+' amende'+(b.n > 1 ? "s" : "")+(b.tournees ? " · 🍻 "+b.tournees : "")+'</span>'
+      + '<span class="reste'+(reste > 0 ? " du" : "")+'">'+(reste > 0 ? euros(reste)+" à payer" : b.du ? "à jour" : "–")+'</span></summary>'
+      + (mine.length ? '<ul class="plain lignes">'+mine.map(f => { const r = RULE(f.regle);
+          return '<li>'+r.emoji+' <b>'+esc(r.titre)+'</b> <span class="small muted">'+esc(fmtDate(f.date))+(f.n > 1 ? " · ×"+f.n : "")+(f.note ? " · "+esc(f.note) : "")+(f.par ? " · par "+esc(memberName(f.par)) : "")+(f.envoi ? " · envoi en cours" : "")+'</span>'
+            + ' <span class="montant">'+(r.nature ? "🍻" : euros(f.montant))+'</span>'+(w ? ' <button class="link" data-cannule="'+esc(f.id)+'">annuler</button>' : '')+'</li>'; }).join("")+'</ul>' : '<p class="small muted">Aucune amende. 😇</p>')
+      + (paid.length ? '<p class="small">Payé : '+paid.map(p => euros(p.montant)+" le "+esc(fmtDate((p.le || "").slice(0, 10)))).join(", ")+'</p>' : '')
+      + (w && reste > 0 ? '<div class="edit"><input id="cpay-'+esc(c)+'" inputmode="decimal" size="5" value="'+String(Math.round(reste * 100) / 100).replace(".", ",")+'"> € <button class="btn" data-cpay="'+esc(c)+'">Encaisser</button></div>' : '')
+      + '</details>'; }).join("")+angels+'</div>';
+}
+function feedBlock(L){
+  const ops = L.ops.filter(o => o.t !== "annule").slice(-12).reverse();
+  if(!ops.length) return "";
+  const line = o => o.t === "amende" ? "💸 "+esc(memberName(o.joueur))+" : "+esc(RULE(o.regle).titre)+(RULE(o.regle).nature ? " (🍻)" : ", "+euros(o.montant))
+    : o.t === "paiement" ? "💶 "+esc(memberName(o.joueur))+" a payé "+euros(o.montant)
+    : "🚫 proposition refusée : "+esc(RULE(String(o.auto).split(":")[0]).titre)+" pour "+esc(memberName(String(o.auto).split(":").pop()));
+  return '<h2>Derniers mouvements</h2><div class="panel"><ul class="plain feed">'+ops.map(o => '<li>'+line(o)+'<span class="small muted"> · '
+    + esc(new Date(o.le || Date.now()).toLocaleDateString("fr-FR", {day: "numeric", month: "short"}))+(o.par ? " · "+esc(memberName(o.par)) : "")+(o.envoi ? " · envoi en cours" : "")+'</span></li>').join("")+'</ul></div>';
+}
+function rulesBlock(){
+  return '<details class="panel reglement"><summary><b>Le règlement '+esc(D.caisse.saison || "")+'</b></summary>'
+    + ["Saison", "Entraînement", "Match"].map(p => '<h3>'+p+'</h3><ul class="plain">'+(D.caisse.reglement || []).filter(r => r.partie === p)
+      .map(r => '<li>'+r.emoji+' <b>'+esc(r.titre)+'</b> — '+(r.nature ? "en nature" : r.montant == null ? "montant voté" : euros(r.montant)+" / "+esc(r.unite))+'<br><span class="small muted">'+esc(r.texte)+'</span></li>').join("")+'</ul>').join("")+'</details>';
+}
+function viewCaisse(){
+  if(!D.caisse) return '<header class="top"><h1>Caisse noire</h1></header>'+emptyPanel();
+  const L = ledger();
+  const due = Object.values(L.bal).reduce((a, b) => a + b.du, 0), paid = L.pays.reduce((a, p) => a + (p.montant || 0), 0);
+  let h = '<header class="top"><p class="when">'+((D.caisse.tresoriers || []).length ? "Trésoriers : "+D.caisse.tresoriers.map(memberName).join(", ") : "Règlement "+esc(D.caisse.saison || ""))+'</p><h1>Caisse noire</h1></header>';
+  h += caisseStatus();
+  h += '<div class="kpis"><div><b class="num">'+euros(paid)+'</b><span>dans la caisse</span></div><div><b class="num">'+euros(due - paid)+'</b><span>à encaisser</span></div>'
+    + '<div><b class="num">'+L.fines.length+'</b><span>amende'+(L.fines.length > 1 ? "s" : "")+'</span></div></div>';
+  return h + podium(L) + proposalsBlock(L) + pickerBlock() + balancesBlock(L) + feedBlock(L) + rulesBlock();
+}
+function denonciation(){
+  const r = RULE(PICK.regle), n = PICK.n, amount = r.nature ? null : r.montant != null ? r.montant * n : Number(String(PICK.montant).replace(",", ".")) || 0;
+  return "🕵️ Dénonciation pour la caisse noire : " + memberName(PICK.joueur) + " — " + r.partie + " · " + r.titre
+    + (r.montant != null && !r.nature ? " (" + n + " × " + r.unite + ")" : "") + (amount != null ? " = " + euros(amount) : " : tournée !")
+    + (PICK.note ? ". " + PICK.note : "") + ". (Une fausse dénonciation coûte 1 €.)";
+}
+function copyText(text, done){
+  const fallback = () => { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); done(); } catch (e) {} t.remove(); };
+  if(navigator.clipboard) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+}
 function viewCoupes(){   // le parcours du club en coupe : hors classement, mais dans la saison
   const cs = D.coupes || [];
   if(!cs.length) return "";
@@ -1111,7 +1356,7 @@ function viewPoules(){
 const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
 const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueurs:viewJoueurs, adv:viewAdv,
-               saison: () => viewSaison() + viewCoupes() + viewPoules()};
+               saison: () => viewSaison() + viewCoupes() + viewPoules(), caisse: viewCaisse};
 function render(keepScroll){
   const y = window.scrollY;
   document.getElementById("club-nom").textContent = D.meta.club_court || CFG.club || "HBPSM";
@@ -1167,6 +1412,30 @@ document.addEventListener("click", ev => {
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
   else if(t.dataset.retirer){ withdraw(t.dataset.retirer); }
+  else if(t.dataset.cpickJ){ PICK.joueur = t.dataset.cpickJ; render(true); }
+  else if(t.dataset.cpickR){ PICK.regle = t.dataset.cpickR; PICK.n = 1; PICK.montant = ""; render(true); }
+  else if(t.dataset.cpart){ PICK.partie = t.dataset.cpart; render(true); }
+  else if(t.dataset.cn){ PICK.n = Math.max(1, Math.min(50, PICK.n + Number(t.dataset.cn))); render(true); }
+  else if(t.dataset.cgo && canWrite() && PICK.joueur && PICK.regle){
+    const r = RULE(PICK.regle), n = PICK.n;
+    const montant = r.nature ? null : r.montant != null ? r.montant * n : Number(String(PICK.montant).replace(",", ".")) || 0;
+    addOps([fineOp({joueur: PICK.joueur, regle: PICK.regle, n, montant, date: PICK.date, note: PICK.note})]);
+    showWhy("💸 " + memberName(PICK.joueur) + " : " + r.titre + (montant != null ? ", " + euros(montant) : " (🍻 tournée)") + " dans la caisse !");
+    PICK = Object.assign(PICK, {joueur: null, regle: null, n: 1, montant: "", note: ""}); render(true);
+  }
+  else if(t.dataset.cdenonce && PICK.joueur && PICK.regle){ copyText(denonciation(), () => showWhy("🕵️ Dénonciation copiée : collez-la dans le groupe.")); }
+  else if(t.dataset.cval && canWrite()){ const p = caisseProposals(ledger()).find(x => x.id === t.dataset.cval); if(p) addOps([fineOp(p, true)]); }
+  else if(t.dataset.cref && canWrite()){ addOps([{id: "r:" + t.dataset.cref, t: "refus", auto: t.dataset.cref, par: whoAmI(), le: new Date().toISOString(), note: ""}]); }
+  else if(t.dataset.cvalrule && canWrite()){ const props = caisseProposals(ledger()).filter(p => p.regle === t.dataset.cvalrule); if(props.length && confirm("Valider ces " + props.length + " amendes ?")) addOps(props.map(p => fineOp(p, true))); }
+  else if(t.dataset.cvalall && canWrite()){ const props = caisseProposals(ledger()); if(confirm("Valider les " + props.length + " propositions ?")) addOps(props.map(p => fineOp(p, true))); }
+  else if(t.dataset.cpay && canWrite()){
+    const v = Number(String((document.getElementById("cpay-" + t.dataset.cpay) || {}).value || "").replace(",", "."));
+    if(v > 0) addOps([{id: uid(), t: "paiement", joueur: t.dataset.cpay, montant: Math.round(v * 100) / 100, par: whoAmI(), le: new Date().toISOString(), note: ""}]);
+  }
+  else if(t.dataset.cannule && canWrite()){ if(confirm("Annuler cette amende ?")) addOps([{id: uid(), t: "annule", cible: t.dataset.cannule, par: whoAmI(), le: new Date().toISOString(), note: ""}]); }
+  else if(t.dataset.cflush){ flushCaisse(); }
+  else if(t.dataset.cjetonShow){ CJETON = true; render(true); }
+  else if(t.dataset.cjetonSave){ const v = (document.getElementById("cjeton").value || "").trim(); if(v){ try { localStorage.setItem(TOKEN, v); } catch (e) {} CJETON = false; CPUB = ""; render(true); flushCaisse(); } }
   else if(t.dataset.valider){ validate(t.dataset.valider); }
   else if(t.dataset.publier){ publishChoices(); }
   else if(t.dataset.jeton){ const v = (document.getElementById("jeton").value || "").trim(); if(v){ try { localStorage.setItem(TOKEN, v); } catch (e) {} publishChoices(); } }
@@ -1186,6 +1455,8 @@ document.addEventListener("click", ev => {
 document.addEventListener("change", ev => {
   const t = ev.target;
   if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
+  if(t.id === "cme"){ try { localStorage.setItem(ME, t.value); } catch (e) {} render(true); return; }
+  if(t.id === "cdate"){ PICK.date = t.value; return; }
   if(t.id === "adv"){ S.adv = t.value; save(); render(true); }
   else if(t.id === "regle"){ S.regle = Number(t.value); save(); render(true); }
   else if(t.id === "rdv"){ S.rdv[t.dataset.match] = t.value; save(); render(true); }
@@ -1197,6 +1468,10 @@ document.addEventListener("change", ev => {
     S.postes[cle] = [...new Set(cur.filter(Boolean))].join("/");
     save(); render(true);
   }
+});
+document.addEventListener("input", ev => {   // le formulaire de la caisse garde ce qu'on tape d'un rendu à l'autre
+  if(ev.target.id === "cnote") PICK.note = ev.target.value;
+  else if(ev.target.id === "cmontant") PICK.montant = ev.target.value;
 });
 document.addEventListener("toggle", ev => {
   const d = ev.target; if(!d.dataset || !d.dataset.cle) return;
@@ -1334,6 +1609,7 @@ async function check(){
     CHECKED = new Date(); ONLINE = true;
     if(m.app && m.app !== CFG.app && !NEWER){ NEWER = true; render(true); }  // la page elle-même a évolué
     if(await fetchChoices()) render(true);   // l'entraîneur a validé une feuille
+    if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(m.maj && m.maj !== GENERE){
       const env = await fetchVault();
       let box;
@@ -1370,6 +1646,7 @@ async function start(phrase){
   render(false);
   status();
   fetchChoices().then(changed => { if(changed) render(true); });
+  fetchCaisse().then(changed => { if(changed) render(true); });
   check();  // le manifeste dit aussi si la page elle-même a une version plus récente
 }
 document.addEventListener("click", ev => {

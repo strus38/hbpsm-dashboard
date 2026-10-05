@@ -34,7 +34,8 @@ une phrase courte se devine par essais successifs.
 1. **Settings > Secrets and variables > Actions** : créer `HBPSM_CLE` (la phrase secrète) et,
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom,POSTE,disponibilité » :
    poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
-   longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde).
+   longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde ; puis
+   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire).
 2. **Settings > Pages** : source « GitHub Actions » (une fois).
 3. **Actions > Collecte quotidienne > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
@@ -158,6 +159,29 @@ Pour cela, la page a besoin d'un jeton GitHub, créé une fois par le propriéta
 L'entraîneur colle ce jeton une fois, quand la page le lui demande à sa première validation ;
 il reste dans son navigateur, jamais dans un fichier. « Oublier le jeton de publication », en
 bas de la planification, l'efface.
+
+## Caisse noire
+
+L'onglet « Caisse noire » reprend le règlement du groupe (`pipeline/caisse.py`), point par
+point. Il montre ce qu'il y a dans la caisse, le podium des amendes, les comptes de chacun et
+les derniers mouvements.
+
+- Les trésoriers (et l'entraîneur), qui ont le jeton de publication, mettent une amende en
+  trois touches (qui, quoi, combien), valident ou refusent les propositions, encaissent les
+  paiements et annulent une amende. Chaque saisie part chiffrée au workflow « Caisse noire »
+  (`.github/workflows/caisse.yml`), qui l'ajoute au registre `publie/caisse.enc` ; une saisie
+  renvoyée n'est comptée qu'une fois. Tout le monde la voit en une minute ou deux.
+- Les autres consultent. Ils peuvent préparer une dénonciation, copiée pour le groupe
+  (une fausse dénonciation coûte 1 €, comme le dit le règlement).
+- Propositions, à valider par un trésorier, chacune avec son point du règlement : d'après les
+  feuilles de match, la 2e exclusion de 2 minutes, les 3 × 2 minutes, l'expulsion directe, une
+  réussite au tir sous 40 %, le dernier but du match, la victoire de +20 (tournée du coach) ;
+  et aussi la cotisation de chacun et le « Bon point ! » d'un mois sans amende. Les penalties
+  manqués ne se lisent pas sur la feuille : ils se saisissent à la main.
+
+Pour qu'un trésorier puisse saisir, donnez-lui le jeton de publication (celui de la feuille
+validée) : il le colle une fois via « Je suis trésorier ». Les trésoriers sont marqués dans
+l'effectif (colonne « trésorier »), jamais dans un fichier du dépôt.
 
 ## Chaîne de traitement
 

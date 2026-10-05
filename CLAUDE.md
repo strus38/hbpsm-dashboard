@@ -142,6 +142,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   leur poule (liste `calendar-button` des équipes) et lit leurs seuls matchs (`crawl_poule(only=)`),
   marqués `externe` (poule « ext-<id> », classement officiel sous la même clé). `analyze` : fiche
   avec `poule_libelle` et `coupe`, sans toucher nos poules. 1er tour 2026-2027 : 1re division, poule 6.
+- Caisse noire (demande de l'auteur, 05/10/2026) : onglet « Caisse noire ». Règlement 2026-2027
+  repris dans `pipeline/caisse.py` (REGLEMENT : partie, titre, montant, unité, texte ; noms des
+  trésoriers jamais dans le dépôt, ils sont dans l'effectif, 4e colonne « trésorier »). Registre
+  en journal d'opérations chiffré (`publie/caisse.enc` : amende, refus, annule, paiement), écrit
+  par `caisse.yml` + `caisse.main` (dédoublonnage par id). Saisie réservée aux détenteurs du jeton
+  (trésoriers, entraîneur : choix de l'auteur) ; boîte d'envoi locale `hbpsm:caisse-envoi`
+  jusqu'à publication. Propositions : `caisse.proposals` (feuilles) + « Bon point ! » calculé dans
+  la page ; une proposition validée a l'id « v:<proposition> », refusée « r:<proposition> ».
+  Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
 - Noms courts : le numéro d'équipe est gardé (« Nord Drome 2 » ≠ « Nord Drome »).
 - Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris

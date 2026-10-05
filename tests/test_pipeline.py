@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import choix, collect, common, demo_data, parse_fdme, publish, vault
+from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, publish, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 
@@ -39,7 +39,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish, choix):
+    for mod in (common, an, collect, parse_fdme, publish, choix, caisse):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
@@ -306,7 +306,7 @@ def test_publication_chiffree(sandbox, monkeypatch):
 def test_effectif_depuis_secret(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
     publish.roster()
-    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible\nIsidore Exemple\nJean Modele,GB\n"
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role\nIsidore Exemple\nJean Modele,GB\n"
 
 
 def test_page_publiee_dechiffre(sandbox, monkeypatch):
@@ -332,7 +332,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
     base = f"http://127.0.0.1:{server.server_port}/"
     page_file = sandbox / "tableau.html"
     html = render(None, dict(src=base + "hbpsm.enc", manifeste=base + "manifeste.json", versions="",
-                             choix=base + "choix.enc", depot="exemple/depot", branche="main", iterations=2000,
+                             choix=base + "choix.enc", caisse=base + "caisse.enc", depot="exemple/depot", branche="main", iterations=2000,
                              club="HBPSM", verif=1))
     assert "Joueur 0" not in html
     page_file.write_text(html, "utf-8")
@@ -506,6 +506,21 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         wait_sent(3)
         chosen = publish_last()
         assert page.evaluate("planning()[0].etat") == "publiee"
+        # caisse noire : un trésorier met une amende ; elle part chiffrée au workflow « Caisse noire »
+        page.click("nav.tabs button[data-tab=caisse]")
+        page.locator("[data-cpick-j]").first.click()
+        page.locator("[data-cpart=Match]").click()
+        page.locator("[data-cpick-r=m_oubli]").click()
+        page.locator("[data-cn='1']").click()
+        page.fill("#cnote", "veste du club")
+        page.locator("[data-cgo]").click()
+        wait_sent(4)
+        assert sent[-1]["url"].endswith("/actions/workflows/caisse.yml/dispatches")
+        ops = caisse.check(json.loads(sent[-1]["body"]["inputs"]["ops"]), PHRASE)
+        assert [(o["t"], o["regle"], o["n"], o["montant"], o["note"]) for o in ops] == [("amende", "m_oubli", 2, 4, "veste du club")]
+        monkeypatch.setenv("HBPSM_CAISSE", sent[-1]["body"]["inputs"]["ops"])
+        assert caisse.main() == 0
+        assert page.evaluate("fetchCaisse().then(() => { render(true); return [outbox().length, ledger().fines.length]; })") == [0, 1]
         server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
         server.server_close()
         page.reload()
@@ -533,6 +548,13 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.click("nav.tabs button[data-tab=semaine]")
         assert "choisis par l'entraîneur" in ro.inner_text("h2") and "Choix de l'entraîneur" in ro.inner_text(".etat-ligne")
         assert ro.locator("[data-valider]").count() == 0
+        ro.evaluate("localStorage.removeItem('hbpsm:jeton')")   # un joueur sans le jeton
+        ro.click("nav.tabs button[data-tab=caisse]")
+        ro.wait_for_function("() => CAISSE !== null", timeout=10000)
+        assert ro.evaluate("ledger().fines.length") == 1 and ro.locator("[data-cval]").count() == 0
+        ro.locator("[data-cpick-j]").first.click()
+        ro.locator("[data-cpick-r=m_oubli]").click()
+        assert ro.locator("[data-cgo]").count() == 0 and ro.locator("[data-cdenonce]").count() == 1
         browser.close()
     assert errors == []
 
@@ -758,6 +780,51 @@ def test_coupe_dans_la_saison(sandbox):
     rival = d2["equipes"]["Club Lointain 2"]
     assert rival["poule_libelle"] == label and rival["coupe"] and rival["j"] == 1
     assert "Club Tiers" not in d2["equipes"] and d2["poules"] == d["poules"] and d2["resultats"] == d["resultats"]
+
+
+def test_caisse_registre(sandbox, monkeypatch):
+    """Le workflow « Caisse noire » ajoute au registre chiffré les saisies des trésoriers : une
+    saisie renvoyée n'est comptée qu'une fois, une saisie malformée ou mal chiffrée est refusée."""
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    fine = dict(id="a1", t="amende", joueur="R:EXEMPLE ISIDORE", regle="m_oubli", n=2, montant=4,
+                date="2026-10-10", note="veste du club", par="R:MODELE JEAN", le="2026-10-10T20:00:00Z")
+    pay = dict(id="p1", t="paiement", joueur="R:EXEMPLE ISIDORE", montant=4, par="R:MODELE JEAN", le="2026-10-12T19:00:00Z")
+    send = lambda ops, phrase=PHRASE: monkeypatch.setenv("HBPSM_CAISSE", json.dumps(vault.encrypt(
+        dict(format="hbpsm-caisse-ops", v=1, ops=ops), phrase, 2000)))
+    send([fine])
+    assert caisse.main() == 0
+    send([fine, pay])   # la première saisie, renvoyée, n'est pas comptée deux fois
+    assert caisse.main() == 0
+    book = vault.decrypt(json.loads((sandbox / "publie" / "caisse.enc").read_text("utf-8")), PHRASE)
+    assert [o["id"] for o in book["ops"]] == ["a1", "p1"]
+    for bad in ([dict(fine, id="a2", regle="inventee")], [dict(fine, id="a3", montant=1000)], [dict(pay, id="p2", t="vol")]):
+        send(bad)
+        with pytest.raises(vault.VaultError):
+            caisse.main()
+    send([dict(fine, id="a4")], "une autre phrase bien longue")
+    with pytest.raises(vault.VaultError):
+        caisse.main()
+
+
+def test_caisse_propositions():
+    """D'après la feuille : 2e et 3e exclusions, rouge direct, moins de 40 % au tir, dernier but,
+    victoire de +20 ; et la cotisation de chacun. Chaque proposition cite son point du règlement."""
+    players = [dict(name="Isidore EXEMPLE", num=7, goals=1, shots=5, two_min=3, red=1),
+               dict(name="Jean MODELE", num=9, goals=6, shots=8, two_min=0, red=1),
+               dict(name="Basile TIREUR", num=10, goals=4, shots=6, two_min=2, red=0)]
+    m = dict(id="m1", date="2026-10-10T20:30", players={"home": players, "away": []},
+             events=[dict(t=100, side="home", type="goal", num=9), dict(t=3500, side="home", type="goal", num=10)])
+    roster = {an.name_key("Isidore Exemple"): dict(nom="Isidore Exemple")}
+    props = caisse.proposals([(m, "home", "Club Bravo", 41, 20)], roster, ["R:" + an.name_key("Isidore Exemple")], "2026-2027")
+    by = {(p["regle"], p["joueur"]): p for p in props}
+    isidore = "R:" + an.name_key("Isidore Exemple")
+    assert {r for r, j in by if j == isidore} == {"m_2e_2min", "m_3x2min", "m_precision", "cotisation"}
+    assert ("m_expulsion", an.name_key("Jean MODELE")) in by          # rouge sans trois exclusions
+    assert ("m_2e_2min", an.name_key("Basile TIREUR")) in by and ("m_heros", an.name_key("Basile TIREUR")) in by
+    assert ("m_fessee", caisse.COACH) in by and by[("m_fessee", caisse.COACH)]["montant"] is None
+    assert by[("m_3x2min", isidore)]["montant"] == 5 and by[("m_precision", isidore)]["motif"].startswith("1 but sur 5 tirs (20 %)")
+    assert all(p["regle"] in caisse.RULES and p["id"] for p in props) and len({p["id"] for p in props}) == len(props)
 
 
 def test_noms_ancienne_feuille():

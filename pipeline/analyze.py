@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 
 from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team)
+from . import caisse
 from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
@@ -445,7 +446,8 @@ def load_roster():
                     roster[name_key(row["nom"])] = dict(nom=row["nom"].strip(),
                                                         poste=(row.get("poste") or "").strip().upper(),
                                                         disponible=state not in ("NON", "0", "FALSE", "N"),
-                                                        depannage=state in ("DEPANNAGE", "RESERVE"))
+                                                        depannage=state in ("DEPANNAGE", "RESERVE"),
+                                                        tresorier="TRESORIER" in norm(row.get("role") or ""))
     return roster
 
 
@@ -633,6 +635,7 @@ def club_players(matches, config, roster, history=()):
             cle="R:" + rkey if rkey else r["cle"], nom=r["nom"],
             num=(r["nums"] or nums).most_common(1)[0][0] if nums else None,
             poste=poste, gardien=gk, disponible=ros.get("disponible", True), depannage=ros.get("depannage", False),
+            tresorier=ros.get("tresorier", False),
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
             min_deux=2 * r["deux_min"], tirs=r["tirs"] or None,
@@ -656,7 +659,7 @@ def club_players(matches, config, roster, history=()):
         out.append(dict(
             cle="R:" + rkey, nom=ros.get("nom") or rkey.title(), num=None, poste=ros.get("poste", ""),
             gardien="GB" in (ros.get("poste") or "").split("/"), disponible=ros.get("disponible", True),
-            depannage=ros.get("depannage", False),
+            depannage=ros.get("depannage", False), tresorier=ros.get("tresorier", False),
             m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
@@ -1036,6 +1039,10 @@ def analyze(today=None, roster=None):
                                feuille=bool((m.get("players") or {}).get("home")))
                           for m in matches), key=lambda r: r["date"] or "", reverse=True),
         coupes=cup_results(every_match, every_fixture, config),
+        caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
+                    tresoriers=[p["cle"] for p in players if p.get("tresorier")],
+                    propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]
+                                                  + [caisse.COACH], config.get("saison") or "")),
         a_venir=sorted((dict(poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
                              provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"))
                         for f in fixtures if f.get("score_home") is None),

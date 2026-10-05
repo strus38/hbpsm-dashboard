@@ -191,6 +191,10 @@ def set_urls(config):
     changed = False
     for poule in config["poules"]:
         url = (os.environ.get(f"URL_{poule['id']}") or "").strip()
+        if url and not url.startswith("https://www.ffhandball.fr/competitions/"):
+            # le jeton de publication est partagé (trésoriers) : rien d'autre que ffhandball.fr
+            print(f"[collecte] adresse refusée pour la poule {poule['id']} : pas une page de ffhandball.fr", file=sys.stderr)
+            continue
         if url and url != poule.get("url"):
             poule["url"] = url
             text = re.sub(r'(- id: "%s"\s*\n\s*url: )"[^"]*"' % poule["id"],

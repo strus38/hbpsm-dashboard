@@ -1,0 +1,52 @@
+# Caisse noire : les trésoriers (et l'entraîneur) publient leurs saisies (amendes, refus,
+# annulations, paiements).
+#
+# Leur page lance ce workflow avec le jeton de publication (droit « Actions » seulement : il peut
+# lancer ce workflow, pas modifier le code). Sa seule entrée est un coffre chiffré avec la phrase
+# du club ; il est vérifié et ajouté au registre publie/caisse.enc par pipeline/caisse.py. Une
+# saisie renvoyée n'est comptée qu'une fois. Le dépôt est public : rien n'est jamais déchiffré
+# dans ce journal, et l'entrée, visible dans le résumé du lancement, n'est que le coffre chiffré.
+name: Caisse noire
+
+on:
+  workflow_dispatch:
+    inputs:
+      ops:
+        description: "Saisies de la caisse noire, chiffrées (écrit par la page d'un trésorier)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: caisse
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Vérifier et ajouter les saisies au registre (toujours chiffré)
+        env:
+          HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
+          HBPSM_CAISSE: ${{ inputs.ops }}
+        run: python -m pipeline.caisse
+
+      - name: Enregistrer dans le dépôt
+        run: |
+          git config user.name "hbpsm-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add publie/caisse.enc
+          git diff --cached --quiet && exit 0
+          git commit -m "Caisse noire"
+          git push || (git pull --rebase && git push)

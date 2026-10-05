@@ -49,7 +49,8 @@ def page_config(config):
     branch = os.environ.get("GITHUB_REF_NAME") or config.get("branche") or "main"
     raw = f"https://raw.githubusercontent.com/{slug}/{branch}/publie/" if slug else ""
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
-                choix=raw + "choix.enc" if raw else "", depot=slug, branche=branch,
+                choix=raw + "choix.enc" if raw else "", caisse=raw + "caisse.enc" if raw else "",
+                depot=slug, branche=branch,
                 iterations=vault.ITERATIONS,  # la page chiffre les choix de l'entraîneur comme le coffre
                 versions=f"https://github.com/{slug}/releases/latest" if slug else "",
                 app=app_version(), club=config["club"]["nom_affiche"], verif=VERIF)
@@ -87,12 +88,13 @@ def restore():
 
 
 def roster():
-    """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE » et de « ,non »
-    (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs)."""
+    """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE », de « ,non »
+    (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs), et de « ,trésorier »
+    (tient la caisse noire)."""
     text = os.environ.get("HBPSM_EFFECTIF") or ""
     lines = [l.strip() for l in text.replace(";", ",").splitlines() if l.strip()]
     lines = [l for l in lines if not l.lower().startswith("nom,")]
-    (ROOT / "roster.csv").write_text("nom,poste,disponible\n" + "\n".join(lines) + "\n", "utf-8")
+    (ROOT / "roster.csv").write_text("nom,poste,disponible,role\n" + "\n".join(lines) + "\n", "utf-8")
     print(f"[effectif] {len(lines)} joueurs")
     return 0
 
