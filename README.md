@@ -114,7 +114,7 @@ suite sans sortir, matchs déjà joués compris. Les échanges se font poste pou
 (même poste principal, ou un entrant qui tient le poste du sortant) et équilibrent, autant que
 possible, matchs à domicile et à l'extérieur pour chacun. Une case dit « proposé » tant que l'entraîneur
 n'a pas validé la feuille, « retenu » ensuite. Le tableau montre aussi les deux derniers matchs terminés
-(complétés par la fin de la saison passée en début de saison) : qui était sur la feuille. Une
+de la saison : qui était sur la feuille. Une
 classe d'âge, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
 proche ; elle n'est affichée nulle part.
 

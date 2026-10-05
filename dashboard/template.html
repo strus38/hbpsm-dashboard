@@ -1110,7 +1110,8 @@ function viewPlanif(){
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
-  const done = (D.derniers || []).slice(-2), jr = (p, x) => (x.joueurs || {})[p.cle];
+  // les deux derniers matchs terminés de la saison seulement (pas ceux de la saison passée)
+  const done = (D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).slice(-2), jr = (p, x) => (x.joueurs || {})[p.cle];
   const pastCell = (p, x) => { const j = jr(p, x);
     if(!j) return '<div class="pc" title="'+esc(p.nom)+' : pas sur la feuille contre '+esc(x.adversaire)+'">·</div>';
     const what = isGK(p) ? j.arrets+' arrêt'+(j.arrets > 1 ? "s" : "") : j.buts+' but'+(j.buts > 1 ? "s" : "");

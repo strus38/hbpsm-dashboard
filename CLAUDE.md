@@ -195,8 +195,9 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   un match clé ; l'échange le moins coûteux, poste pour poste, sans découvrir un poste clef, jamais
   avec un joueur en dépannage (`forced` ; « N changement(s) seulement » sinon).
 - Planification : les deux derniers matchs terminés du club dont la feuille est lue (`derniers`,
-  `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
-  passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
+  `last_matches` : joueurs de la feuille par clé, buts et arrêts), en colonnes grisées avant les 4 à
+  venir (6 colonnes au plus) ; ceux de la saison seulement, jamais la saison passée (demande de
+  l'auteur, 05/10/2026 ; `derniers` en garde pourtant la fin, pour les séries des gardiens). Un match
   de la saison passée ne compte pas pour la règle des 2 changements.
 - Saison qui avance (demande de l'auteur, 05/10/2026) : les saisons passées (et les -18) pèsent
   HIST × `fade(n)` = HIST × FONDU / (FONDU + n), n = feuilles du club lues cette saison (FONDU = 6) :
