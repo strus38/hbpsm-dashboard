@@ -355,7 +355,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
         page.click("nav.tabs button[data-tab=semaine]")
-        assert "HBPSM contre" in page.inner_text("h1")
+        assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
         sheet = "(k => { const r = planning()[k]; return [r.sel.length, r.gks.length, r.missing, r.missingGK]; })"
         assert [page.evaluate(sheet + "(%d)" % k) for k in range(4)] == [[12, 2, 0, 0]] * 4
@@ -411,7 +411,16 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("button.cell.in").first.click()
         assert page.locator("#why").is_visible() and page.evaluate("JSON.stringify(S.pin)") == before
         page.click("button[data-tap=edit]")
+        # téléphone : un match à la fois, choisi par les pastilles du haut ; le menu d'onglets reste en bas
+        n = page.evaluate("planning().length")
+        assert page.locator(".plan.single .h.foot").count() == 1 and page.locator("button.pm").count() == n
+        page.locator("button.pm").nth(1).click()
+        assert page.evaluate("S.pm") == 1 and "on" in page.get_attribute("button.pm >> nth=1", "class")
+        assert page.evaluate("getComputedStyle(document.querySelector('nav.tabs')).position") == "fixed"
         page.set_viewport_size({"width": 1100, "height": 900})
+        page.wait_for_function("document.querySelectorAll('.plan .h.foot').length > 1", timeout=3000)
+        assert page.locator(".plan .h.foot").count() == n and page.locator("button.pm").count() == 0
+        page.evaluate("S.pm = 0; save()")
         # un match de coupe dans la planification : nommé comme tel, la rotation y passe d'abord
         cup = page.evaluate("""(() => { const m = D.saison.matchs[1];
           D.saison.matchs.splice(1, 0, Object.assign({}, m, {id: "coupe-1", coupe: "Coupe de France", tour: "1ER TOUR",

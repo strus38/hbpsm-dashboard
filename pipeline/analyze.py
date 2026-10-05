@@ -899,6 +899,20 @@ def poule_view(matches, teams, official):
     return dict(classement=rows, ecarts=gaps, officiel_lu=bool(off))
 
 
+LOGOS = "https://media-logos-clubs.ffhandball.fr/128/"
+
+
+def team_logos(fixtures):
+    """Le logo de chaque équipe, tel que ffhandball.fr le publie (image du club, en .webp)."""
+    out = {}
+    for f in fixtures:
+        for side in ("home", "away"):
+            name, logo = f.get(side), f.get(f"{side}_logo")
+            if name and logo:
+                out[name] = LOGOS + logo.rsplit(".", 1)[0] + ".webp"
+    return out
+
+
 def cup_ahead(fixtures, config, today, league):
     """Les matchs de coupe à venir du club, pour la planification : pas d'enjeu pour le classement,
     jamais match clé. Victoire estimée : celle d'un match de championnat contre le même adversaire
@@ -1039,6 +1053,7 @@ def analyze(today=None, roster=None):
                                feuille=bool((m.get("players") or {}).get("home")))
                           for m in matches), key=lambda r: r["date"] or "", reverse=True),
         coupes=cup_results(every_match, every_fixture, config),
+        logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],
                     propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]

@@ -105,10 +105,15 @@ aucun contrôle de modification, une note rappelle qu'une feuille non validée p
 n'est qu'une suggestion, et toucher une case en donne la raison. Ce n'est pas un verrou : rien
 de ce qu'on modifie ne quitte le navigateur, sauf la feuille que l'entraîneur valide (ci-dessous).
 
-Sur téléphone, la page se resserre : menu sur une ligne, noms courts, tableaux sans les
-colonnes secondaires, planification avec la colonne des noms fixe et des cases plus grandes. Le
-survol n'existant pas au doigt, « Toucher une case : explique » affiche la raison d'une case
-au lieu de la modifier.
+Sur téléphone, la page prend l'allure d'une application : onglets en bas avec icônes, noms
+courts, tableaux sans les colonnes secondaires, planification un match à la fois (choisi par
+les pastilles du haut) avec la colonne des noms fixe et de grandes cases. Le survol n'existant
+pas au doigt, « Toucher une case : explique » affiche la raison d'une case au lieu de la
+modifier.
+
+Les équipes sont montrées avec le logo de leur club, pris sur le site de la fédération (ses
+initiales s'il n'y en a pas). L'onglet Semaine s'ouvre sur une carte du match : les deux
+équipes face à face, la date, le gymnase et une jauge de la victoire estimée.
 
 Couleurs : celles du club, reprises du profil HBPSM de HANDBALL-training
 (`clubs/hbpsm/profil.json`), avec les mêmes rôles : le bleu marine pour l'ossature, le jaune

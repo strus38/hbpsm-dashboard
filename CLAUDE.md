@@ -167,11 +167,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 
 - Un fichier HTML unique gardé sur le PC (ou la même page sur GitHub Pages), qui se met à jour
   à chaque ouverture ; une Release à chaque changement de données. Elle s'adapte au téléphone
-  (demande de l'auteur, 05/10/2026, sous 560 px) : menu sur une ligne aux libellés courts, noms
-  courts d'équipes et de joueurs (`.tl`/`.ts`), colonnes secondaires des tableaux masquées
-  (`.opt`), planification à colonne des noms fixe, mode « explique » (`S.tap`) qui montre la
-  raison d'une case au doigt, faute de survol. Le test Chrome vérifie l'absence de débordement à
-  360 px.
+  (demande de l'auteur, 05/10/2026, sous 560 px) : menu d'onglets fixé en bas, icône au-dessus
+  du libellé court, noms courts d'équipes et de joueurs (`.tl`/`.ts`), colonnes secondaires des
+  tableaux masquées (`.opt`), planification un match à la fois (pastilles du haut, `S.pm`) à
+  colonne des noms fixe, mode « explique » (`S.tap`) qui montre la raison d'une case au doigt,
+  faute de survol. Le test Chrome vérifie l'absence de débordement à 360 px.
+- Rendu plus graphique (demande de l'auteur, 05/10/2026) : logos des clubs pris sur le site de la
+  fédération (`structureNLogo` de la rencontre, quand `equipeNShowLogo` vaut 1 ; `D.logos`,
+  `analyze.team_logos`, adresse `media-logos-clubs.ffhandball.fr/128/<fichier>.webp`), initiales
+  à défaut ou si l'image ne charge pas (`logo()` dans la page) ; Semaine ouverte sur une carte du
+  match (logos, VS, date, lieu) et une jauge de victoire (`gauge()`).
 - La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com`, car les fichiers de Release
   n'ont pas d'en-tête CORS (vérifié).
 - Les deux projets restent indépendants : seul le format de fichier les relie.

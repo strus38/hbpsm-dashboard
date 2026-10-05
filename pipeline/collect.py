@@ -132,6 +132,9 @@ def fixture(r, poule, base, start=None):
               pdf_url=pdf_url(r.get("fdmCode")), equipement=str(r.get("equipementId") or "") or None)
     if not fx["date"] and start:  # horaire pas encore fixé : début du week-end de la journée
         fx.update(date=start, date_provisoire=True)
+    for side, n in (("home", "1"), ("away", "2")):   # le logo du club, quand la fédération l'affiche
+        if str(r.get(f"equipe{n}ShowLogo")) == "1" and r.get(f"structure{n}Logo"):
+            fx[f"{side}_logo"] = str(r[f"structure{n}Logo"])
     return fx
 
 
