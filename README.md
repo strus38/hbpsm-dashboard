@@ -32,7 +32,9 @@ une phrase courte se devine par essais successifs.
 ## Mise en route
 
 1. **Settings > Secrets and variables > Actions** : créer `HBPSM_CLE` (la phrase secrète) et,
-   si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom »).
+   si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom,POSTE,disponibilité » :
+   poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
+   longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde).
 2. **Settings > Pages** : source « GitHub Actions » (une fois).
 3. **Actions > Collecte quotidienne > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
@@ -68,7 +70,9 @@ La page suit la semaine de l'entraîneur :
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
 (notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur et les postes clefs
 de `config.yml` : au moins 2 pivots et 4 arrières (ARG, DC ou ARD) sur chaque feuille ; un joueur
-à deux postes (« 2e poste » dans sa fiche) compte pour l'un ou l'autre. Puis la rotation,
+à deux postes (« 2e poste » dans sa fiche) compte pour l'un ou l'autre. Un joueur « en dépannage »
+(effectif, ou case de sa fiche) n'est retenu que s'il manque des joueurs ou un poste clef, et
+reste hors rotation. Puis la rotation,
 sur les 4 matchs à la fois : chacun joue au moins 1 des 4 matchs (ou 2, ou rotation libre, au
 choix de l'entraîneur). Elle se fait d'abord sur les matchs les plus abordables (victoire
 estimée la plus haute), jamais sur un match clé, avec au plus 3 joueurs de champ et 1 gardien

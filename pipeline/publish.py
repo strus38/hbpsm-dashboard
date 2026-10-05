@@ -85,7 +85,8 @@ def restore():
 
 
 def roster():
-    """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE » et « ,non » (indisponible)."""
+    """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE » et de « ,non »
+    (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs)."""
     text = os.environ.get("HBPSM_EFFECTIF") or ""
     lines = [l.strip() for l in text.replace(";", ",").splitlines() if l.strip()]
     lines = [l for l in lines if not l.lower().startswith("nom,")]

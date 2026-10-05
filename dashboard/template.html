@@ -197,6 +197,7 @@ nav.tabs[hidden]{display:none}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
 .plan .pst{font-size:.7rem;color:var(--muted)}
+.plan .dep{font-size:.66rem;padding:0 5px;border-radius:8px;border:1px dashed var(--muted);color:var(--muted)}
 .why.prev{color:var(--track)}
 table.past td.n{color:var(--muted);width:2.5em}
 table.past tr.grp td{font-weight:700;font-size:.82rem;color:var(--track);background:color-mix(in srgb,var(--track) 8%,transparent);padding-top:6px}
@@ -275,7 +276,7 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, adv:null, tab:"semaine", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
+let S = {postes:{}, absents:{}, depannage:{}, adv:null, tab:"semaine", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 // avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
@@ -371,6 +372,9 @@ function brute(p, plan = "equilibre"){
 // n'est pas tenu pour les gardiens, les deux sont changés sur un match à votre portée (victoire
 // estimée d'au moins ROT_GB2 %).
 const ruleOf = n => Math.min(Number(S.regle) || 0, n);
+// En dépannage (effectif ou fiche du joueur) : retenu seulement s'il manque des joueurs ou un poste
+// clef, et jamais compté dans la rotation.
+const depOf = p => (S.depannage || {})[p.cle] ?? !!p.depannage;
 // Postes clefs (config.yml) : sur chaque feuille, au moins `min` joueurs de champ pouvant tenir l'un
 // des postes du groupe ; un joueur à deux postes (« ARG/DC ») ne tient qu'une place.
 const KEYS = () => D.meta.postes_clefs || [];
@@ -404,7 +408,8 @@ function planning(){
     const unsure = pool.filter(p => availOf(p, m) === "i" && !pinned.includes(p)).sort((a, b) => val(b, m) - val(a, m));
     const pick = (gk, n) => {
       const take = [...pinned.filter(p => isGK(p) === gk)];
-      const cands = [...sure, ...unsure].filter(p => isGK(p) === gk);
+      const cands = [...sure.filter(p => !depOf(p)), ...unsure.filter(p => !depOf(p)),
+                     ...sure.filter(depOf), ...unsure.filter(depOf)].filter(p => isGK(p) === gk);
       // joueurs de champ : d'abord les postes clefs, le mieux noté qui tient une place de plus
       while(!gk && take.length < n && !covered(take)){
         const c = cands.find(p => !take.includes(p) && filled([...take, p]) > filled(take));
@@ -421,7 +426,7 @@ function planning(){
   // 2. la rotation, sur l'ensemble des matchs
   const quota = ruleOf(H.length);
   const apps = p => P.filter(r => r.gks.includes(p) || r.field.includes(p)).length;
-  const need = p => Math.min(quota, H.filter(m => availOf(p, m) === "d" && pinOf(p, m) !== "out").length);
+  const need = p => depOf(p) ? 0 : Math.min(quota, H.filter(m => availOf(p, m) === "d" && pinOf(p, m) !== "out").length);
   if(quota){
     const easy = P.filter(r => !r.m.cle).sort((a, b) => (b.m.p_victoire ?? 50) - (a.m.p_victoire ?? 50)
       || (a.m.enjeu ?? 0) - (b.m.enjeu ?? 0) || a.k - b.k);
@@ -566,7 +571,8 @@ function viewPlanif(){
     h += '<div class="grp">'+title+'</div>';
     for(const p of list.sort((a, b) => rated(b) - rated(a) || val(b, P[0].m) - val(a, P[0].m))){
       h += '<div class="who" title="'+esc(p.nom+(poste(p) ? " · "+poste(p) : ""))+'"><b>'+esc(p.num ?? "")+'</b> '+fia(p)+' '+esc(p.nom)
-        + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')+'</div>';
+        + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
+        + (depOf(p) ? ' <small class="dep" title="Joue seulement s\'il manque des joueurs ; hors rotation">dépannage</small>' : '')+'</div>';
       for(const r of P){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
@@ -579,8 +585,9 @@ function viewPlanif(){
           : pin === "out" ? "écarté : votre choix"
           : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom+samePoste(p, other)
           : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom+samePoste(p, other)
+          : sel && depOf(p) ? "retenu en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
           : sel ? (av === "i" ? "retenu, mais incertain" : "retenu : parmi les mieux notés disponibles pour ce match")
-          : av === "i" ? "incertain" : "disponible, non retenu";
+          : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non retenu";
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
@@ -696,6 +703,7 @@ function playerDetail(p, plan){
   const choix = (cur, none) => '<option value="">'+none+'</option>'+POSTES.map(k=>'<option value="'+k+'"'+(cur===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("");
   let h = '<div class="detail"><div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'" data-rang="1">'+choix(p1, "non renseigné")+'</select></label>'
     + '<label class="small muted">2e poste <select data-poste="'+esc(p.cle)+'" data-rang="2">'+choix(p2, "aucun")+'</select></label>'
+    + '<label class="small muted"><input type="checkbox" data-dep="'+esc(p.cle)+'"'+(depOf(p)?" checked":"")+'> en dépannage seulement</label>'
     + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Absent pour plusieurs semaines":"De retour : disponible")+'</button></div>';
   if(!p.m) return h + '<p class="small muted">'+(rated(p) ? 'Pas encore aligné cette saison : note provisoire tirée de la saison '+esc(p.note_base)+' ('+esc(passeLine(p))+').'
     : 'Pas encore de feuille de match lue : pas de note. Il peut compléter une feuille ou entrer dans la rotation.')+'</p></div>';
@@ -919,7 +927,7 @@ function copyConvocation(id){
   if(navigator.clipboard) navigator.clipboard.writeText(convText(r)).then(done, fallback); else fallback();
 }
 // Le planning ne vit que dans ce navigateur : un fichier pour le garder ou le reprendre ailleurs.
-const PLAN_KEYS = ["postes", "absents", "dm", "pin", "rdv", "convoque", "regle"];
+const PLAN_KEYS = ["postes", "absents", "depannage", "dm", "pin", "rdv", "convoque", "regle"];
 function exportPlan(){
   const out = {format:"hbpsm-planning", v:1, exporte:new Date().toISOString()};
   for(const k of PLAN_KEYS) out[k] = S[k];
@@ -952,6 +960,7 @@ document.addEventListener("change", ev => {
   else if(t.id === "regle"){ S.regle = Number(t.value); save(); render(true); }
   else if(t.id === "rdv"){ S.rdv[t.dataset.match] = t.value; save(); render(true); }
   else if(t.id === "import-plan" && t.files[0]){ importPlan(t.files[0]); }
+  else if(t.dataset.dep !== undefined){ S.depannage = S.depannage || {}; S.depannage[t.dataset.dep] = t.checked; save(); render(true); }
   else if(t.dataset.poste !== undefined){
     const cle = t.dataset.poste, cur = postesOf(D.joueurs.find(x => x.cle === cle) || {cle});
     cur[Number(t.dataset.rang || 1) - 1] = t.value;

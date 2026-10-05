@@ -380,6 +380,16 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const deux = planning().every(r => r.postesOk && r.sel.length === 12);
           S.postes = {}; S.regle = 1; return {res, sans, deux}; })()""")
         assert cov == {"res": [True, True, True], "sans": False, "deux": True}
+        # en dépannage : jamais retenu tant qu'il y a assez de joueurs, retenu quand il en manque
+        dep = page.evaluate("""(() => { const champ = D.joueurs.filter(p => !isGK(p)), cycle = ["PIV","ARG","DC","ALG","ALD","ARD"];
+          champ.forEach((p, i) => S.postes[p.cle] = cycle[i % cycle.length]);
+          const d = champ[3]; S.depannage = {[d.cle]: true};
+          const jamais = [0, 1, 2].every(q => { S.regle = q; const P = planning(); return P.every(r => !r.sel.includes(d)) && P.need(d) === 0; });
+          S.regle = 1; const m0 = planning()[0].m.id; S.dm[m0] = {};
+          champ.filter(p => p !== d).slice(-3).forEach(p => S.dm[m0][p.cle] = "a");
+          const besoin = planning()[0].sel.includes(d);
+          S.postes = {}; S.depannage = {}; S.dm = {}; return {jamais, besoin}; })()""")
+        assert dep == {"jamais": True, "besoin": True}
         # adversaires : le club figure aussi dans la liste, en tête
         assert page.evaluate("opponent().names[0] === D.meta.club")
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
@@ -504,6 +514,16 @@ def test_noms_ancienne_feuille():
     cases = {"DUPONTjean-DUPONT": "DUPONT Jean", "MARTIN-DUPRÉlouis-alexandre": "MARTIN-DUPRÉ Louis-Alexandre",
              "DE LA TOURpaul-DE LA TOUR": "DE LA TOUR Paul", "DUPONT Jean": "DUPONT Jean", "Jean DUPONT": "Jean DUPONT"}
     assert {k: parse_fdme.split_name(k) for k in cases} == cases
+
+
+def test_effectif_depannage(sandbox):
+    """Dans l'effectif, « dépannage » : disponible, mais seulement s'il manque des joueurs."""
+    (sandbox / "roster.csv").write_text("nom,poste,disponible\nIsidore Exemple,PIV,dépannage\n"
+                                        "Jean Modele,GB,\nOctave Blesse,DC,non\n", "utf-8")
+    r = {v["nom"]: v for v in an.load_roster().values()}
+    assert r["Isidore Exemple"]["disponible"] and r["Isidore Exemple"]["depannage"]
+    assert r["Jean Modele"]["disponible"] and not r["Jean Modele"]["depannage"]
+    assert not r["Octave Blesse"]["disponible"] and not r["Octave Blesse"]["depannage"]
 
 
 def test_heure_de_paris():

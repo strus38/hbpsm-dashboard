@@ -140,7 +140,9 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   sort celui qui a le plus joué sur la période, poste pour poste si possible, sans découvrir un
   poste clef (`postes_clefs` dans config.yml, choix de l'auteur : 2 pivots, 4 arrières ARG/DC/ARD ;
   ARD en 2e poste pour tous les joueurs de champ droitiers, dans l'effectif et le secret, au
-  05/10/2026 ; 2e poste facultatif dans la fiche joueur).
+  05/10/2026 ; 2e poste facultatif dans la fiche joueur). « dépannage » dans la colonne
+  disponible de l'effectif (`depannage`, case dans la fiche, `S.depannage`) : retenu en dernier,
+  besoin de rotation nul ; un joueur de l'effectif y est (demande de l'auteur, 05/10/2026).
 - Anciennes feuilles : le nom est souvent répété après le prénom (« DUPONTjean-DUPONT ») et le
   prénom est en minuscules ; `parse_fdme.split_name` corrige, et `analyze.load_history` le
   réapplique aux saisons déjà lues (sans les retélécharger). Adversaires : `passe.joueurs`

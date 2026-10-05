@@ -440,10 +440,12 @@ def load_roster():
         with path.open(encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
                 if (row.get("nom") or "").strip():
-                    dispo = norm(row.get("disponible") or "oui") not in ("NON", "0", "FALSE", "N")
+                    # « non » : indisponible ; « dépannage » : joue seulement s'il manque des joueurs
+                    state = norm(row.get("disponible") or "oui")
                     roster[name_key(row["nom"])] = dict(nom=row["nom"].strip(),
                                                         poste=(row.get("poste") or "").strip().upper(),
-                                                        disponible=dispo)
+                                                        disponible=state not in ("NON", "0", "FALSE", "N"),
+                                                        depannage=state in ("DEPANNAGE", "RESERVE"))
     return roster
 
 
@@ -630,7 +632,7 @@ def club_players(matches, config, roster, history=()):
             # clé stable : un poste saisi avant le premier match reste attaché au joueur
             cle="R:" + rkey if rkey else r["cle"], nom=r["nom"],
             num=(r["nums"] or nums).most_common(1)[0][0] if nums else None,
-            poste=poste, gardien=gk, disponible=ros.get("disponible", True),
+            poste=poste, gardien=gk, disponible=ros.get("disponible", True), depannage=ros.get("depannage", False),
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
             min_deux=2 * r["deux_min"], tirs=r["tirs"] or None,
@@ -654,6 +656,7 @@ def club_players(matches, config, roster, history=()):
         out.append(dict(
             cle="R:" + rkey, nom=ros.get("nom") or rkey.title(), num=None, poste=ros.get("poste", ""),
             gardien="GB" in (ros.get("poste") or "").split("/"), disponible=ros.get("disponible", True),
+            depannage=ros.get("depannage", False),
             m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
