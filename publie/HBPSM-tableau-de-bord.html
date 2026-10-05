@@ -183,8 +183,14 @@ nav.tabs[hidden]{display:none}
 .sel12 span.rot{border-style:dashed}
 .sel12 span.unsure{opacity:.7}
 .sel12 small{color:var(--muted);font-size:.72rem}
-.plan{display:grid;grid-template-columns:minmax(190px,1.6fr) repeat(var(--n),minmax(92px,1fr)) 46px;font-size:.86rem;align-items:center;min-width:620px}
-.plan>div{padding:4px;border-bottom:1px solid var(--rule)}
+.plan{display:grid;grid-template-columns:minmax(190px,1.6fr) repeat(var(--n),minmax(92px,1fr)) 46px;font-size:.86rem;align-items:stretch;min-width:620px}
+.plan>div{padding:4px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.plan>.who{justify-content:flex-start;gap:4px}
+.plan>.grp{display:block}
+.plan>.h{align-items:flex-end}
+.plan .c{width:100%}
+.plan .who>*{flex-shrink:0}
+.plan .who>span.tl,.plan .who>span.ts{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plan .h{font-size:.74rem;color:var(--muted);text-align:center;line-height:1.35}
 .plan .h b{color:var(--heading);font-size:.84rem}
 .plan .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -196,7 +202,7 @@ nav.tabs[hidden]{display:none}
 .cell.i{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .cell.a{border-color:transparent;background:color-mix(in srgb,var(--loss) 14%,transparent);color:var(--loss)}
 .cell.rest{border-style:dashed;border-color:var(--track);color:var(--track);background:transparent}
-.plan .h.foot{align-self:start}
+.plan>.h.foot{align-items:flex-start}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
 .plan .pst{font-size:.7rem;color:var(--muted)}
@@ -304,7 +310,7 @@ body:not(.lecture) .lecture-only{display:none!important}
   .plan .h .risk,.plan .feuille{font-size:.62rem;padding:1px 4px;max-width:100%;white-space:normal;line-height:1.15}
   .plan .h.foot{line-height:1.5}
   .plan .h.foot .link{font-size:.72rem;padding:4px 0}
-  .plan .footlab{align-self:start;padding-top:19px;line-height:1.5}
+  .plan>.footlab{align-items:flex-start;padding-top:19px;line-height:1.5}
   .plan .tag.key{margin:0;font-size:.62rem;padding:0 4px}
   .cell{width:40px;height:32px}
   .legend-plan{gap:4px}
@@ -329,7 +335,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "ad65a8e1da20", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "dd26f686d224", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -732,12 +738,12 @@ function viewPlanif(){
     + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
   h += '<div class="panel scroll plan-wrap"><div class="plan" style="--n:'+P.length+'"><div class="who"></div>'
-    + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
+    + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">J'+esc(r.m.journee ?? "?")+' · '+pct(r.m.p_victoire)+'<br></span>'
       + (r.m.cle ? '<span class="tag key">Match clé</span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
-      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div>').join("")
-    + '<div class="h">retenu</div>';
+      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div></div>').join("")
+    + '<div class="h" title="Matchs où il est retenu"><span class="tl">retenu</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
@@ -768,15 +774,15 @@ function viewPlanif(){
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
-  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + P.map(r => '<div class="h small">'
+  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + P.map(r => '<div class="h small"><div class="c">'
       + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus"><span class="tl">'+esc(c.nom)+'</span><span class="ts">'+esc(c.nom.slice(0, 3).toUpperCase())+'</span> '+c.n+'/'+c.min+'</span>').join(" ")
-      + '</div>').join("") + '<div></div>';
+      + '</div></div>').join("") + '<div></div>';
   h += '<div class="who muted small footlab"><span class="tl">Avec ces choix</span><span class="ts">force<br>victoire<br>risque</span></div>'
-    + P.map(r => '<div class="h foot"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
+    + P.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
-    + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div>').join("") + '<div></div></div></div>';
+    + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
   h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
   h += '<p class="note">Force : valeur des 12 retenus rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos réglages restent sur cet ordinateur ; seule une feuille validée est publiée, chiffrée, pour les joueurs.</p>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
