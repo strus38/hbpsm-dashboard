@@ -395,6 +395,15 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const besoin = planning()[0].sel.includes(d);
           S.postes = {}; S.depannage = {}; S.dm = {}; return {jamais, besoin}; })()""")
         assert dep == {"jamais": True, "besoin": True}
+        # le terrain de la semaine montre les 12 : le sept de départ, les autres sous leur poste
+        court = page.evaluate("""(() => { const champ = D.joueurs.filter(p => !isGK(p)), cycle = ["PIV","ARG","DC","ALG","ALD","ARD"];
+          champ.forEach((p, i) => S.postes[p.cle] = cycle[i % cycle.length]);
+          const r = planning()[0], st = startSeven(r), b = benchOf(r, st), box = document.createElement("div");
+          box.innerHTML = courtSVG(st, b);
+          const noms = box.querySelectorAll(".tok:not(.vide) .nm").length + box.querySelectorAll(".sub").length;
+          const gb2 = (b.GB || []).length;
+          S.postes = {}; return {feuille: r.sel.length, noms, gb2}; })()""")
+        assert court == {"feuille": 12, "noms": 12, "gb2": 1}
         # téléphone : aucun onglet ne déborde ; « explique » montre la raison d'une case sans la changer
         page.set_viewport_size({"width": 360, "height": 780})
         for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
