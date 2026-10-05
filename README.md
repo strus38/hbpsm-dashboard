@@ -100,9 +100,9 @@ l'entraîneur et n'en sortent pas (un fichier « Sauvegarder mon planning » les
 Deux modes. Ouverte depuis HANDBALL-training, dont le lien se termine par `#entraineur`, la
 page est en mode entraîneur : disponibilités, choix, rotation, rendez-vous, convocation et
 postes se modifient. Ouverte directement (GitHub Pages ou fichier), elle se consulte seulement :
-aucun contrôle de modification, une note rappelle que la feuille affichée est la proposition du
-tableau de bord et que la convocation de l'entraîneur fait foi, et toucher une case en donne la
-raison. Ce n'est pas un verrou : rien de ce qu'on modifie ne quitte le navigateur.
+aucun contrôle de modification, une note rappelle qu'une feuille non validée par l'entraîneur
+n'est qu'une suggestion, et toucher une case en donne la raison. Ce n'est pas un verrou : rien
+de ce qu'on modifie ne quitte le navigateur, sauf la feuille que l'entraîneur valide (ci-dessous).
 
 Sur téléphone, la page se resserre : menu sur une ligne, noms courts, tableaux sans les
 colonnes secondaires, planification avec la colonne des noms fixe et des cases plus grandes. Le
@@ -115,6 +115,32 @@ pour ce qui est actif ou mis en avant, toujours avec un texte foncé.
 
 La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com` : les fichiers attachés à une
 Release ne sont pas lisibles par une page web (GitHub n'y met pas d'en-tête CORS).
+
+## Feuille validée par l'entraîneur
+
+Tant que l'entraîneur n'a pas validé un match, tout le monde voit sur la page une
+**suggestion** du tableau de bord (cases en pointillés chez les visiteurs). En mode entraîneur,
+« Valider la feuille » (planification, semaine ou convocation) fige la feuille de ce match et
+la publie : chacun voit alors « Choix de l'entraîneur, validé le… », et cette feuille sort de la
+rotation automatique. Retoucher une feuille validée la repasse à valider ; les joueurs voient
+la version publiée jusqu'à la nouvelle validation.
+
+La page de l'entraîneur chiffre les feuilles validées avec la phrase du club et lance le
+workflow « Choix de l'entraîneur » (`.github/workflows/choix.yml`). Il vérifie qu'elles sont
+chiffrées avec la phrase du club, de la forme attendue, puis les écrit dans
+`publie/choix.enc`, que toutes les pages relisent. Rien n'est déchiffré dans le journal.
+
+Pour cela, la page a besoin d'un jeton GitHub, créé une fois par le propriétaire du dépôt :
+1. GitHub > Settings > Developer settings > Personal access tokens > **Fine-grained tokens** >
+   Generate new token ;
+2. Repository access : **Only select repositories**, `hbpsm-dashboard` ;
+3. Permissions > Repository permissions : **Actions : Read and write** (rien d'autre ; il peut
+   lancer ce workflow, pas modifier le code) ;
+4. une date d'expiration (la fin de la saison, par exemple), puis Generate token.
+
+L'entraîneur colle ce jeton une fois, quand la page le lui demande à sa première validation ;
+il reste dans son navigateur, jamais dans un fichier. « Oublier le jeton de publication », en
+bas de la planification, l'efface.
 
 ## Chaîne de traitement
 

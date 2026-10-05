@@ -49,6 +49,8 @@ def page_config(config):
     branch = os.environ.get("GITHUB_REF_NAME") or config.get("branche") or "main"
     raw = f"https://raw.githubusercontent.com/{slug}/{branch}/publie/" if slug else ""
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
+                choix=raw + "choix.enc" if raw else "", depot=slug, branche=branch,
+                iterations=vault.ITERATIONS,  # la page chiffre les choix de l'entraîneur comme le coffre
                 versions=f"https://github.com/{slug}/releases/latest" if slug else "",
                 app=app_version(), club=config["club"]["nom_affiche"], verif=VERIF)
 

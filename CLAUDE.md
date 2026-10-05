@@ -118,7 +118,17 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `#entraineur` dans l'adresse, posé par le profil HBPSM de l'application, 1.16.1). Ouverte
   autrement : consultation (`body.lecture`, classes `.coach` / `.lecture-only`, saisies ignorées).
   Pas un verrou : les choix restent dans chaque navigateur ; viser seulement à ne pas tromper un
-  joueur. Les choix de l'entraîneur ne sont pas publiés : un joueur voit la proposition automatique.
+  joueur.
+- Feuille validée (demande de l'auteur, 05/10/2026) : « Valider la feuille » en mode entraîneur
+  chiffre les feuilles validées dans le navigateur (`sealVault`, même coffre que `vault.py`) et
+  lance `choix.yml` par l'API GitHub avec un jeton à grain fin (Actions : lecture et écriture,
+  ce dépôt seulement), collé une fois par l'entraîneur (`localStorage` « hbpsm:jeton », jamais
+  dans un fichier ni dans l'export du planning). `pipeline/choix.py` vérifie (phrase du club,
+  forme, taille) et écrit `publie/choix.enc` ; les pages le relisent (`fetchChoices`). Visiteur :
+  « Choix de l'entraîneur » ou « Suggestion » (pointillés). Une feuille validée est figée et sort
+  de la rotation ; la retoucher la repasse « modifiée » (`S.valide[id] = null`). États :
+  suggestion, choix, publiee, attente, modifiee, a_revoir.
+- Cartons dessinés (jaune, rouge) à la place de « CJ » et « CR » (`carton()` dans la page).
 - Anciennes feuilles : ENTREEGARDIEN / SORTIEGARDIEN donnent le gardien en place (buts pris
   exacts) ; PROTOCOLECOMMOTION, COMMOTION et TEMPSDEREGULATIONCOMPORTEMENTAL sont ignorés
   (donnée de santé, sans intérêt). Feuille en 404 : `pdf_absent`, plus redemandée.

@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import collect, common, demo_data, parse_fdme, publish, vault
+from pipeline import choix, collect, common, demo_data, parse_fdme, publish, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 
@@ -39,7 +39,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish):
+    for mod in (common, an, collect, parse_fdme, publish, choix):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
@@ -332,6 +332,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
     base = f"http://127.0.0.1:{server.server_port}/"
     page_file = sandbox / "tableau.html"
     html = render(None, dict(src=base + "hbpsm.enc", manifeste=base + "manifeste.json", versions="",
+                             choix=base + "choix.enc", depot="exemple/depot", branche="main", iterations=2000,
                              club="HBPSM", verif=1))
     assert "Joueur 0" not in html
     page_file.write_text(html, "utf-8")
@@ -399,6 +400,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
             page.evaluate("t => { S.tab = t; render(false); }", tab)
             assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0, tab
+            # rien ne déborde de sa case (les colonnes de la planification sont étroites)
+            assert page.evaluate("""() => [...document.querySelectorAll('.plan > div:not(.who), td')].every(c => {
+              const b = c.getBoundingClientRect();
+              return [...c.querySelectorAll('*')].every(e => { const r = e.getBoundingClientRect();
+                return !r.width || getComputedStyle(e).display === 'none' || (r.left >= b.left - 1 && r.right <= b.right + 1); }); })""") is True, tab
         page.evaluate("S.tab = 'planif'; render(false)")
         page.click("button[data-tap=why]")
         before = page.evaluate("JSON.stringify(S.pin)")
@@ -432,6 +438,39 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         publish.seal("2026-10-04")
         page.wait_for_function("() => D && D.meta.matchs === 24", timeout=20000)
         assert page.get_attribute("nav.tabs button[data-tab=saison]", "aria-selected") == "true"
+        # l'entraîneur valide la feuille du 1er match : elle part chiffrée au workflow « Choix de l'entraîneur »
+        sent = []
+
+        def github(route):
+            cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST"}
+            if route.request.method == "OPTIONS":
+                return route.fulfill(status=204, headers=cors)
+            sent.append(dict(url=route.request.url, auth=route.request.headers.get("authorization"),
+                             body=json.loads(route.request.post_data)))
+            route.fulfill(status=204, headers=cors)
+
+        ctx.route("https://api.github.com/**", github)
+        page.click("nav.tabs button[data-tab=planif]")
+        assert page.evaluate("planning()[0].etat") == "suggestion"
+        page.locator("[data-valider]").first.click()   # sans jeton : il est demandé
+        page.wait_for_selector("#jeton")
+        assert sent == [] and page.evaluate("planning()[0].etat") == "attente"
+        page.fill("#jeton", "jeton-de-test")
+        page.click("button[data-jeton]")
+        page.wait_for_function("() => PUB === 'envoyee'", timeout=20000)
+        assert len(sent) == 1 and sent[0]["auth"] == "Bearer jeton-de-test"
+        assert sent[0]["url"].endswith("/repos/exemple/depot/actions/workflows/choix.yml/dispatches")
+        envelope = json.loads(sent[0]["body"]["inputs"]["choix"])
+        assert "Joueur" not in sent[0]["body"]["inputs"]["choix"]  # chiffré : aucun nom en clair
+        monkeypatch.setattr(vault, "ITERATIONS", 2000)
+        chosen = choix.check(envelope, PHRASE)   # ce que vérifiera le workflow
+        first = page.evaluate("String(planning()[0].m.id)")
+        assert sorted(chosen["matchs"][first]["joueurs"]) == sorted(page.evaluate("planning()[0].sel.map(p => p.cle)"))
+        # le workflow l'écrit dans publie/choix.enc : la page la retrouve, publiée
+        monkeypatch.setenv("HBPSM_CHOIX", json.dumps(envelope))
+        assert choix.main() == 0 and (out / "choix.enc").exists()
+        assert page.evaluate("fetchChoices().then(c => { render(true); return c; })")
+        assert page.evaluate("planning()[0].etat") == "publiee" and page.evaluate("planning()[1].etat") == "suggestion"
         server.shutdown()  # hors connexion : la copie locale suffit, sans redemander la phrase
         server.server_close()
         page.reload()
@@ -453,6 +492,12 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert ro.locator("#why").is_visible() and ro.evaluate("JSON.stringify([S.pin, S.dm])") == before
         ro.click("nav.tabs button[data-tab=convoc]")
         assert ro.locator("#rdv").count() == 0 and not ro.locator("[data-copy]").is_visible()
+        ro.wait_for_function("() => CHOIX !== null", timeout=10000)
+        assert ro.evaluate("PLAN.map(r => r.etat)") == ["choix", "suggestion", "suggestion", "suggestion"]
+        assert sorted(ro.evaluate("PLAN[0].sel.map(p => p.cle)")) == sorted(chosen["matchs"][first]["joueurs"])
+        ro.click("nav.tabs button[data-tab=semaine]")
+        assert "choisis par l'entraîneur" in ro.inner_text("h2") and "Choix de l'entraîneur" in ro.inner_text(".etat-ligne")
+        assert ro.locator("[data-valider]").count() == 0
         browser.close()
     assert errors == []
 
@@ -538,6 +583,29 @@ def test_notes_fragiles_ramenees():
     assert fragile["scores"]["equilibre"] == round(mean + (30 - mean) / 3) and fragile["scores_bruts"]["equilibre"] == 30
     assert abs(solide["scores"]["equilibre"] - 70) <= 1
     assert gb["scores"]["equilibre"] == 90  # seul gardien noté : sa propre moyenne
+
+
+def test_choix_de_l_entraineur(sandbox, monkeypatch):
+    """Le workflow n'écrit que des choix chiffrés avec la phrase du club, de la forme attendue."""
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    good = dict(format="hbpsm-choix", v=1, matchs={"42": dict(joueurs=["R:EXEMPLE ISIDORE"], le="2026-10-09T20:00:00Z")})
+    env = vault.encrypt(good, PHRASE, 2000)
+    monkeypatch.setenv("HBPSM_CHOIX", json.dumps(dict(env, extra="ignoré")))
+    assert choix.main() == 0
+    written = json.loads((sandbox / "publie" / "choix.enc").read_text("utf-8"))
+    assert "extra" not in written and vault.decrypt(written, PHRASE) == good
+    refused = [vault.encrypt(good, "une autre phrase bien longue", 2000),             # pas la phrase du club
+               vault.encrypt(dict(good, format="autre"), PHRASE, 2000),               # pas des choix
+               vault.encrypt(dict(good, matchs={"1": dict(joueurs=["x"] * 20, le="")}), PHRASE, 2000),
+               vault.encrypt(good, PHRASE, 1000)]                                      # chiffrement affaibli
+    for bad in refused:
+        monkeypatch.setenv("HBPSM_CHOIX", json.dumps(bad))
+        with pytest.raises(vault.VaultError):
+            choix.main()
+    monkeypatch.setenv("HBPSM_CHOIX", "pas du json")
+    with pytest.raises(vault.VaultError):
+        choix.main()
 
 
 def test_noms_ancienne_feuille():
