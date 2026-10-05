@@ -500,6 +500,8 @@ try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
 normRule();
 S.tab = "planif";   // la page s'ouvre toujours sur la planification (demande de l'auteur, 05/10/2026)
+// sauf au rechargement automatique après une mise à jour de la page : on revient où l'on était
+try { const back = sessionStorage.getItem("hbpsm:onglet"); if(back){ S.tab = back; sessionStorage.removeItem("hbpsm:onglet"); } } catch (e) {}
 // Seul l'entraîneur modifie, et seulement quand il ouvre la page depuis HANDBALL-training, dont le
 // lien se termine par « #entraineur » (demande de l'auteur, 05/10/2026). Ouverte autrement, la page
 // se consulte sans rien changer. Ce n'est pas un verrou : rien de ce qu'on modifie ne quitte ce
@@ -1809,8 +1811,11 @@ function render(keepScroll){
   const lg = document.getElementById("club-logo"), lgu = D.logos && D.logos[D.meta.club];
   if(lg && lgu && lg.getAttribute("src") !== lgu){ lg.src = lgu; lg.hidden = false; lg.onerror = () => { lg.hidden = true; }; }
   document.getElementById("club-titre").textContent = "Tableau de bord" + (D.meta.saison ? " · saison " + D.meta.saison : "");
-  const newer = NEWER && CFG.versions ? '<p class="demo">Une version plus récente de ce fichier existe. <a href="'
-    + esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a></p>' : "";
+  // la page a évolué : en ligne, elle se recharge d'elle-même dès que GitHub sert la nouvelle (quelques
+  // minutes) ; un fichier gardé sur l'ordinateur, lui, se télécharge de nouveau
+  const newer = !NEWER ? "" : location.protocol === "file:"
+    ? '<p class="demo">Une version plus récente de ce fichier existe.'+(CFG.versions ? ' <a href="'+esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a>' : '')+'</p>'
+    : '<p class="demo">Une nouvelle version de la page est en ligne : elle s\'affichera d\'elle-même d\'ici quelques minutes, sans rien perdre de vos réglages.</p>';
   PLAN = planning();
   document.getElementById("app").innerHTML = newer + VIEWS[S.tab]();
   document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
@@ -2059,6 +2064,24 @@ function show(box){
   D = Object.assign(box.data, {seance_hbt: box.seance_hbt});
   GENERE = box.genere;
 }
+// la nouvelle page met quelques minutes à être servie : un coup d'œil chaque minute, puis on recharge
+// (l'onglet ouvert est gardé ; disponibilités et réglages sont déjà rangés dans le navigateur)
+function waitNewPage(app){
+  if(location.protocol === "file:" || !app) return;
+  let n = 0;
+  const timer = setInterval(async () => {
+    n++;
+    try {
+      const html = await (await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"})).text();
+      if(html.includes(app)){
+        clearInterval(timer);
+        try { sessionStorage.setItem("hbpsm:onglet", S.tab); } catch (e) {}
+        location.reload();
+      }
+    } catch (e) {}
+    if(n >= 30) clearInterval(timer);   // une demi-heure : on laisse faire le prochain chargement
+  }, 60000);
+}
 // Le manifeste (quelques octets) dit la date des dernières données publiées : on ne télécharge
 // et ne déchiffre le coffre que s'il a changé, puis on redessine sans perdre onglet ni réglages.
 async function check(){
@@ -2068,7 +2091,7 @@ async function check(){
   try {
     const m = await (await fetch(CFG.manifeste + "?t=" + Date.now(), {cache:"no-store"})).json();
     CHECKED = new Date(); ONLINE = true;
-    if(m.app && m.app !== CFG.app && !NEWER){ NEWER = true; render(true); }  // la page elle-même a évolué
+    if(m.app && m.app !== CFG.app && !NEWER){ NEWER = true; render(true); waitNewPage(m.app); }  // la page elle-même a évolué
     if(await fetchChoices()) render(true);   // l'entraîneur a validé une feuille
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(m.maj && m.maj !== GENERE){

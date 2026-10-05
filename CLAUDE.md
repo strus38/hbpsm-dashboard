@@ -327,6 +327,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   complet − victoire avec cette feuille) × enjeu ; faible < 1 point, modéré 1 à 3, élevé > 3 ou feuille
   incomplète ou poste clef découvert ; coupe : faible. L'étiquette montre le coût (`riskCost`), un
   toucher ou le survol donne le calcul du match (`riskWhy`, `data-why-text`).
+- Nouvelle version de la page (demande de l'auteur, 05/10/2026) : en ligne, plus de lien « La télécharger »
+  mais « elle s'affichera d'elle-même d'ici quelques minutes » ; `waitNewPage` relit la page chaque minute
+  (une demi-heure au plus) et recharge dès qu'elle porte la nouvelle empreinte, en gardant l'onglet
+  (`sessionStorage` « hbpsm:onglet »). Un fichier gardé sur l'ordinateur garde le lien vers la Release.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

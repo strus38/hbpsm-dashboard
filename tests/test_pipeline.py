@@ -355,6 +355,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # la page s'ouvre sur la planification
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        # la page a évolué : un fichier gardé sur l'ordinateur se télécharge de nouveau (en ligne, elle se
+        # recharge d'elle-même dès que GitHub sert la nouvelle)
+        page.evaluate("NEWER = true; render(true)")
+        assert "Une version plus récente de ce fichier existe" in page.inner_text("#app")
+        page.evaluate("NEWER = false; render(true)")
         # les deux derniers matchs joués, avant les quatre à venir : qui était sur la feuille
         assert page.evaluate("D.derniers.length") == 3 and page.locator(".plan .h.past").count() == 2
         on = page.evaluate("D.derniers.slice(-2).reduce((a, x) => a + D.joueurs.filter(p => x.joueurs[p.cle]).length, 0)")
