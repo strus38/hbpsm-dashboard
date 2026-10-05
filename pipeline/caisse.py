@@ -144,7 +144,8 @@ def proposals(with_sheet, roster, members, saison):
         sheet = m["players"][side]
         out.append(dict(id=f"m_penalty:{m['id']}:check", regle="m_penalty", check=True, joueur=None, n=1, montant=None,
                         date=(m.get("date") or "")[:10], match=m["id"], motif=f"penalties {where}",
-                        tireurs=[dict(joueur=_who(p.get("name"), roster), marques=p.get("pen_goals") or 0)
+                        tireurs=[dict(joueur=_who(p.get("name"), roster), marques=p.get("pen_goals") or 0,
+                                      rates=max(0, (p.get("shots") or 0) - (p.get("goals") or 0)) if p.get("shots") else None)
                                  for p in sheet if p.get("pen_goals")],
                         feuille=[_who(p.get("name"), roster) for p in sheet]))
     for cle in members:
