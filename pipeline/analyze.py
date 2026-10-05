@@ -808,10 +808,11 @@ def club_players(matches, config, roster, history=(), older=()):
     return out, club_matches, with_sheet
 
 
-def last_matches(current, past, roster, n=2):
+def last_matches(current, past, roster, n=3):
     """Les n derniers matchs terminés du club dont la feuille est lue : ceux de la saison, complétés par
     la fin de la saison passée tant qu'il en manque. Pour chacun, qui était sur la feuille (clé du
-    joueur, comme dans joueurs) et ce qu'il y a fait."""
+    joueur, comme dans joueurs) et ce qu'il y a fait. La planification en montre deux ; le troisième
+    sert à compter les matchs de suite d'un gardien."""
     out = []
     for m, side, opp, gf, ga in (list(past) + list(current))[-n:]:
         who = {}

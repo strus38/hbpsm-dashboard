@@ -193,6 +193,12 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
   passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
   de la saison passée ne compte pas pour la règle des 2 changements.
+- Gardiens (demande de l'auteur, 05/10/2026) : pas plus de `GB_SUITE` = 3 matchs de suite sans sortir,
+  matchs joués de la saison compris (`derniers` en garde 3, la planification en montre 2). Après la
+  rotation, avant la règle des 2 changements : il se repose sur le match le plus abordable de la
+  série (coupe d'abord, jamais un match clé s'il y a mieux, jamais une feuille validée), remplacé par
+  le gardien disponible qui a le moins joué et qui ne dépasse pas lui-même la limite (`runWith`) ;
+  sinon « gardien : 3 matchs de suite dépassés » sous le match (`gbSuite`).
 - Blessé, absent (demandes de l'auteur, 05/10/2026) : seul l'entraîneur les déclare, d'un clic sur
   une case (… incertain → absent → blessé → disponible). Absent : pour ce match (`dm` « a »). Blessé :
   à partir de ce match jusqu'à son retour (`S.blesse[cle]` = {de, a}, dates de match ; un clic sur un

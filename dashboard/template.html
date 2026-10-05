@@ -557,7 +557,8 @@ const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
 // classe d'âge (effectif) : à valeur proche, les changements font jouer d'abord les plus jeunes
 const AGE_RANG = {jeune: 0, intermediaire: 1, experimente: 2};   // paramètre seulement : jamais affiché (choix de l'auteur)
 const ageRank = p => AGE_RANG[p.age] ?? 1;
-const MIN_CHANGES = 2;   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
+const MIN_CHANGES = 2;
+const GB_SUITE = 3;   // un gardien ne fait pas plus de 3 matchs de suite sans sortir (demande de l'auteur, 05/10/2026)   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
 const horizon = () => {
   const ms = (D.saison && D.saison.matchs) || [];
   if(ms.length) return ms.slice(0, HORIZON);
@@ -743,7 +744,7 @@ function planning(){
       const fill = (gk, n) => { for(const p of [...sure, ...unsure]) if(isGK(p) === gk && (gk ? gks : field).length < n && !gks.includes(p) && !field.includes(p)) (gk ? gks : field).push(p); };
       if(broken.length){ fill(true, nGK); fill(false, size - gks.length); }
     } else { gks = pick(true, nGK); field = pick(false, size - gks.length); }
-    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], peu: null, fixed: !!fixed, broken};
+    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], serie: [], peu: null, fixed: !!fixed, broken};
   });
   // 2. la rotation, sur l'ensemble des matchs
   const quota = ruleOf(H.length);
@@ -778,7 +779,44 @@ function planning(){
       }
     }
   }
-  // 2 bis. jamais deux fois de suite la même équipe : au moins MIN_CHANGES joueurs (gardiens compris)
+  // 2 bis. un gardien ne fait pas plus de GB_SUITE matchs de suite : les matchs joués cette saison
+  // comptent ; il se repose sur le match le plus abordable de la série (jamais une feuille validée),
+  // remplacé par le gardien disponible qui a le moins joué
+  const played = (D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison), blocked = new Set();
+  // la plus longue série du gardien p s'il jouait aussi le match r
+  const runWith = (p, r) => { let run = 0, top = 0;
+    for(const h of [...played.map(x => !!(x.joueurs || {})[p.cle]), ...P.map(x => x === r || x.gks.includes(p))]){ run = h ? run + 1 : 0; top = Math.max(top, run); }
+    return top; };
+  const gbIns = (r, g) => D.joueurs.filter(p => isGK(p) && !r.gks.includes(p) && !depOf(p) && pinOf(p, r.m) !== "out" && availOf(p, r.m) !== "a" && runWith(p, r) <= GB_SUITE)
+    .sort((a, b) => (availOf(a, r.m) === "i") - (availOf(b, r.m) === "i") || apps(a) - apps(b) || val(b, r.m) - val(a, r.m));
+  for(let guard = 0; guard < 40; guard++){
+    const seq = [...played.map(x => ({has: p => !!(x.joueurs || {})[p.cle]})), ...P.map(r => ({r, has: p => r.gks.includes(p)}))];
+    let fix = null;
+    for(const g of D.joueurs.filter(isGK)){
+      let run = [];
+      for(const s of seq){
+        run = s.has(g) ? [...run, s] : [];
+        if(run.length <= GB_SUITE) continue;
+        const can = run.filter(x => x.r && !x.r.fixed && !x.r.pinned.includes(g) && !blocked.has(g.cle + "|" + x.r.k))
+          .sort((a, b) => (a.r.m.cle ? 1 : 0) - (b.r.m.cle ? 1 : 0) || (b.r.m.coupe ? 1 : 0) - (a.r.m.coupe ? 1 : 0)
+            || (pv(b.r.m) ?? 50) - (pv(a.r.m) ?? 50));
+        for(const x of can){
+          const i = gbIns(x.r, g)[0];
+          if(i){ fix = {g, r: x.r, i}; break; }
+          blocked.add(g.cle + "|" + x.r.k);
+        }
+        if(fix) break;
+        run.filter(x => x.r).forEach(x => { x.r.gbSuite = true; });   // aucun autre gardien : signalé
+        run = [];
+      }
+      if(fix) break;
+    }
+    if(!fix) break;
+    const {g, r, i} = fix;
+    r.gks[r.gks.indexOf(g)] = i;
+    r.rotated.push(i); r.resting.push(g); r.serie.push(i, g); r.why[i.cle] = g; r.why[g.cle] = i;
+  }
+  // 2 ter. jamais deux fois de suite la même équipe : au moins MIN_CHANGES joueurs (gardiens compris)
   // changent d'un match au suivant, à commencer par le dernier match joué ; chaque échange est celui
   // qui coûte le moins, poste pour poste si possible, sans découvrir un poste clef
   const last = (D.derniers || []).slice(-1)[0];
@@ -812,7 +850,7 @@ function planning(){
     prev = team();
   }
   // 3. force et risque de chaque feuille
-  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken, forced, peu}) => {
+  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken, forced, peu, serie, gbSuite}) => {
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
@@ -836,7 +874,7 @@ function planning(){
       : broken.length ? "a_revoir"
       : pub && keyset(pub) === mine && (!local || keyset(local) === mine) ? "publiee" : "attente";
     const valideLe = (local || pub || {}).le || null;
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, forced, peu, postes, postesOk, fixed, broken, etat, valideLe,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, forced, peu, serie, gbSuite, postes, postesOk, fixed, broken, etat, valideLe,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
@@ -1025,7 +1063,7 @@ function viewPlanif(){
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
-  const done = D.derniers || [], jr = (p, x) => (x.joueurs || {})[p.cle];
+  const done = (D.derniers || []).slice(-2), jr = (p, x) => (x.joueurs || {})[p.cle];
   const pastCell = (p, x) => { const j = jr(p, x);
     if(!j) return '<div class="pc" title="'+esc(p.nom)+' : pas sur la feuille contre '+esc(x.adversaire)+'">·</div>';
     const what = isGK(p) ? j.arrets+' arrêt'+(j.arrets > 1 ? "s" : "") : j.buts+' but'+(j.buts > 1 ? "s" : "");
@@ -1063,6 +1101,8 @@ function viewPlanif(){
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
+          : rot && r.serie.includes(p) ? "entre : un gardien ne fait pas plus de "+GB_SUITE+" matchs de suite, à la place de "+other.nom
+          : rest && r.serie.includes(p) ? "au repos : "+GB_SUITE+" matchs de suite au plus pour un gardien, laisse sa place à "+other.nom
           : rot && forced ? "entre : au moins "+MIN_CHANGES+" changements d'un match au suivant, à la place de "+other.nom+samePoste(p, other)
           : rest && forced ? "au repos : au moins "+MIN_CHANGES+" changements d'un match au suivant, laisse sa place à "+other.nom+samePoste(p, other)
           : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom+samePoste(p, other)
@@ -1085,6 +1125,7 @@ function viewPlanif(){
     + cols.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'
+    + (r.gbSuite ? '<br><small class="low" title="Aucun autre gardien disponible pour reposer celui qui enchaîne">gardien : '+GB_SUITE+' matchs de suite dépassés</small>' : '')
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';

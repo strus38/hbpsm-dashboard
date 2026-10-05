@@ -355,14 +355,24 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
         # les deux derniers matchs joués, avant les quatre à venir : qui était sur la feuille
-        assert page.evaluate("D.derniers.length") == 2 and page.locator(".plan .h.past").count() == 2
-        on = page.evaluate("D.derniers.reduce((a, x) => a + D.joueurs.filter(p => x.joueurs[p.cle]).length, 0)")
+        assert page.evaluate("D.derniers.length") == 3 and page.locator(".plan .h.past").count() == 2
+        on = page.evaluate("D.derniers.slice(-2).reduce((a, x) => a + D.joueurs.filter(p => x.joueurs[p.cle]).length, 0)")
         assert on > 0 and page.locator(".plan .pc.on").count() == on
         # jamais deux fois de suite la même équipe : au moins 2 changements, depuis le dernier match joué
         changes = page.evaluate("""(() => { const last = D.derniers.slice(-1)[0];
           let prev = D.joueurs.filter(p => last.joueurs[p.cle]);
           return planning().map(r => { const c = r.sel.filter(p => !prev.includes(p)).length; prev = r.sel; return c; }); })()""")
         assert len(changes) == 4 and min(changes) >= 2, changes
+        # un gardien : pas plus de 3 matchs de suite, matchs joués de la saison compris ; avec deux gardiens
+        # seulement, impossible : signalé ; un troisième (un joueur de champ passé gardien) suffit
+        assert page.evaluate("D.joueurs.filter(isGK).length") == 2 and page.evaluate("planning().some(r => r.gbSuite)")
+        third = page.evaluate("(() => { const p = D.joueurs.filter(q => !isGK(q) && dispo(q) && !depOf(q)).slice(-1)[0]; S.postes[p.cle] = 'GB';"
+                              " D.derniers.forEach(x => { x.vraie = x.saison; x.saison = '2000-2001'; }); return p.cle; })()")   # sans les matchs joués
+        runs = page.evaluate("""(() => { const P = planning(), seq = [...D.derniers.filter(x => !x.saison || x.saison === D.meta.saison)
+            .map(x => p => !!x.joueurs[p.cle]), ...P.map(r => p => r.sel.includes(p))];
+          return D.joueurs.filter(isGK).map(g => { let run = 0, top = 0; for(const has of seq){ run = has(g) ? run + 1 : 0; top = Math.max(top, run); } return top; }); })()""")
+        page.evaluate(f"delete S.postes[{json.dumps(third)}]; D.derniers.forEach(x => {{ x.saison = x.vraie; delete x.vraie; }})")
+        assert len(runs) == 3 and max(runs) <= 3, runs
         # classe d'âge (paramètre, jamais affichée) : quand il faut changer, un titulaire plus âgé sort d'abord
         older_out = page.evaluate("""(() => { const keep = D.joueurs.map(p => p.age); S.regle = 0;
           const P0 = planning(), x = P0[0].sel.find(p => !isGK(p) && pinOf(p, P0[0].m) !== "in");
