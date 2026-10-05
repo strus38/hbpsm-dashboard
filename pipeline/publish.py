@@ -25,6 +25,7 @@ import hashlib
 import io
 import json
 import os
+import pathlib
 import sys
 import time
 
@@ -154,6 +155,15 @@ def public_summary(data):
         axes=[{k: a.get(k) for k in ("titre", "libelle", "constat")} for a in data.get("axes") or []])
 
 
+def code_version():
+    """Empreinte du calcul (pipeline et réglages) : le changer republie, même sans nouvelle feuille."""
+    h = hashlib.sha256()
+    for path in sorted(pathlib.Path(__file__).parent.glob("*.py")) + [ROOT / "config.yml"]:
+        if path.exists():
+            h.update(path.read_bytes())
+    return h.hexdigest()[:12]
+
+
 def small_logo(url):
     """Le logo réduit, en image intégrée (data:) : HANDBALL-training le montre sans rien télécharger."""
     from PIL import Image
@@ -209,7 +219,7 @@ def seal(today=None):
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()
     hist_digest = hashlib.sha256(json.dumps(hist, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
-    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), hist_digest], sort_keys=True,
+    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest], sort_keys=True,
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()

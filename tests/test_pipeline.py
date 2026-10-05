@@ -404,6 +404,18 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const gb2 = (b.GB || []).length;
           S.postes = {}; return {feuille: r.sel.length, noms, gb2}; })()""")
         assert court == {"feuille": 12, "noms": 12, "gb2": 1}
+        # le gymnase s'ouvre dans Maps ; le match s'ajoute à l'agenda, heure de Paris (rien si l'horaire n'est pas fixé)
+        cal = page.evaluate("""(() => { const salle = {nom: "GYMNASE DU PARC", rue: "1 RUE DU STADE", code_postal: "38000", ville: "VILLE"};
+          const m = {id: "m9", date: "2026-10-10T23:30", domicile: false, adversaire: D.saison.matchs[0].adversaire, journee: 4, salle};
+          const e = matchEvent(m), ics = icsText(e);
+          return {debut: e.debut, fin: e.fin, lieu: e.lieu, titre: e.titre.endsWith("HBPSM"),
+                  provisoire: matchEvent(Object.assign({}, m, {provisoire: true})), sans_heure: matchEvent(Object.assign({}, m, {date: "2026-10-10"})),
+                  ics: ics.includes("DTSTART;TZID=Europe/Paris:20261010T233000\\r\\n") && ics.includes("LOCATION:GYMNASE DU PARC\\\\, 1 RUE DU STADE\\\\, 38000 VILLE")
+                       && ics.split("\\r\\n").every(l => l.length <= 75),
+                  maps: mapsUrl(salle), google: googleAgenda(e).includes("dates=20261010T233000/20261011T010000&ctz=Europe/Paris")}; })()""")
+        assert cal == {"debut": "20261010T233000", "fin": "20261011T010000", "lieu": "GYMNASE DU PARC, 1 RUE DU STADE, 38000 VILLE",
+                       "titre": True, "provisoire": None, "sans_heure": None, "ics": True, "google": True,
+                       "maps": "https://www.google.com/maps/search/?api=1&query=GYMNASE%20DU%20PARC%2C%201%20RUE%20DU%20STADE%2C%2038000%20VILLE"}
         # téléphone : aucun onglet ne déborde ; « explique » montre la raison d'une case sans la changer
         page.set_viewport_size({"width": 360, "height": 780})
         for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):

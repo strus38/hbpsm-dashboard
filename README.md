@@ -113,7 +113,12 @@ modifier.
 
 Les équipes sont montrées avec le logo de leur club, pris sur le site de la fédération (ses
 initiales s'il n'y en a pas). L'onglet Semaine s'ouvre sur une carte du match : les deux
-équipes face à face, la date, le gymnase et une jauge de la victoire estimée.
+équipes face à face, la date, le gymnase et une jauge de la victoire estimée. Toucher le
+gymnase l'ouvre dans Maps ; toucher la date propose d'ajouter le match à son agenda (Google
+Agenda, ou un fichier .ics pour l'agenda du téléphone et Outlook), avec l'heure de rendez-vous
+si l'entraîneur l'a fixée. Tant que la fédération n'a pas fixé l'horaire, la date ne propose
+rien. Le terrain montre les 12 de la feuille : le sept de départ et, sous chaque poste, les
+remplaçants qui le jouent d'abord.
 
 Couleurs : celles du club, reprises du profil HBPSM de HANDBALL-training
 (`clubs/hbpsm/profil.json`), avec les mêmes rôles : le bleu marine pour l'ossature, le jaune

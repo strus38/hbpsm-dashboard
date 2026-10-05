@@ -285,6 +285,16 @@ h1 .logo{width:36px;height:36px;font-size:.8rem;margin:-4px 4px 0 0}
 .mc-name{font:700 1.15rem/1.1 var(--display);overflow-wrap:anywhere}
 .mc-vs{font:700 1.1rem var(--display);color:var(--accent);padding:6px 10px;border:2px solid var(--accent);border-radius:99px}
 .mc-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 0 0}
+a.chipx{text-decoration:none}
+a.chipx:hover,.agenda summary:hover,.agenda[open] summary{background:rgba(255,255,255,.24)}
+.agenda{position:relative;display:inline-block}
+.agenda summary{list-style:none;cursor:pointer}
+.agenda summary::-webkit-details-marker{display:none}
+.agenda-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;min-width:236px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.28);overflow:hidden;text-align:left}
+.agenda-menu a{padding:12px 14px;color:var(--ink);text-decoration:none;font-size:.9rem;font-weight:600}
+.agenda-menu a+a{border-top:1px solid var(--rule)}
+.agenda-menu a:hover,.agenda-menu a:focus-visible{background:var(--accent-clair);color:var(--structure-900)}
 .chipx{font-size:.8rem;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff}
 .hero{border-left-width:1px}
 .hero-row{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
@@ -554,6 +564,36 @@ const gauge = (v, label) => { const c = 2 * Math.PI * 26, x = v == null ? 0 : Ma
   return '<div class="gauge"><svg viewBox="0 0 64 64" role="img" aria-label="'+esc(label)+' : '+(v == null ? "inconnue" : v+" %")+'"><circle cx="32" cy="32" r="26" class="bg"/>'
     + '<circle cx="32" cy="32" r="26" class="fg" stroke-dasharray="'+(c * x / 100).toFixed(1)+' '+c.toFixed(1)+'" transform="rotate(-90 32 32)"/>'
     + '<text x="32" y="37">'+(v == null ? "–" : v+"%")+'</text></svg><span>'+esc(label)+'</span></div>'; };
+// le gymnase dans Maps ; le match dans l'agenda : Google Agenda par un lien, les autres (téléphone,
+// Outlook) par un fichier .ics fabriqué au moment du clic. Heures de Paris, comme partout.
+const adresse = s => [s.nom, s.rue, [s.code_postal, s.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+const mapsUrl = s => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(adresse(s));
+const MATCH_MIN = 90;   // durée inscrite dans l'agenda
+function matchEvent(m){
+  if(!m.date || m.date.length <= 10 || m.provisoire) return null;   // horaire pas encore fixé
+  const [y, mo, d, h, mi] = m.date.match(/\d+/g).map(Number), two = n => String(n).padStart(2, "0");
+  const stamp = t => t.getUTCFullYear()+two(t.getUTCMonth()+1)+two(t.getUTCDate())+"T"+two(t.getUTCHours())+two(t.getUTCMinutes())+"00";
+  const start = new Date(Date.UTC(y, mo - 1, d, h, mi)), end = new Date(start.getTime() + MATCH_MIN * 60000);   // heure de Paris lue telle quelle
+  const home = m.domicile ? D.meta.club_court : teamShort(m.adversaire), away = m.domicile ? teamShort(m.adversaire) : D.meta.club_court;
+  const page = location.protocol === "https:" ? location.origin + location.pathname : "";
+  const notes = [roundOf(m) + (m.domicile ? " · à domicile" : " · à l'extérieur"),
+    S.rdv[m.id] ? "Rendez-vous à " + S.rdv[m.id].replace(":", "h") : "", page ? "Tableau de bord : " + page : ""].filter(Boolean).join("\n");
+  return {titre: "Handball : " + home + " – " + away, debut: stamp(start), fin: stamp(end), lieu: m.salle ? adresse(m.salle) : "", notes, uid: m.id};
+}
+const googleAgenda = e => "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(e.titre)
+  + "&dates=" + e.debut + "/" + e.fin + "&ctz=Europe/Paris&location=" + encodeURIComponent(e.lieu) + "&details=" + encodeURIComponent(e.notes);
+const PARIS_ICS = ["BEGIN:VTIMEZONE", "TZID:Europe/Paris",
+  "BEGIN:DAYLIGHT", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0200", "TZNAME:CEST", "DTSTART:19700329T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", "END:DAYLIGHT",
+  "BEGIN:STANDARD", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0100", "TZNAME:CET", "DTSTART:19701025T030000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", "END:STANDARD",
+  "END:VTIMEZONE"];
+function icsText(e){
+  const txt = v => String(v).replace(/\\/g, "\\\\").replace(/[;,]/g, c => "\\" + c).replace(/\n/g, "\\n");
+  const fold = l => { const out = []; while(l.length > 70){ out.push(l.slice(0, 70)); l = " " + l.slice(70); } out.push(l); return out.join("\r\n"); };
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HBPSM//Tableau de bord//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...PARIS_ICS,
+    "BEGIN:VEVENT", "UID:" + e.uid + "@hbpsm-tableau-de-bord", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
+    "DTSTART;TZID=Europe/Paris:" + e.debut, "DTEND;TZID=Europe/Paris:" + e.fin, "SUMMARY:" + txt(e.titre),
+    e.lieu ? "LOCATION:" + txt(e.lieu) : "", "DESCRIPTION:" + txt(e.notes), "END:VEVENT", "END:VCALENDAR"].filter(Boolean).map(fold).join("\r\n") + "\r\n";
+}
 // et le joueur en « M. Dupont »
 const playerShort = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[0][0]+". "+w.slice(1).join(" ") : w[0]; };
 let whyTimer = null;
@@ -789,10 +829,15 @@ function viewSemaine(){
   const home = m.domicile ? D.meta.club : m.adversaire, away = m.domicile ? m.adversaire : D.meta.club;
   const side = t => '<span class="mc-team">'+logo(t, "xl")+'<span class="mc-name">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span></span>';
   const lieu = m.salle ? esc(m.salle.nom)+(m.salle.ville ? ", "+esc(m.salle.ville) : "") : "lieu pas encore fixé par la fédération";
+  const ev = matchEvent(m), quand = '📅 '+esc(fmtDate(m.date, m.provisoire));
   let h = '<header class="matchcard"><p class="mc-when">'+esc(roundOf(m))+(m.cle ? ' <span class="tag key">Match clé</span>' : "")+'</p>'
     + '<h1 class="mc-teams">'+side(home)+'<span class="mc-vs">VS</span>'+side(away)+'</h1>'
-    + '<p class="mc-chips"><span class="chipx">📅 '+esc(fmtDate(m.date, m.provisoire))+'</span><span class="chipx">📍 '+lieu+'</span>'
-    + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span></p></header>' + roNote();
+    + '<div class="mc-chips">'+(ev ? '<details class="agenda"><summary class="chipx" title="Ajouter le match à mon agenda">'+quand+' <span aria-hidden="true">＋</span></summary>'
+        + '<span class="agenda-menu"><a href="'+esc(googleAgenda(ev))+'" target="_blank" rel="noopener">Google Agenda</a>'
+        + '<a href="#" data-ics="'+esc(m.id)+'" download="match-'+esc(String(m.id).replace(/[^\w-]/g, ""))+'.ics">Agenda du téléphone, Outlook… (.ics)</a></span></details>'
+      : '<span class="chipx" title="Horaire pas encore fixé par la fédération">'+quand+'</span>')
+    + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener" title="Ouvrir dans Maps">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')
+    + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span></div></header>' + roNote();
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
     + '<div class="kpis"><div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
@@ -1822,6 +1867,18 @@ async function start(phrase){
 document.addEventListener("click", ev => {
   if(ev.target.id === "unlock") start(document.getElementById("phrase").value);
   else if(ev.target.dataset && ev.target.dataset.lock){ try { localStorage.removeItem(PASS); localStorage.removeItem(VAULT); } catch (e) {} D = null; GENERE = null; status(); gate(""); }
+});
+// le fichier .ics se fabrique au clic (un lien data: est refusé par certains téléphones) ; un clic ailleurs ferme le menu
+document.addEventListener("click", ev => {
+  const a = ev.target.closest && ev.target.closest("a[data-ics]");
+  if(a){
+    const m = ((D && D.saison && D.saison.matchs) || []).find(x => String(x.id) === a.dataset.ics), e = m && matchEvent(m);
+    if(!e){ ev.preventDefault(); return; }
+    if(a.dataset.url) URL.revokeObjectURL(a.dataset.url);
+    a.href = a.dataset.url = URL.createObjectURL(new Blob([icsText(e)], {type: "text/calendar;charset=utf-8"}));
+    return;
+  }
+  for(const d of document.querySelectorAll("details.agenda[open]")) if(!d.contains(ev.target)) d.open = false;
 });
 document.addEventListener("keydown", ev => { if(ev.key === "Enter" && ev.target.id === "phrase") start(ev.target.value); });
 if(D){ document.querySelector("nav.tabs").hidden = false; render(false); }

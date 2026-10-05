@@ -181,6 +181,14 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `logos_sources` (adresse d'origine : un logo n'est retéléchargé que si elle change). Le serveur
   des logos n'envoie pas d'en-tête CORS et HANDBALL-training doit marcher hors connexion : d'où
   les images intégrées ; l'application (1.16.3) ne garde que des images `data:`.
+- Carte du match de la Semaine (demandes de l'auteur, 05/10/2026) : gymnase -> Google Maps
+  (`mapsUrl`, adresse complète lue sur la page de la rencontre) ; date -> menu `details.agenda` :
+  Google Agenda (lien) ou fichier .ics fabriqué au clic (`matchEvent`, `icsText`, VTIMEZONE
+  Europe/Paris, 90 min, rendez-vous de l'entraîneur dans la description) ; rien tant que
+  l'horaire est provisoire. Terrain : sept de départ (`startSeven`) et les 5 autres sous le
+  titulaire de leur premier poste (`benchOf`), le 2e gardien sous le gardien.
+- L'empreinte du manifeste comprend le code du calcul (`publish.code_version` : pipeline/*.py et
+  config.yml) : un changement de code republie, même sans nouvelle feuille.
 - La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com`, car les fichiers de Release
   n'ont pas d'en-tête CORS (vérifié).
 - Les deux projets restent indépendants : seul le format de fichier les relie.
