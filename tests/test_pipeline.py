@@ -372,6 +372,12 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         runs = page.evaluate("""(() => { const P = planning(), seq = [...D.derniers.filter(x => !x.saison || x.saison === D.meta.saison)
             .map(x => p => !!x.joueurs[p.cle]), ...P.map(r => p => r.sel.includes(p))];
           return D.joueurs.filter(isGK).map(g => { let run = 0, top = 0; for(const has of seq){ run = has(g) ? run + 1 : 0; top = Math.max(top, run); } return top; }); })()""")
+        # début de saison : les jeunes gardiens jouent autant l'un que l'autre, à un match près
+        share = page.evaluate("""(() => { const gks = D.joueurs.filter(isGK), keep = gks.map(g => g.age);
+          gks.forEach(g => g.age = "jeune");
+          const P = planning(), tot = g => (g.journal || []).length + P.filter(r => r.gks.includes(g)).length;
+          const t = gks.map(tot); gks.forEach((g, i) => g.age = keep[i]); return {t, ecart: Math.max(...t) - Math.min(...t)}; })()""")
+        assert share["ecart"] <= 1, share
         page.evaluate(f"delete S.postes[{json.dumps(third)}]; D.derniers.forEach(x => {{ x.saison = x.vraie; delete x.vraie; }})")
         assert len(runs) == 3 and max(runs) <= 3, runs
         # classe d'âge (paramètre, jamais affichée) : quand il faut changer, un titulaire plus âgé sort d'abord

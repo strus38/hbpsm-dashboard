@@ -220,6 +220,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   série (coupe d'abord, jamais un match clé s'il y a mieux, jamais une feuille validée), remplacé par
   le gardien disponible qui a le moins joué et qui ne dépasse pas lui-même la limite (`runWith`) ;
   sinon « gardien : 3 matchs de suite dépassés » sous le match (`gbSuite`).
+- Début de saison (demande de l'auteur, 05/10/2026) : tant que moins de `PARTAGE_GB` = 6 feuilles du club
+  sont lues, les jeunes gardiens (classe d'âge, jamais affichée) jouent autant l'un que l'autre, à un
+  match près (matchs joués de la saison compris) : le plus utilisé cède un match, pas un match clé si
+  possible, en laissant un gardien solide à côté (`partner`), sans dépasser 3 de suite ; ensuite, les
+  résultats départagent. Après la limite des 3 matchs de suite, avant la règle des 2 changements.
 - Blessé, absent (demandes de l'auteur, 05/10/2026) : seul l'entraîneur les déclare, d'un clic sur
   une case (… incertain → absent → blessé → disponible). Absent : pour ce match (`dm` « a »). Blessé :
   à partir de ce match jusqu'à son retour (`S.blesse[cle]` = {de, a}, dates de match ; un clic sur un
