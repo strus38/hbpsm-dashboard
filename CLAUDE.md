@@ -176,7 +176,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   fédération (`structureNLogo` de la rencontre, quand `equipeNShowLogo` vaut 1 ; `D.logos`,
   `analyze.team_logos`, adresse `media-logos-clubs.ffhandball.fr/128/<fichier>.webp`), initiales
   à défaut ou si l'image ne charge pas (`logo()` dans la page) ; Semaine ouverte sur une carte du
-  match (logos, VS, date, lieu) et une jauge de victoire (`gauge()`).
+  match (logos, VS, date, lieu) et une jauge de victoire (`gauge()`). Résumé public : `logos`
+  (équipe -> image `data:` de 64 px, `publish.embed_logos`, ajoutée après `check_public`) et
+  `logos_sources` (adresse d'origine : un logo n'est retéléchargé que si elle change). Le serveur
+  des logos n'envoie pas d'en-tête CORS et HANDBALL-training doit marcher hors connexion : d'où
+  les images intégrées ; l'application (1.16.3) ne garde que des images `data:`.
 - La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com`, car les fichiers de Release
   n'ont pas d'en-tête CORS (vérifié).
 - Les deux projets restent indépendants : seul le format de fichier les relie.

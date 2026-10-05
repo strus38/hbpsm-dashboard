@@ -14,17 +14,21 @@ Fichiers versionnés, dans publie/ :
   historique.enc              saisons passées (pipeline.history), chiffrées ; réécrit seulement
                               quand elles changent, c'est-à-dire presque jamais
   tableau-public.json         ce qui ne nomme aucun joueur (prochain match, chances, classements,
-                              repérage par numéros, axes) : l'écran « Tableau de bord » de
-                              HANDBALL-training le lit sans phrase ; vérifié avant publication
+                              repérage par numéros, axes, logos des clubs en petites images) :
+                              l'écran « Tableau de bord » de HANDBALL-training le lit sans phrase ;
+                              vérifié avant publication
 La page part aussi sur GitHub Pages (workflow) : elle ne contient aucune donnée.
 """
+import base64
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import sys
+import time
 
-from . import vault
+from . import collect, vault
 from .analyze import analyze
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
@@ -38,6 +42,8 @@ SEANCE_NAME = "seance-prochaine.hbt.json"
 HISTORY_NAME = "historique.enc"
 PUBLIC_NAME = "tableau-public.json"
 VERIF = 600  # secondes entre deux vérifications du manifeste par la page ouverte
+LOGO_PX = 64  # côté des logos intégrés au résumé public
+LOGO_PAUSE = 0.5  # secondes entre deux logos téléchargés (seuls les nouveaux le sont)
 
 
 def repo_slug(config):
@@ -148,6 +154,41 @@ def public_summary(data):
         axes=[{k: a.get(k) for k in ("titre", "libelle", "constat")} for a in data.get("axes") or []])
 
 
+def small_logo(url):
+    """Le logo réduit, en image intégrée (data:) : HANDBALL-training le montre sans rien télécharger."""
+    from PIL import Image
+    img = Image.open(io.BytesIO(collect.fetch(url)))
+    img.thumbnail((LOGO_PX, LOGO_PX))
+    out = io.BytesIO()
+    img.save(out, "WEBP", quality=80)
+    return "data:image/webp;base64," + base64.b64encode(out.getvalue()).decode("ascii")
+
+
+def embed_logos(board, logos, previous):
+    """Ajoute au résumé public le logo des équipes qu'il nomme. Le serveur des logos n'autorise pas
+    l'application à les lire elle-même, et elle doit marcher hors connexion : ils viennent donc dans
+    le résumé, réduits. Ceux du résumé précédent sont repris tant que leur adresse ne change pas."""
+    teams = {board.get("club")} | {r.get("equipe") for v in board["poules"].values() for r in v}
+    teams |= {m.get("adversaire") for m in [board.get("prochain") or {}] + ((board.get("objectif") or {}).get("matchs") or [])}
+    teams |= {r.get(k) for r in board.get("resultats") or [] for k in ("dom", "ext")}
+    old_img, old_src = previous.get("logos") or {}, previous.get("logos_sources") or {}
+    imgs, srcs = {}, {}
+    for team in sorted(t for t in teams if t and logos.get(t)):
+        url = logos[team]
+        if old_src.get(team) == url and str(old_img.get(team) or "").startswith("data:image/"):
+            imgs[team] = old_img[team]
+        else:
+            try:
+                imgs[team] = small_logo(url)
+            except Exception as exc:  # logo absent ou illisible : l'application montre les initiales
+                print(f"[publication] logo non repris ({team}) : {type(exc).__name__}")
+                continue
+            time.sleep(LOGO_PAUSE)
+        srcs[team] = url
+    board["logos"], board["logos_sources"] = imgs, srcs
+    return board
+
+
 def check_public(text, names):
     """Refuse un fichier public où apparaît un nom de personne, dans un ordre ou dans l'autre."""
     words = norm(text).split()
@@ -184,7 +225,9 @@ def seal(today=None):
     if changed or not (PUBLIE / SEANCE_NAME).exists():
         (PUBLIE / SEANCE_NAME).write_text(public_seance, "utf-8")
     if changed or not (PUBLIE / PUBLIC_NAME).exists():
-        (PUBLIE / PUBLIC_NAME).write_text(public_board, "utf-8")
+        # les logos s'ajoutent après la relecture : des images, rangées sous des noms d'équipes déjà relus
+        board = embed_logos(json.loads(public_board), data.get("logos") or {}, read_json(PUBLIE / PUBLIC_NAME, {}) or {})
+        (PUBLIE / PUBLIC_NAME).write_text(json.dumps(board, ensure_ascii=False, indent=1), "utf-8")
     if hist and (previous.get("historique") != hist_digest or not (PUBLIE / HISTORY_NAME).exists()):
         write_json(PUBLIE / HISTORY_NAME, vault.encrypt(hist, secret))
     if changed:

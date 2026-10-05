@@ -922,6 +922,37 @@ def test_seance_publique_sans_nom(sandbox, monkeypatch):
             publish.check_public(fuite, names)
 
 
+def test_logos_du_resume_public(monkeypatch):
+    """Les logos entrent réduits dans le résumé public ; un logo déjà reçu n'est pas retéléchargé."""
+    import io
+    from PIL import Image
+    png = io.BytesIO()
+    Image.new("RGB", (128, 128), "navy").save(png, "PNG")
+    asked = []
+    def fetch(url):
+        asked.append(url)
+        if "casse" in url:
+            raise OSError("illisible")
+        return png.getvalue()
+    monkeypatch.setattr(collect, "fetch", fetch)
+    monkeypatch.setattr(publish, "LOGO_PAUSE", 0)
+    board = lambda: {"club": "CLUB ALPHA", "poules": {"71": [{"equipe": "CLUB ALPHA"}, {"equipe": "CLUB BRAVO"}]},
+                     "prochain": {"adversaire": "CLUB BRAVO"}, "objectif": None, "resultats": []}
+    logos = {"CLUB ALPHA": "https://logos.test/a.webp", "CLUB BRAVO": "https://logos.test/casse.webp",
+             "CLUB HORS RESUME": "https://logos.test/h.webp"}
+    first = publish.embed_logos(board(), logos, {})
+    assert set(first["logos"]) == {"CLUB ALPHA"} and first["logos"]["CLUB ALPHA"].startswith("data:image/webp;base64,")
+    img = Image.open(io.BytesIO(__import__("base64").b64decode(first["logos"]["CLUB ALPHA"].split(",", 1)[1])))
+    assert img.size == (publish.LOGO_PX, publish.LOGO_PX)
+    assert sorted(asked) == ["https://logos.test/a.webp", "https://logos.test/casse.webp"]   # jamais l'équipe hors résumé
+    asked.clear()
+    again = publish.embed_logos(board(), logos, json.loads(json.dumps(first)))
+    assert again["logos"] == first["logos"] and asked == ["https://logos.test/casse.webp"]   # repris, pas retéléchargé
+    asked.clear()
+    publish.embed_logos(board(), dict(logos, **{"CLUB ALPHA": "https://logos.test/a2.webp"}), first)
+    assert "https://logos.test/a2.webp" in asked   # le club a changé de logo
+
+
 def test_gymnase_des_prochains_matchs(monkeypatch):
     """Le gymnase n'est lu que pour les prochains matchs du club, et seulement quand il change."""
     pages = []
