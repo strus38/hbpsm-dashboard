@@ -244,6 +244,9 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 .ts{display:none}
+body.lecture .coach{display:none!important}
+body:not(.lecture) .lecture-only{display:none!important}
+.club .mode{font-size:.74rem;padding:0 8px;border-radius:99px;border:1px solid var(--structure-500);color:var(--structure-100)}
 #why{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;gap:12px;align-items:flex-start;
   max-width:560px;margin:0 auto;padding:12px 14px;background:var(--structure-900);color:#fff;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.92rem}
 #why[hidden]{display:none}
@@ -291,7 +294,7 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 </style>
 </head>
 <body>
-<header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
+<header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-mode" class="mode"></span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
   <button role="tab" data-tab="planif" aria-selected="true"><span class="tl">Planification</span><span class="ts">Planif.</span></button>
   <button role="tab" data-tab="semaine" aria-selected="false">Semaine</button>
@@ -302,7 +305,7 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "975c32aa4700", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "6690de1b1d5e", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -327,6 +330,15 @@ try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
 normRule();
 S.tab = "planif";   // la page s'ouvre toujours sur la planification (demande de l'auteur, 05/10/2026)
+// Seul l'entraîneur modifie, et seulement quand il ouvre la page depuis HANDBALL-training, dont le
+// lien se termine par « #entraineur » (demande de l'auteur, 05/10/2026). Ouverte autrement, la page
+// se consulte sans rien changer. Ce n'est pas un verrou : rien de ce qu'on modifie ne quitte ce
+// navigateur, ce mode évite seulement qu'un joueur croie à une feuille qu'il aurait retouchée.
+const COACH = location.hash.slice(1).split("&").includes("entraineur");
+document.body.classList.toggle("lecture", !COACH);
+document.getElementById("club-mode").textContent = COACH ? "mode entraîneur" : "consultation";
+const roNote = () => COACH ? "" : '<p class="note lecture-only">Consultation : la proposition du tableau de bord, sans les choix de l\'entraîneur. '
+  + 'Seul l\'entraîneur la modifie, depuis HANDBALL-training ; sa convocation fait foi.</p>';
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fr = n => n == null ? "–" : String(n).replace(".", ",");
@@ -553,7 +565,7 @@ function viewSemaine(){
   const P = PLAN, H = P.map(r => r.m);
   if(!H.length) return empty();
   const r = P[0], m = r.m, e = D.equipes[m.adversaire] || {};
-  let h = '<header class="top"><p class="when">'+matchLine(m)+'</p><h1>'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h1></header>';
+  let h = '<header class="top"><p class="when">'+matchLine(m)+'</p><h1>'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h1></header>' + roNote();
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   const lieu = m.salle ? esc(m.salle.nom)+(m.salle.ville ? ", "+esc(m.salle.ville) : "") : "lieu pas encore fixé par la fédération";
   h += '<div class="hero"><div class="kpis">'
@@ -563,11 +575,12 @@ function viewSemaine(){
     + '</div><p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
     + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")
     + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
-  const conv = S.convoque[m.id];
+  const conv = COACH && S.convoque[m.id];
   h += '<h2>Les 12 pour ce match</h2><div class="panel">'+squadChips(r)
-    + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : "Convocation pas encore envoyée.")
+    + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : COACH ? "Convocation pas encore envoyée." : "")
     + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+" ; au repos : "+r.resting.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
-    + '<div class="edit noprint"><button class="btn" data-tab="planif">Ajuster dans la planification</button><button class="btn ghost" data-tab="convoc">Préparer la convocation</button></div></div>';
+    + '<div class="edit noprint"><button class="btn" data-tab="planif">'+(COACH ? "Ajuster dans la planification" : "Voir la planification")+'</button>'
+    + '<button class="btn ghost" data-tab="convoc">'+(COACH ? "Préparer la convocation" : "Voir la convocation")+'</button></div></div>';
   if(r.ok && r.sel.some(p => poste(p))) h += courtSVG(startSeven(r));
   h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b>'+esc(x.m.adversaire)+'</b>'
     + (x.m.cle ? ' <span class="tag key">Match clé</span>' : '')+'<p class="small" style="margin:6px 0 0">'+riskTag(x)+' victoire '+pct(x.pAdj)+'</p></div>').join("")+'</div>';
@@ -612,13 +625,14 @@ function courtSVG(start){
 function viewPlanif(){
   const P = PLAN;
   if(!P.length) return '<header class="top"><h1>Planification</h1></header>'+emptyPanel();
-  let h = '<header class="top"><p class="when">'+P.length+' prochains matchs · 12 joueurs dont 2 gardiens par match</p><h1>Planification</h1></header>';
+  let h = '<header class="top"><p class="when">'+P.length+' prochains matchs · 12 joueurs dont 2 gardiens par match</p><h1>Planification</h1></header>' + roNote();
   const n = P.length, q = P.quota;
-  h += '<div class="edit noprint"><label class="small muted" for="regle">Rotation</label><select id="regle">'
+  h += '<p class="small muted lecture-only">Rotation : '+(q ? "chacun joue au moins "+q+" des "+n+" matchs" : "libre")+'. Touchez une case pour savoir pourquoi.</p>';
+  h += '<div class="edit noprint coach"><label class="small muted" for="regle">Rotation</label><select id="regle">'
     + [[1,"chacun joue au moins 1 des "+n+" matchs"],[2,"chacun joue au moins 2 des "+n+" matchs"],[0,"libre : les mieux notés à chaque match"]]
       .map(([v,t]) => '<option value="'+v+'"'+(Number(S.regle)===v?" selected":"")+'>'+t+'</option>').join("")+'</select>'
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
-    + '<div class="edit noprint"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
+    + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
   h += '<div class="panel scroll plan-wrap"><div class="plan" style="--n:'+P.length+'"><div class="who"></div>'
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
@@ -661,10 +675,10 @@ function viewPlanif(){
   h += '<div class="who muted small">Avec ces choix</div>' + P.map(r => '<div class="h"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + 'force '+Math.round(100*r.force)+' %<br>victoire '+pct(r.pAdj)+'<br>'+riskTag(r)
     + (r.impact != null && r.impact >= 0.5 ? '<br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small>' : '')
-    + '<br><button class="link" data-reset="'+esc(r.m.id)+'">réinitialiser</button></div>').join("") + '<div></div></div></div>';
-  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent · <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
+    + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'">réinitialiser</button></div>').join("") + '<div></div></div></div>';
+  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> retenu <span class="cell in">↻</span> entre par rotation <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
   h += '<p class="note">Force : valeur des 12 retenus rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos choix restent sur cet ordinateur.</p>';
-  h += '<div class="edit noprint"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button><label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
+  h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button><label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
 }
 function cycleCell(id, cle){
@@ -682,17 +696,17 @@ function viewConvoc(){
   const P = PLAN;
   if(!P.length) return '<header class="top"><h1>Convocation</h1></header>'+emptyPanel();
   const r = P.find(x => String(x.m.id) === String(S.convM)) || P[0], m = r.m;
-  let h = '<header class="top"><p class="when">Après l\'entraînement du vendredi</p><h1>Convocation</h1></header>'
+  let h = '<header class="top"><p class="when">Après l\'entraînement du vendredi</p><h1>Convocation</h1></header>' + roNote()
     + '<div class="seg noprint" role="group" aria-label="Match">'+P.map(x => '<button data-conv="'+esc(x.m.id)+'" aria-pressed="'+(x===r)+'">J'+esc(x.m.journee ?? "?")+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>';
   h += '<div class="panel convoc" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p><h2 style="margin:4px 0 8px">'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h2>'
     + '<dl class="facts"><dt>Match</dt><dd>'+esc(fmtDate(m.date, m.provisoire))+'</dd>'
     + '<dt>Lieu</dt><dd>'+(m.salle ? esc(m.salle.nom)+'<br><span class="small muted">'+esc([m.salle.rue, [m.salle.code_postal, m.salle.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))+'</span>' : "pas encore fixé par la fédération")+'</dd>'
-    + '<dt><label for="rdv">Rendez-vous</label></dt><dd><input id="rdv" type="time" value="'+esc(S.rdv[m.id] || "")+'" data-match="'+esc(m.id)+'"></dd></dl>'
+    + '<dt><label for="rdv">Rendez-vous</label></dt><dd>'+(COACH ? '<input id="rdv" type="time" value="'+esc(S.rdv[m.id] || "")+'" data-match="'+esc(m.id)+'">' : 'fixé par l\'entraîneur')+'</dd></dl>'
     + squadChips(r)
-    + '<textarea id="message" class="noprint" readonly rows="9">'+esc(convText(r))+'</textarea>'
-    + '<div class="edit noprint"><button class="btn" data-copy="'+esc(m.id)+'">Copier pour le groupe</button><button class="btn ghost" data-print="1">Imprimer</button>'
+    + '<textarea id="message" class="noprint coach" readonly rows="9">'+esc(convText(r))+'</textarea>'
+    + '<div class="edit noprint coach"><button class="btn" data-copy="'+esc(m.id)+'">Copier pour le groupe</button><button class="btn ghost" data-print="1">Imprimer</button>'
     + '<span class="small muted" id="copie" aria-live="polite">'+(S.convoque[m.id] ? "Déjà envoyée le "+esc(new Date(S.convoque[m.id]).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"})) : "")+'</span></div></div>';
-  h += '<p class="note noprint">Le message reprend la feuille de la planification : changez-la là-bas si un joueur se désiste. Le lieu et l\'heure du match viennent de ffhandball.fr ; l\'heure du rendez-vous est la vôtre.</p>';
+  h += '<p class="note noprint coach">Le message reprend la feuille de la planification : changez-la là-bas si un joueur se désiste. Le lieu et l\'heure du match viennent de ffhandball.fr ; l\'heure du rendez-vous est la vôtre.</p>';
   return h;
 }
 function convText(r){
@@ -762,7 +776,8 @@ function playerDetail(p, plan){
   const comps = Object.keys(COMP_NOM).filter(k => gk ? GK_COMPS.includes(k) : !k.startsWith("gk"));
   const [p1 = "", p2 = ""] = postesOf(p);
   const choix = (cur, none) => '<option value="">'+none+'</option>'+POSTES.map(k=>'<option value="'+k+'"'+(cur===k?" selected":"")+'>'+POSTE_NOM[k]+'</option>').join("");
-  let h = '<div class="detail"><div class="edit"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'" data-rang="1">'+choix(p1, "non renseigné")+'</select></label>'
+  let h = '<div class="detail"><p class="small muted lecture-only">Poste : '+esc(poste(p) || "non renseigné")+(depOf(p) ? " · en dépannage" : "")+(dispo(p) ? "" : " · absent")+'</p>'
+    + '<div class="edit coach"><label class="small muted">Poste <select data-poste="'+esc(p.cle)+'" data-rang="1">'+choix(p1, "non renseigné")+'</select></label>'
     + '<label class="small muted">2e poste <select data-poste="'+esc(p.cle)+'" data-rang="2">'+choix(p2, "aucun")+'</select></label>'
     + '<label class="small muted"><input type="checkbox" data-dep="'+esc(p.cle)+'"'+(depOf(p)?" checked":"")+'> en dépannage seulement</label>'
     + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Absent pour plusieurs semaines":"De retour : disponible")+'</button></div>';
@@ -1005,7 +1020,8 @@ function importPlan(file){
 document.addEventListener("click", ev => {
   const t = ev.target.closest("button"); if(!t) return;
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
-  else if(t.dataset.cell && S.tap === "why"){ showWhy(t.getAttribute("aria-label")); }
+  else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
+  else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs)){ return; }
   else if(t.dataset.cell){ const [id, cle] = t.dataset.cell.split("|"); cycleCell(id, cle); save(); render(true); }
   else if(t.dataset.tap){ S.tap = t.dataset.tap; save(); render(true); }
   else if(t.dataset.whyClose){ document.getElementById("why").hidden = true; }
@@ -1020,6 +1036,7 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("change", ev => {
   const t = ev.target;
+  if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
   if(t.id === "adv"){ S.adv = t.value; save(); render(true); }
   else if(t.id === "regle"){ S.regle = Number(t.value); save(); render(true); }
   else if(t.id === "rdv"){ S.rdv[t.dataset.match] = t.value; save(); render(true); }
