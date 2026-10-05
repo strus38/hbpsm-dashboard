@@ -62,7 +62,7 @@ La page suit la semaine de l'entraîneur :
 | Planification | les 4 prochains matchs : disponibilités (disponible, incertain, absent) et choix saisis par l'entraîneur, 12 joueurs dont 2 gardiens proposés par match, rotation guidée, force alignée et risque recalculés à chaque clic |
 | Convocation | après l'entraînement du vendredi : les 12, la date, le gymnase (lu sur ffhandball.fr), l'heure du rendez-vous, un message à copier pour le groupe et une version imprimable |
 | Joueurs | fiches graphiques : note, buts ou arrêts par match, réussite au tir ou pourcentage d'arrêts face à la référence, sanctions, sélections à venir |
-| Adversaires | repérage : buts, mi-temps, discipline, gardiens, joueurs à surveiller, repères communs |
+| Adversaires | toutes les équipes des deux poules, HBPSM compris : buts, mi-temps, discipline, gardiens, joueurs à surveiller (avec leurs chiffres de la saison passée s'ils étaient déjà là), repères communs, et les joueurs de la saison passée, ceux revus cette saison en tête |
 | Saison | chances de finir premier, matchs à gagner, axes de travail, séance à importer, classements |
 
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles

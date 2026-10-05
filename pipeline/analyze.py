@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 
 from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team)
+from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
 PLANS = {
@@ -294,13 +295,63 @@ def load_history():
     for path in sorted((DATA / "historique").glob("*.json")):
         season = read_json(path)
         season["matches"] = [m for m in season.get("matches") or [] if ok(m)]
+        for m in season["matches"]:  # noms lus avant la correction du découpage : remis d'aplomb ici
+            for pl in (m.get("players") or {}).get("home", []) + (m.get("players") or {}).get("away", []):
+                pl["name"] = split_name(pl.get("name"))
         seasons.append(season)
     return seasons
 
 
+def past_players(mine, now, matches, team):
+    """Les joueurs d'une équipe la saison passée, d'après ses feuilles : matchs, buts, tirs, arrêts
+    et buts pris des gardiens, sanctions ; present dit s'il figure sur une feuille de cette saison
+    (None tant qu'aucune n'est lue), num_now son numéro d'aujourd'hui. Gardien : plus d'arrêts que
+    de buts (un joueur de champ crédité d'un arrêt reste joueur de champ). Revus d'abord, puis
+    les meilleurs."""
+    num_now = {name_key(pl["name"]): pl.get("num") for m in matches for side in ("home", "away")
+               if m[side]["name"] == team for pl in (m.get("players") or {}).get(side, [])}
+    acc = {}
+    for m, side in mine:
+        plist = (m.get("players") or {}).get(side, [])
+        conceded, estimated = keepers_conceded(m, side) if plist else ({}, False)
+        for pl in plist:
+            s = acc.setdefault(name_key(pl["name"]), dict(
+                nom=pl["name"], nums=Counter(), m=0, buts=0, pen=0, tirs=0, tirs_buts=0, arrets=0,
+                pris=0, cadres=0, estime=False, deux_min=0, jaunes=0, rouges=0))
+            s["m"] += 1
+            if pl.get("num") is not None:
+                s["nums"][pl["num"]] += 1
+            s["buts"] += pl.get("goals") or 0
+            s["pen"] += pl.get("pen_goals") or 0
+            if pl.get("shots"):
+                s["tirs"] += pl["shots"]
+                s["tirs_buts"] += pl.get("goals") or 0
+            s["arrets"] += pl.get("saves") or 0
+            if pl.get("saves") and pl.get("num") in conceded:
+                s["pris"] += conceded[pl["num"]]
+                s["cadres"] += pl["saves"] + conceded[pl["num"]]
+                s["estime"] = s["estime"] or estimated
+            s["deux_min"] += pl.get("two_min") or 0
+            s["jaunes"] += pl.get("yellow") or 0
+            s["rouges"] += pl.get("red") or 0
+    out = []
+    for k, s in acc.items():
+        out.append(dict(
+            nom=s["nom"], num=s["nums"].most_common(1)[0][0] if s["nums"] else None, m=s["m"],
+            gardien=s["arrets"] > s["buts"], buts=s["buts"], pen=s["pen"], moy=round(s["buts"] / s["m"], 1),
+            tirs=s["tirs"] or None, reussite=round(100 * s["tirs_buts"] / s["tirs"]) if s["tirs"] else None,
+            arrets=s["arrets"], pris=s["pris"] if s["cadres"] else None,
+            pct=save_pct(s["cadres"] - s["pris"], s["pris"]) if s["cadres"] else None, estime=s["estime"],
+            deux_min=s["deux_min"], jaunes=s["jaunes"], rouges=s["rouges"],
+            present=(k in now) if now else None, num_now=num_now.get(k)))
+    out.sort(key=lambda j: (j["present"] is not True, -(j["arrets"] if j["gardien"] else j["buts"]), -j["m"]))
+    return out
+
+
 def history_profiles(seasons, profiles, matches, config):
     """Ce que la saison passée dit des équipes d'aujourd'hui : bilan et classement, confrontations
-    avec le club, part de l'effectif de cette saison déjà là, devenir des meilleurs buteurs.
+    avec le club, part de l'effectif de cette saison déjà là, devenir des meilleurs buteurs, et
+    chaque joueur de la saison passée avec ses chiffres et s'il est revu cette saison.
     Renvoie aussi, pour la simulation, la force relative de chaque équipe et sa continuité."""
     priors = {}
     same = lambda a, b: same_team(a, b) or (is_club(a, config) and is_club(b, config))
@@ -341,9 +392,18 @@ def history_profiles(seasons, profiles, matches, config):
             buteurs = [dict(nom=names[k][0], num=names[k][1], buts=b, present=(k in now) if now else None)
                        for k, b in scorers.most_common(3) if b]
             cont = dict(deja=len(now & last), sur=len(now)) if now and last else None
+            joueurs = past_players(mine, now, matches, team)
+            # les joueurs de cette saison déjà là la saison passée : leurs chiffres d'alors
+            before = {name_key(j["nom"]): j for j in joueurs}
+            for b in prof.get("buteurs") or []:
+                j = before.get(name_key(b.get("nom") or ""))
+                b["avant"] = j and dict(m=j["m"], buts=j["buts"], moy=j["moy"], reussite=j["reussite"])
+            for g in prof.get("gardiens") or []:
+                j = before.get(name_key(g.get("nom") or ""))
+                g["avant"] = j and dict(m=j["m"], arrets=j["arrets"], pct=j["pct"])
             prof["passe"] = dict(saison=season["saison"], j=len(mine), v=res.count("V"), n=res.count("N"),
                                  d=res.count("D"), bp_moy=round(bp / len(mine), 1), bc_moy=round(bc / len(mine), 1),
-                                 rangs=rangs, face_a_face=face, continuite=cont, buteurs=buteurs,
+                                 rangs=rangs, face_a_face=face, continuite=cont, buteurs=buteurs, joueurs=joueurs,
                                  feuilles=sum(1 for m, side in mine if (m.get("players") or {}).get(side)))
             # continuité inconnue (pas encore de feuille cette saison) : la saison passée compte à moitié
             c = cont["deja"] / cont["sur"] if cont else 0.5

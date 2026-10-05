@@ -53,7 +53,13 @@ def mask(text):
 
 def split_name(name):
     """« DUPONTjean » (ancienne feuille, nom et prénom collés) -> « DUPONT jean »."""
-    return re.sub(r"([A-ZÀ-Ý'-]{2,})([a-zà-ÿ])", r"\1 \2", name or "")
+    # l'ancienne feuille répète souvent le nom après le prénom (« DUPONTjean-DUPONT ») : retiré ;
+    # elle écrit le prénom en minuscules : majuscule initiale. Sans effet sur un nom déjà propre.
+    name = re.sub(r"([A-ZÀ-Ý'-]{2,})([a-zà-ÿ])", r"\1 \2", name or "")
+    repeated = re.fullmatch(r"(.+?) (.+)-\1", name)
+    if repeated:
+        name = f"{repeated.group(1)} {repeated.group(2)}"
+    return re.sub(r"(?<![A-Za-zÀ-ÿ])[a-zà-ÿ]", lambda c: c.group().upper(), name)
 
 
 def match_action(label):

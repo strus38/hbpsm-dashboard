@@ -380,6 +380,8 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const deux = planning().every(r => r.postesOk && r.sel.length === 12);
           S.postes = {}; S.regle = 1; return {res, sans, deux}; })()""")
         assert cov == {"res": [True, True, True], "sans": False, "deux": True}
+        # adversaires : le club figure aussi dans la liste, en tête
+        assert page.evaluate("opponent().names[0] === D.meta.club")
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
         page.click("nav.tabs button[data-tab=planif]")
         first = page.locator("button.cell.in").first
@@ -495,6 +497,13 @@ def test_notes_fragiles_ramenees():
     assert fragile["scores"]["equilibre"] == round(mean + (30 - mean) / 3) and fragile["scores_bruts"]["equilibre"] == 30
     assert abs(solide["scores"]["equilibre"] - 70) <= 1
     assert gb["scores"]["equilibre"] == 90  # seul gardien noté : sa propre moyenne
+
+
+def test_noms_ancienne_feuille():
+    """Ancienne feuille : nom et prénom collés, nom parfois répété après le prénom, prénom en minuscules."""
+    cases = {"DUPONTjean-DUPONT": "DUPONT Jean", "MARTIN-DUPRÉlouis-alexandre": "MARTIN-DUPRÉ Louis-Alexandre",
+             "DE LA TOURpaul-DE LA TOUR": "DE LA TOUR Paul", "DUPONT Jean": "DUPONT Jean", "Jean DUPONT": "Jean DUPONT"}
+    assert {k: parse_fdme.split_name(k) for k in cases} == cases
 
 
 def test_heure_de_paris():
@@ -656,6 +665,13 @@ def test_saison_passee_exploitee(sandbox):
     assert bravo["continuite"] == dict(deja=2, sur=3) and len(bravo["face_a_face"]) == 2
     assert bravo["buteurs"][0]["nom"] == "ADVERSE Firmin" and bravo["buteurs"][0]["present"] is True
     assert any(b["nom"] == "ANCIEN Leon" and b["present"] is False for b in bravo["buteurs"])
+    # chaque joueur de la saison passée, revus d'abord ; un buteur d'aujourd'hui garde ses chiffres d'alors
+    js = bravo["joueurs"]
+    assert js[0]["present"] is True and [j["present"] for j in js] == sorted((j["present"] for j in js), reverse=True)
+    leon = next(j for j in js if j["nom"] == "ANCIEN Leon")
+    assert leon["present"] is False and leon["m"] >= 1 and not leon["gardien"]
+    firmin = next(b for b in d["equipes"]["Club Bravo"]["buteurs"] if b["nom"] == "ADVERSE Firmin")
+    assert firmin["avant"] and firmin["avant"]["buts"] == next(j for j in js if j["nom"] == "ADVERSE Firmin")["buts"]
 
 
 def test_saison_passee_publiee_chiffree(sandbox, monkeypatch):

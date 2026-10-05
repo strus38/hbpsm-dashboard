@@ -139,7 +139,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   plus par match, 2 gardiens si le minimum l'exige sur un match à 65 % ou plus (`ROT_GB2`) ;
   sort celui qui a le plus joué sur la période, poste pour poste si possible, sans découvrir un
   poste clef (`postes_clefs` dans config.yml, choix de l'auteur : 2 pivots, 4 arrières ARG/DC/ARD ;
-  l'effectif n'a aucun ARD déclaré ; 2e poste facultatif dans la fiche joueur). Fiabilité de chaque note (`analyze.reliability`,
+  ARD en 2e poste pour tous les joueurs de champ droitiers, dans l'effectif et le secret, au
+  05/10/2026 ; 2e poste facultatif dans la fiche joueur).
+- Anciennes feuilles : le nom est souvent répété après le prénom (« DUPONTjean-DUPONT ») et le
+  prénom est en minuscules ; `parse_fdme.split_name` corrige, et `analyze.load_history` le
+  réapplique aux saisons déjà lues (sans les retélécharger). Adversaires : `passe.joueurs`
+  (`analyze.past_players`), gardien = plus d'arrêts que de buts ; `avant` sur les buteurs et
+  gardiens de cette saison. Fiabilité de chaque note (`analyze.reliability`,
   `FIABLE`) affichée en points ; avec 1 feuille au 05/10/2026, les choix restent des tendances.
   Notes ramenées vers la moyenne du groupe (`analyze.shrink_notes`, `PRUDENCE` = 2 matchs moyens,
   demande de l'auteur) ; `scores_bruts` garde la note d'avant. Conséquence assumée : un joueur

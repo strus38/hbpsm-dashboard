@@ -197,10 +197,14 @@ nav.tabs[hidden]{display:none}
 .plan .rotn{display:inline-block;margin-top:2px;font-weight:700;color:var(--track)}
 .plan .low{color:var(--loss);font-weight:700}
 .plan .pst{font-size:.7rem;color:var(--muted)}
+.why.prev{color:var(--track)}
+table.past td.n{color:var(--muted);width:2.5em}
+table.past tr.grp td{font-weight:700;font-size:.82rem;color:var(--track);background:color-mix(in srgb,var(--track) 8%,transparent);padding-top:6px}
+table.past tr.back td.team{font-weight:700}
+table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .plan .cov{display:inline-block;margin:1px 2px;padding:0 5px;border-radius:9px;background:color-mix(in srgb,var(--track) 12%,transparent);color:var(--track);font-weight:700;white-space:nowrap}
 .plan .cov.low{background:color-mix(in srgb,var(--loss) 14%,transparent);color:var(--loss)}
 .fia{font-size:.74rem;letter-spacing:0;color:var(--track);white-space:nowrap;cursor:help}
-.how{display:grid;gap:3px;margin:4px 0 12px;padding:10px 12px;border-left:3px solid var(--accent-trait);background:var(--surface);border-radius:6px}
 .cell.man{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--accent-trait)}
 .legend-plan{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .legend-plan .cell{display:inline-grid;width:26px;height:20px;margin:0 2px 0 8px;cursor:default;font-size:.78rem}
@@ -343,7 +347,6 @@ const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rh
 };
 const shortName = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[w.length-1] : w[0]; };
 let PLAN = null;   // calculée à chaque rendu : quelques dizaines d'opérations
-const FIABLE_CLUB = 5;   // en deçà de 5 feuilles du club cette saison, la planification le rappelle
 const FIA = {aucune: [0, "sans note : jamais aligné, à vous de juger"], fragile: [1, "note fragile"],
              indicative: [2, "note indicative"], solide: [3, "note solide"]};
 function fia(p){
@@ -552,22 +555,6 @@ function viewPlanif(){
     + [[1,"chacun joue au moins 1 des "+n+" matchs"],[2,"chacun joue au moins 2 des "+n+" matchs"],[0,"libre : les mieux notés à chaque match"]]
       .map(([v,t]) => '<option value="'+v+'"'+(Number(S.regle)===v?" selected":"")+'>'+t+'</option>').join("")+'</select>'
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>';
-  h += '<div class="how small"><b>Comment la feuille est proposée.</b> '
-    + '<span>1. Pour chaque match, les '+P[0].size+' mieux notés parmi les disponibles, vos choix d\'abord, avec toujours '+P[0].nGK+' gardiens'
-    + KEYS().map(g => ', au moins '+g.min+' '+g.nom+' ('+g.postes.join(", ")+')').join("")+' ; un joueur à deux postes compte pour l\'un ou l\'autre.</span>'
-    + (q ? '<span>2. Rotation : chacun joue au moins '+q+' des '+n+' matchs. Elle se fait d\'abord sur les matchs les plus abordables (victoire estimée la plus haute), jamais sur un match clé, '
-         + 'avec au plus '+ROT_CHAMP+' joueurs de champ et '+ROT_GB+' gardien changés par match ; les 2 gardiens si le minimum l\'exige, sur un match à votre portée (victoire estimée d\'au moins '+ROT_GB2+' %).</span>'
-         + '<span>3. Le remplacement se fait poste pour poste quand c\'est possible, sans jamais découvrir un poste clef ; laisse sa place celui qui a le plus joué sur ces '+n+' matchs (à égalité, le moins bien noté) : le repos tourne aussi chez les titulaires, gardiens compris.</span>'
-       : '<span>2. Pas de rotation automatique : à vous de faire tourner d\'un clic.</span>')
-    + '<span class="muted">Survolez une case pour savoir pourquoi.</span></div>';
-  const fragile = D.joueurs.filter(p => p.fiabilite && ["fragile", "aucune"].includes(p.fiabilite.niveau)).length;
-  if(D.meta.club_feuilles < FIABLE_CLUB || fragile) h += '<p class="note"><b>Des notes encore fragiles.</b> '
-    + D.meta.club_feuilles+' feuille'+(D.meta.club_feuilles>1?"s":"")+' de match du club lue'+(D.meta.club_feuilles>1?"s":"")+' cette saison ; la saison passée compte pour moitié. '
-    + fragile+' joueur'+(fragile>1?"s ont":" a")+' une note sur moins de 3 matchs <span class="fia">●○○</span>. '
-    + 'Les notes sont ramenées vers la moyenne de l\'effectif, comme si chacun avait aussi joué '+(D.meta.prudence ?? 2)+' matchs moyens : '
-    + 'un seul bon match ne fait plus passer un joueur devant un autre beaucoup plus vu ; mais entre deux joueurs proches, l\'écart ne départage rien. '
-    + 'En début de saison, « au moins 2 des '+n+' matchs » fait jouer tout le monde et donne vite des notes plus sûres ; '
-    + 'et ce que vous voyez à l\'entraînement vaut plus que ces chiffres : un clic sur une case impose votre choix.</p>';
   h += '<div class="panel scroll"><div class="plan" style="--n:'+P.length+'"><div></div>'
     + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'+matchLine(r.m)+'<br>'
       + (r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br>'
@@ -733,7 +720,7 @@ function viewDuos(){
 
 // ---------------------------------------------------------------- adversaires
 function opponent(){
-  const names = Object.keys(D.equipes).filter(t => !isUs(t)).sort();
+  const names = [...Object.keys(D.equipes).filter(isUs), ...Object.keys(D.equipes).filter(t => !isUs(t)).sort()];
   let adv = S.adv && D.equipes[S.adv] ? S.adv : (D.prochain && D.prochain.adversaire);
   if(!adv || !names.includes(adv)) adv = names[0] || null;
   return {adv, names};
@@ -759,6 +746,9 @@ function common(adv){
   if(rows.length) h += '<div class="scroll"><table><thead><tr><th>Adversaire commun</th><th>'+esc(D.meta.club_court)+'</th><th>Eux</th></tr></thead><tbody>'+rows.join("")+'</tbody></table></div>';
   return h ? '<h2>Repères communs</h2><div class="panel">'+h+'</div>' : "";
 }
+// un joueur de cette saison vu la saison passée : ses chiffres d'alors, sinon « pas là »
+const avant = (e, a, txt) => !e.passe || !e.passe.feuilles ? ""
+  : '<br><span class="why prev">'+(a ? '<b>Déjà là en '+esc(e.passe.saison)+'</b> : '+txt(a) : 'Pas là en '+esc(e.passe.saison))+'</span>';
 function pastBlock(e){   // ce que la saison passée dit de cet adversaire
   const x = e.passe;
   if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
@@ -769,17 +759,44 @@ function pastBlock(e){   // ce que la saison passée dit de cet adversaire
     + (x.continuite ? '<div><b class="num">'+x.continuite.deja+'/'+x.continuite.sur+'</b><span>joueurs de cette saison déjà là</span></div>' : "")+'</div>'
     + (rangs ? '<p class="small">'+rangs+'.</p>' : "");
   if(x.face_a_face.length) h += '<p><b>Contre '+esc(D.meta.club_court)+'</b> : '+x.face_a_face.map(f => '<span class="form"><i class="'+(f.res==="V"?"D":f.res==="D"?"V":"N")+'">'+(f.res==="V"?"D":f.res==="D"?"V":"N")+'</i></span> '+esc(f.score.split("-").reverse().join("-"))+(f.dom?" (ext.)":" (dom.)")).join(" · ")+'</p>';
-  if(x.buteurs.length) h += '<p class="small">Meilleurs buteurs : '+x.buteurs.map(b => esc(b.nom)+(b.num != null ? " (n° "+esc(b.num)+")" : "")+", "+b.buts+" buts"+(b.present === true ? ", toujours là" : b.present === false ? ", pas revu cette saison" : "")).join(" ; ")+'.</p>';
+  if(x.buteurs.length && !(x.joueurs || []).length) h += '<p class="small">Meilleurs buteurs : '+x.buteurs.map(b => esc(b.nom)+(b.num != null ? " (n° "+esc(b.num)+")" : "")+", "+b.buts+" buts"+(b.present === true ? ", toujours là" : b.present === false ? ", pas revu cette saison" : "")).join(" ; ")+'.</p>';
   if(!x.continuite) h += '<p class="small muted">Continuité de l\'effectif : à voir dès leur première feuille de match cette saison.</p>';
-  return h + '</div>';
+  return h + pastPlayers(e, x) + '</div>';
+}
+function pastPlayers(e, x){   // les joueurs de la saison passée : revus cette saison d'abord, avec leurs chiffres
+  const js = x.joueurs || [];
+  if(!js.length) return "";
+  const us = isUs(e.equipe || ""), known = js.some(j => j.present != null);
+  const cards = j => [j.jaunes ? j.jaunes+" CJ" : "", j.rouges ? j.rouges+" CR" : ""].filter(Boolean).join(" ") || "–";
+  const who = j => '<td class="n">'+esc(j.num ?? "–")+'</td><td class="team">'+esc(j.nom)
+    + (j.present === true && j.num_now != null && j.num_now !== j.num ? ' <small class="muted">n° '+esc(j.num_now)+' cette saison</small>' : '')+'</td><td>'+j.m+'</td>';
+  const field = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.buts+(j.pen ? ' <small class="muted">dont '+j.pen+' à 7 m</small>' : '')+'</td><td>'+fr(j.moy)+'</td>'
+    + '<td>'+(j.reussite != null ? j.reussite+' %' : '–')+'</td><td>'+(j.deux_min || "–")+'</td><td>'+cards(j)+'</td></tr>';
+  const keeper = j => '<tr'+(j.present === true ? ' class="back"' : '')+'>'+who(j)+'<td>'+j.arrets+'</td><td>'+(j.pris ?? "–")+'</td>'
+    + '<td>'+(j.pct != null ? j.pct+' %'+(j.estime ? '*' : '') : '–')+'</td><td>'+(j.deux_min || "–")+'</td><td>'+cards(j)+'</td></tr>';
+  const groups = list => !known ? [["", list]]
+    : [["Toujours là cette saison", list.filter(j => j.present === true)], ["Pas revus cette saison", list.filter(j => j.present !== true)]];
+  const table = (list, head, row, cols) => {
+    if(!list.length) return "";
+    return '<div class="scroll"><table class="past"><thead><tr><th>N°</th><th>Joueur</th><th>M.</th>'+head+'</tr></thead><tbody>'
+      + groups(list).filter(([, l]) => l.length).map(([t, l]) => (t ? '<tr class="grp"><td colspan="'+cols+'">'+t+' ('+l.length+')</td></tr>' : '')+l.map(row).join("")).join("")
+      + '</tbody></table></div>';
+  };
+  const back = js.filter(j => j.present === true).length;
+  return '<h3 style="margin-top:14px">'+(us ? "Nos joueurs" : "Leurs joueurs")+' en '+esc(x.saison)+'</h3>'
+    + '<p class="small muted">'+(known ? back+' sur '+js.length+' revus sur une feuille de cette saison, en gras. ' : "Pas encore de feuille de match cette saison : on ne sait pas qui est resté. ")
+    + 'Chiffres de '+esc(x.saison)+', sur '+x.feuilles+' feuille'+(x.feuilles>1?"s":"")+' lue'+(x.feuilles>1?"s":"")+'.</p>'
+    + table(js.filter(j => !j.gardien), '<th>Buts</th><th>/match</th><th>Tirs réussis</th><th>2 min</th><th>Cartons</th>', field, 8)
+    + table(js.filter(j => j.gardien), '<th>Arrêts</th><th>Buts pris</th><th>% arrêts</th><th>2 min</th><th>Cartons</th>', keeper, 8)
+    + (js.some(j => j.gardien && j.estime) ? '<p class="small muted">* buts pris répartis entre gardiens par estimation quand la feuille ne dit pas qui était dans les buts.</p>' : '');
 }
 function viewAdv(){
   const {adv, names} = opponent();
   if(!adv) return '<header class="top"><h1>Adversaires</h1></header>'+emptyPanel();
-  const e = D.equipes[adv];
+  const e = D.equipes[adv], us = isUs(adv);
   const next = PLAN.find(r => r.m.adversaire === adv);
   let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : "Poule "+esc(e.poule))+'</p><h1>'+esc(adv)+'</h1></header>'
-    + '<div class="edit"><label class="small muted" for="adv">Adversaire</label><select id="adv">'+names.map(t=>'<option'+(t===adv?" selected":"")+'>'+esc(t)+'</option>').join("")+'</select></div>';
+    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":"")+'</option>').join("")+'</select></div>';
   h += '<div class="panel"><p>Poule '+esc(e.poule)+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
     + (e.arrets_pct!=null ? '<div><b class="num">'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : "")
@@ -788,14 +805,16 @@ function viewAdv(){
     + '<div><b class="num">'+fr(e.deux_min_moy)+'</b><span>exclusions de 2 min</span></div>'
     + '<div><b class="num">'+fr(e.jaunes_moy)+'</b><span>cartons jaunes</span></div>'
     + '<div><b class="num">'+(e.rouges ?? "–")+'</b><span>cartons rouges</span></div>'
-    + '</div><p class="small muted">Moyennes par match ; cartons rouges : total de la saison. Pondération conseillée pour vos notes : '+esc(PLAN_NOM[e.plan] || "équilibrée")+' ('+esc(e.plan_raison || "")+')</p>'+periods(e);
-  if(e.buteurs.length) h += '<h3 style="margin-top:14px">Joueurs à surveiller</h3><ul class="plain">'
-    + e.buteurs.map(b=>'<li class="row"><span class="jersey">'+esc(b.num ?? "–")+'</span><span class="who"><b>'+esc(b.nom)+'</b><br><span class="why">'+b.buts+' buts'+(b.tirs?' sur '+b.tirs+' tirs ('+b.reussite+' %)':'')+' en '+b.m+' match'+(b.m>1?"s":"")+(b.pen?", dont "+b.pen+" sur 7 m":"")+'</span></span><span class="score">'+fr(b.moy)+'</span></li>').join("")+'</ul>';
-  if((e.gardiens||[]).length) h += '<h3 style="margin-top:14px">Leurs gardiens</h3><ul class="plain">'
+    + '</div><p class="small muted">Moyennes par match ; cartons rouges : total de la saison.'+(us ? '' : ' Pondération conseillée pour vos notes : '+esc(PLAN_NOM[e.plan] || "équilibrée")+' ('+esc(e.plan_raison || "")+')')+'</p>'+periods(e);
+  if(e.buteurs.length) h += '<h3 style="margin-top:14px">'+(us ? "Nos meilleurs buteurs" : "Joueurs à surveiller")+'</h3><ul class="plain">'
+    + e.buteurs.map(b=>'<li class="row"><span class="jersey">'+esc(b.num ?? "–")+'</span><span class="who"><b>'+esc(b.nom)+'</b><br><span class="why">'+b.buts+' buts'+(b.tirs?' sur '+b.tirs+' tirs ('+b.reussite+' %)':'')+' en '+b.m+' match'+(b.m>1?"s":"")+(b.pen?", dont "+b.pen+" sur 7 m":"")+'</span>'
+      + avant(e, b.avant, a => a.buts+' buts en '+a.m+' match'+(a.m>1?"s":"")+' ('+fr(a.moy)+'/match'+(a.reussite != null ? ', '+a.reussite+' % au tir' : '')+')')+'</span><span class="score">'+fr(b.moy)+'</span></li>').join("")+'</ul>';
+  if((e.gardiens||[]).length) h += '<h3 style="margin-top:14px">'+(us ? "Nos gardiens" : "Leurs gardiens")+'</h3><ul class="plain">'
     + e.gardiens.map(g=>'<li class="row"><span class="jersey">'+esc(g.num ?? "–")+'</span><span class="who"><b>'+esc(g.nom)+'</b><br><span class="why">'
-      + g.arrets+' arrêts'+(g.pris!=null?', '+g.pris+' buts pris'+(g.estime?' (estimé)':''):'')+' en '+g.m+' match'+(g.m>1?"s":"")+'</span></span>'
+      + g.arrets+' arrêts'+(g.pris!=null?', '+g.pris+' buts pris'+(g.estime?' (estimé)':''):'')+' en '+g.m+' match'+(g.m>1?"s":"")+'</span>'
+      + avant(e, g.avant, a => (a.pct != null ? a.pct+" % d'arrêts" : a.arrets+' arrêts')+' en '+a.m+' match'+(a.m>1?"s":""))+'</span>'
       + '<span class="score">'+(g.pct!=null?g.pct+' %':'–')+'</span></li>').join("")+'</ul>';
-  return h + '</div>' + pastBlock(e) + common(adv);
+  return h + '</div>' + pastBlock(e) + (us ? "" : common(adv));
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";
