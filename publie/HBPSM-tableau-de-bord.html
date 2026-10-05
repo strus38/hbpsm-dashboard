@@ -465,7 +465,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "50be487ea343", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "8ef23ae8ae30", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -558,7 +558,10 @@ const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
 const AGE_RANG = {jeune: 0, intermediaire: 1, experimente: 2};   // paramètre seulement : jamais affiché (choix de l'auteur)
 const ageRank = p => AGE_RANG[p.age] ?? 1;
 const MIN_CHANGES = 2;
-const GB_SUITE = 3;   // un gardien ne fait pas plus de 3 matchs de suite sans sortir (demande de l'auteur, 05/10/2026)   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
+const GB_SUITE = 3;
+// début de saison (avant que les résultats départagent) : les jeunes gardiens jouent autant l'un que
+// l'autre, à un match près (demande de l'auteur, 05/10/2026) ; la classe d'âge n'est jamais affichée
+const PARTAGE_GB = 6;   // jusqu'à la 6e feuille du club lue   // un gardien ne fait pas plus de 3 matchs de suite sans sortir (demande de l'auteur, 05/10/2026)   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
 const horizon = () => {
   const ms = (D.saison && D.saison.matchs) || [];
   if(ms.length) return ms.slice(0, HORIZON);
@@ -753,7 +756,7 @@ function planning(){
       const fill = (gk, n) => { for(const p of [...sure, ...unsure]) if(isGK(p) === gk && (gk ? gks : field).length < n && !gks.includes(p) && !field.includes(p)) (gk ? gks : field).push(p); };
       if(broken.length){ fill(true, nGK); fill(false, size - gks.length); }
     } else { gks = pick(true, nGK); field = pick(false, size - gks.length); }
-    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], serie: [], peu: null, fixed: !!fixed, broken};
+    return {m, k, pinned, sure, gks, field, rotated: [], resting: [], why: {}, forced: [], serie: [], partage: [], peu: null, fixed: !!fixed, broken};
   });
   // domicile et extérieur : que personne ne joue que d'un côté ; excess > 0 : il a déjà plus de
   // matchs du côté de ce match (saison jouée et propositions comprises)
@@ -839,7 +842,29 @@ function planning(){
     r.gks[r.gks.indexOf(g)] = i;
     r.rotated.push(i); r.resting.push(g); r.serie.push(i, g); r.why[i.cle] = g; r.why[g.cle] = i;
   }
-  // 2 ter. jamais deux fois de suite la même équipe : au moins MIN_CHANGES joueurs (gardiens compris)
+  // 2 ter. début de saison : temps de jeu partagé entre les jeunes gardiens (matchs joués de la saison
+  // compris) ; celui qui a le plus joué cède un match, pas un match clé si possible, du côté où ça
+  // l'équilibre, sans dépasser GB_SUITE de suite pour l'entrant
+  if((D.meta.club_feuilles ?? 0) < PARTAGE_GB){
+    const young = D.joueurs.filter(p => isGK(p) && p.age === "jeune" && !depOf(p) && dispo(p));
+    const total = p => (p.journal || []).length + P.filter(r => r.gks.includes(p)).length;
+    // l'autre gardien de la feuille : qu'il reste un gardien solide à côté de celui qui entre
+    const partner = (r, hi) => Math.max(0, ...r.gks.filter(g => g !== hi).map(g => val(g, r.m)));
+    for(let guard = 0; guard < 12 && young.length > 1; guard++){
+      const byTime = young.slice().sort((a, b) => total(b) - total(a) || ageRank(a) - ageRank(b));
+      const hi = byTime[0], lo = byTime[byTime.length - 1];
+      if(total(hi) - total(lo) <= 1) break;
+      const spots = P.filter(r => !r.fixed && r.gks.includes(hi) && !r.gks.includes(lo) && !r.pinned.includes(hi)
+          && pinOf(lo, r.m) !== "out" && availOf(lo, r.m) !== "a" && runWith(lo, r) <= GB_SUITE)
+        .sort((a, b) => (a.m.cle ? 1 : 0) - (b.m.cle ? 1 : 0) || partner(b, hi) - partner(a, hi)
+          || excess(lo, a) - excess(lo, b) || excess(hi, b) - excess(hi, a) || (pv(b.m) ?? 50) - (pv(a.m) ?? 50));
+      if(!spots.length) break;
+      const r = spots[0];
+      r.gks[r.gks.indexOf(hi)] = lo;
+      r.rotated.push(lo); r.resting.push(hi); r.partage.push(lo, hi); r.why[lo.cle] = hi; r.why[hi.cle] = lo;
+    }
+  }
+  // 2 quater. jamais deux fois de suite la même équipe : au moins MIN_CHANGES joueurs (gardiens compris)
   // changent d'un match au suivant, à commencer par le dernier match joué ; chaque échange est celui
   // qui coûte le moins, poste pour poste si possible, sans découvrir un poste clef
   const last = (D.derniers || []).slice(-1)[0];
@@ -872,7 +897,7 @@ function planning(){
     prev = team();
   }
   // 3. force et risque de chaque feuille
-  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken, forced, peu, serie, gbSuite}) => {
+  const out = P.map(({m, k, gks, field, rotated, resting, why, fixed, broken, forced, peu, serie, gbSuite, partage}) => {
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
@@ -896,7 +921,7 @@ function planning(){
       : broken.length ? "a_revoir"
       : pub && keyset(pub) === mine && (!local || keyset(local) === mine) ? "publiee" : "attente";
     const valideLe = (local || pub || {}).le || null;
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, forced, peu, serie, gbSuite, postes, postesOk, fixed, broken, etat, valideLe,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, why, forced, peu, serie, gbSuite, partage, postes, postesOk, fixed, broken, etat, valideLe,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
@@ -1123,6 +1148,8 @@ function viewPlanif(){
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
+          : rot && r.partage.includes(p) ? "entre : en début de saison, le temps de jeu se partage entre gardiens, à la place de "+other.nom
+          : rest && r.partage.includes(p) ? "au repos : en début de saison, le temps de jeu se partage entre gardiens, laisse sa place à "+other.nom
           : rot && r.serie.includes(p) ? "entre : un gardien ne fait pas plus de "+GB_SUITE+" matchs de suite, à la place de "+other.nom
           : rest && r.serie.includes(p) ? "au repos : "+GB_SUITE+" matchs de suite au plus pour un gardien, laisse sa place à "+other.nom
           : rot && forced ? "entre : au moins "+MIN_CHANGES+" changements d'un match au suivant, à la place de "+other.nom+samePoste(p, other)
