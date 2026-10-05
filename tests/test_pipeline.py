@@ -390,6 +390,18 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const besoin = planning()[0].sel.includes(d);
           S.postes = {}; S.depannage = {}; S.dm = {}; return {jamais, besoin}; })()""")
         assert dep == {"jamais": True, "besoin": True}
+        # téléphone : aucun onglet ne déborde ; « explique » montre la raison d'une case sans la changer
+        page.set_viewport_size({"width": 360, "height": 780})
+        for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
+            page.evaluate("t => { S.tab = t; render(false); }", tab)
+            assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0, tab
+        page.evaluate("S.tab = 'planif'; render(false)")
+        page.click("button[data-tap=why]")
+        before = page.evaluate("JSON.stringify(S.pin)")
+        page.locator("button.cell.in").first.click()
+        assert page.locator("#why").is_visible() and page.evaluate("JSON.stringify(S.pin)") == before
+        page.click("button[data-tap=edit]")
+        page.set_viewport_size({"width": 1100, "height": 900})
         # adversaires : le club figure aussi dans la liste, en tête
         assert page.evaluate("opponent().names[0] === D.meta.club")
         # planification : un clic écarte un retenu, la feuille se complète avec un autre

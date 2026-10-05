@@ -97,6 +97,11 @@ axes de travail) est fait par la collecte sur GitHub. La page ne fait que ces ca
 parce que les disponibilités, les choix et les postes se saisissent sur l'ordinateur de
 l'entraîneur et n'en sortent pas (un fichier « Sauvegarder mon planning » les emporte ailleurs).
 
+Sur téléphone, la page se resserre : menu sur une ligne, noms courts, tableaux sans les
+colonnes secondaires, planification avec la colonne des noms fixe et des cases plus grandes. Le
+survol n'existant pas au doigt, « Toucher une case : explique » affiche la raison d'une case
+au lieu de la modifier.
+
 Couleurs : celles du club, reprises du profil HBPSM de HANDBALL-training
 (`clubs/hbpsm/profil.json`), avec les mêmes rôles : le bleu marine pour l'ossature, le jaune
 pour ce qui est actif ou mis en avant, toujours avec un texte foncé.

@@ -121,8 +121,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
 
 ## Choix déjà arrêtés
 
-- Pas de version téléphone. Un fichier HTML unique gardé sur le PC, qui se met à jour à
-  chaque ouverture ; une Release à chaque changement de données.
+- Un fichier HTML unique gardé sur le PC (ou la même page sur GitHub Pages), qui se met à jour
+  à chaque ouverture ; une Release à chaque changement de données. Elle s'adapte au téléphone
+  (demande de l'auteur, 05/10/2026, sous 560 px) : menu sur une ligne aux libellés courts, noms
+  courts d'équipes et de joueurs (`.tl`/`.ts`), colonnes secondaires des tableaux masquées
+  (`.opt`), planification à colonne des noms fixe, mode « explique » (`S.tap`) qui montre la
+  raison d'une case au doigt, faute de survol. Le test Chrome vérifie l'absence de débordement à
+  360 px.
 - La page lit `publie/hbpsm.enc` par `raw.githubusercontent.com`, car les fichiers de Release
   n'ont pas d'en-tête CORS (vérifié).
 - Les deux projets restent indépendants : seul le format de fichier les relie.
