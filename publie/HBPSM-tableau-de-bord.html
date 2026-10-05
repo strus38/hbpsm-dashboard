@@ -259,6 +259,48 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 .ts{display:none}
+/* ---- allure : cartes aérées, ombres douces, logos, jauges ---- */
+.club{background:linear-gradient(135deg,var(--structure-900),var(--structure-700))}
+.club img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:contain;padding:2px;align-self:center}
+.club div{align-items:center}
+.panel,.card,.hero{border-radius:14px;border-color:color-mix(in srgb,var(--rule) 75%,transparent);box-shadow:0 1px 2px rgba(11,42,82,.05),0 8px 24px rgba(11,42,82,.06)}
+h2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h2::before{content:"";width:4px;height:.9em;border-radius:2px;background:var(--accent);flex-shrink:0}
+.kpis div{border:0;border-radius:12px;background:color-mix(in srgb,var(--structure-500) 7%,var(--surface));padding:10px 12px}
+.kpis .num{color:var(--heading)}
+.logo{position:relative;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--structure-100);color:var(--structure-900);
+  font:700 .62rem var(--display);vertical-align:middle;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 1px color-mix(in srgb,var(--rule) 70%,transparent)}
+.logo::before{content:attr(data-ini)}
+.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:1px}
+.logo.md{width:30px;height:30px;font-size:.78rem}
+.logo.xl{width:72px;height:72px;font-size:1.5rem;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+h1 .logo{width:36px;height:36px;font-size:.8rem;margin:-4px 4px 0 0}
+.matchcard{margin:16px 0 4px;padding:18px 16px 14px;border-radius:18px;color:#fff;text-align:center;
+  background:radial-gradient(120% 90% at 50% 0%,var(--structure-700),var(--structure-900));box-shadow:0 10px 30px rgba(11,42,82,.25)}
+.matchcard .mc-when{margin:0 0 10px;font:600 1rem var(--display);letter-spacing:.04em;color:var(--structure-100);text-transform:uppercase}
+.mc-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;color:#fff;font-size:1.15rem}
+.mc-team{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.mc-name{font:700 1.15rem/1.1 var(--display);overflow-wrap:anywhere}
+.mc-vs{font:700 1.1rem var(--display);color:var(--accent);padding:6px 10px;border:2px solid var(--accent);border-radius:99px}
+.mc-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 0 0}
+.chipx{font-size:.8rem;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff}
+.hero{border-left-width:1px}
+.hero-row{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.hero-row .kpis{margin:0}
+.gauge{display:flex;flex-direction:column;align-items:center;gap:2px;width:96px}
+.gauge svg{width:84px;height:84px}
+.gauge circle{fill:none;stroke-width:7}.gauge .bg{stroke:var(--rule)}.gauge .fg{stroke:var(--accent);stroke-linecap:round}
+.gauge text{font:700 15px var(--display);fill:var(--heading);text-anchor:middle}
+.gauge span{font-size:.72rem;color:var(--muted);text-align:center}
+.card-team{display:flex;align-items:center;gap:8px;margin:2px 0}
+nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;margin-right:6px}
+.plan .h .logo{display:grid;margin:0 auto 4px}
+.pm-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none}
+.pm{flex:0 0 auto;display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--rule);background:var(--surface);border-radius:12px;padding:8px 10px;font:inherit;font-size:.85rem;cursor:pointer;color:inherit}
+.pm small{color:var(--muted)}
+.pm.on{border-color:var(--accent-fonce);box-shadow:0 0 0 2px var(--accent)}
+.cell.wide{width:auto;min-width:118px;display:inline-flex;gap:8px;padding:0 12px;justify-content:center;font-size:.85rem}
+.cell.wide span{font:600 .85rem var(--body)}
 .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:end;margin:12px 0}
 .marche{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .marche.m1{border-color:var(--accent-trait);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -322,8 +364,23 @@ body:not(.lecture) .lecture-only{display:none!important}
   h2{font-size:1.3rem;margin:22px 0 8px}
   header.top .when{font-size:1rem}
   .panel{padding:12px}
-  nav.tabs{display:grid;grid-template-columns:repeat(7,1fr)}
-  nav.tabs button{max-width:none;min-width:0;padding:12px 0 9px;font-size:.76rem;letter-spacing:0}
+  /* menu d'onglets en bas, comme une application */
+  nav.tabs{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:0;
+    border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px);background:color-mix(in srgb,var(--surface) 94%,transparent);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 -6px 18px rgba(11,42,82,.08)}
+  nav.tabs button{max-width:none;min-width:0;padding:8px 0 6px;font-size:.64rem;letter-spacing:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+    border-bottom:0;border-top:3px solid transparent}
+  nav.tabs button[aria-selected="true"]{border-top-color:var(--accent);color:var(--heading)}
+  nav.tabs .nav-ico{width:22px;height:22px;margin:0}
+  main{padding-bottom:110px}
+  #why{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  .matchcard{margin:12px 0 4px;padding:16px 10px 12px}
+  .logo.xl{width:60px;height:60px}
+  .mc-name{font-size:1rem}
+  .hero-row{grid-template-columns:auto 1fr;gap:10px}
+  .hero-row .kpis{grid-template-columns:1fr}
+  .plan.single{grid-template-columns:minmax(0,1.3fr) minmax(124px,1fr) 34px}
+  .plan.single .h{font-size:.74rem}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .prop{grid-template-columns:28px 1fr}.prop-btn{grid-column:2}
   .podium .marche b{font-size:.85rem}
@@ -365,19 +422,19 @@ body:not(.lecture) .lecture-only{display:none!important}
 </style>
 </head>
 <body>
-<header class="club"><div><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-mode" class="mode"></span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
+<header class="club"><div><img id="club-logo" alt="" hidden><b id="club-nom">HBPSM</b><span id="club-titre">Tableau de bord</span><span id="club-mode" class="mode"></span><span id="club-etat" class="etat" aria-live="polite"></span></div></header>
 <nav class="tabs" role="tablist" aria-label="Rubriques" hidden>
-  <button role="tab" data-tab="planif" aria-selected="true"><span class="tl">Planification</span><span class="ts">Planif.</span></button>
-  <button role="tab" data-tab="semaine" aria-selected="false">Semaine</button>
-  <button role="tab" data-tab="convoc" aria-selected="false"><span class="tl">Convocation</span><span class="ts">Convoc.</span></button>
-  <button role="tab" data-tab="joueurs" aria-selected="false">Joueurs</button>
-  <button role="tab" data-tab="adv" aria-selected="false"><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
-  <button role="tab" data-tab="saison" aria-selected="false">Saison</button>
-  <button role="tab" data-tab="caisse" aria-selected="false"><span class="tl">Caisse noire</span><span class="ts">Caisse</span></button>
+  <button role="tab" data-tab="planif" aria-selected="true"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 13h2M14 13h2M8 17h2M14 17h2"/></svg><span class="tl">Planification</span><span class="ts">Planif.</span></button>
+  <button role="tab" data-tab="semaine" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Semaine</span></button>
+  <button role="tab" data-tab="convoc" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><span class="tl">Convocation</span><span class="ts">Convoc.</span></button>
+  <button role="tab" data-tab="joueurs" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.5c2.5.2 4.2 1.8 5 4.5"/></svg><span>Joueurs</span></button>
+  <button role="tab" data-tab="adv" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/></svg><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
+  <button role="tab" data-tab="saison" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Saison</span></button>
+  <button role="tab" data-tab="caisse" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg><span class="tl">Caisse noire</span><span class="ts">Caisse</span></button>
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b878042dbad7", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b346ce90e002", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -484,8 +541,17 @@ const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rh
   const num = (String(t).match(/[\s-](\d)\s*$/) || [])[1];
   return num && !base.endsWith(num) ? base + " " + num : base;
 };
+// le logo du club (ffhandball.fr), sinon ses initiales ; l'image cassée s'efface derrière les initiales
+const initials = t => isUs(t) ? String(D.meta.club_court || "").slice(0, 2) : teamShort(t).split(/[\s-]+/).filter(w => !/^\d$/.test(w)).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+const logo = (t, cls = "") => { const u = D.logos && D.logos[t];
+  return '<span class="logo '+cls+'" data-ini="'+esc(initials(t))+'" aria-hidden="true">'+(u ? '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.remove()">' : '')+'</span>'; };
 // sur téléphone, les tableaux montrent le nom court (« Sablons Rhodia », « HBPSM »)
-const teamCell = t => '<span class="tl">'+esc(t)+'</span><span class="ts">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span>';
+const teamCell = t => logo(t)+' <span class="tl">'+esc(t)+'</span><span class="ts">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span>';
+// jauge circulaire : un pourcentage d'un coup d'œil
+const gauge = (v, label) => { const c = 2 * Math.PI * 26, x = v == null ? 0 : Math.max(0, Math.min(100, v));
+  return '<div class="gauge"><svg viewBox="0 0 64 64" role="img" aria-label="'+esc(label)+' : '+(v == null ? "inconnue" : v+" %")+'"><circle cx="32" cy="32" r="26" class="bg"/>'
+    + '<circle cx="32" cy="32" r="26" class="fg" stroke-dasharray="'+(c * x / 100).toFixed(1)+' '+c.toFixed(1)+'" transform="rotate(-90 32 32)"/>'
+    + '<text x="32" y="37">'+(v == null ? "–" : v+"%")+'</text></svg><span>'+esc(label)+'</span></div>'; };
 // et le joueur en « M. Dupont »
 const playerShort = n => { const w = String(n).trim().split(/\s+/); return w.length > 1 ? w[0][0]+". "+w.slice(1).join(" ") : w[0]; };
 let whyTimer = null;
@@ -718,15 +784,20 @@ function viewSemaine(){
   const P = PLAN, H = P.map(r => r.m);
   if(!H.length) return empty();
   const r = P[0], m = r.m, e = D.equipes[m.adversaire] || {};
-  let h = '<header class="top"><p class="when">'+matchLine(m)+'</p><h1>'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h1></header>' + roNote();
-  if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
+  const home = m.domicile ? D.meta.club : m.adversaire, away = m.domicile ? m.adversaire : D.meta.club;
+  const side = t => '<span class="mc-team">'+logo(t, "xl")+'<span class="mc-name">'+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span></span>';
   const lieu = m.salle ? esc(m.salle.nom)+(m.salle.ville ? ", "+esc(m.salle.ville) : "") : "lieu pas encore fixé par la fédération";
-  h += '<div class="hero"><div class="kpis">'
-    + '<div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
-    + '<div><b class="num">'+pct(r.pAdj)+'</b><span>victoire estimée avec cette équipe'+(m.p_victoire != null && r.pAdj !== m.p_victoire ? " ("+m.p_victoire+" % au complet)" : "")+'</span></div>'
-    + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de '+objectif((D.saison||{}).cible)+' en jeu</span></div>'
-    + '</div><p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
-    + '<p class="small muted"><i class="ico">⌖</i> '+lieu+(e.j ? ' · forme de l\'adversaire '+forme(e.forme) : "")
+  let h = '<header class="matchcard"><p class="mc-when">'+esc(roundOf(m))+(m.cle ? ' <span class="tag key">Match clé</span>' : "")+'</p>'
+    + '<h1 class="mc-teams">'+side(home)+'<span class="mc-vs">VS</span>'+side(away)+'</h1>'
+    + '<p class="mc-chips"><span class="chipx">📅 '+esc(fmtDate(m.date, m.provisoire))+'</span><span class="chipx">📍 '+lieu+'</span>'
+    + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span></p></header>' + roNote();
+  if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
+  h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
+    + '<div class="kpis"><div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
+    + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>'+(m.coupe ? "match de coupe : hors classement" : "points de chance de "+objectif((D.saison||{}).cible)+" en jeu")+'</span></div></div></div>'
+    + (m.p_victoire != null && r.pAdj !== m.p_victoire ? '<p class="small muted">Avec cette équipe ; '+m.p_victoire+' % au complet.</p>' : '')
+    + '<p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
+    + '<p class="small muted">'+(e.j ? 'Forme de l\'adversaire '+forme(e.forme) : "")
     + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
   const conv = COACH && S.convoque[m.id];
   h += '<h2>'+squadTitle(r)+'</h2><div class="duo-semaine"><div class="panel">'+etatLine(r)+squadChips(r)
@@ -736,7 +807,7 @@ function viewSemaine(){
     + '<button class="btn ghost" data-tab="convoc">'+(COACH ? "Préparer la convocation" : "Voir la convocation")+'</button></div></div>';
   if(r.ok && r.sel.some(p => poste(p))) h += courtSVG(startSeven(r));
   h += '</div>';   // la feuille et le sept de départ côte à côte sur grand écran
-  h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b>'+esc(x.m.adversaire)+'</b>'
+  h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b class="card-team">'+logo(x.m.adversaire, "md")+' '+esc(teamShort(x.m.adversaire))+'</b>'
     + (x.m.cle ? ' <span class="tag key">Match clé</span>' : '')+'<p class="small" style="margin:6px 0 0">'+riskTag(x)+' victoire '+pct(x.pAdj)+'</p></div>').join("")+'</div>';
   const s = D.saison;
   if(s && s.statut === "en_cours") h += '<h2>La saison</h2><div class="panel"><div class="kpis"><div><b class="num">'+ord(s.rang)+'</b><span>rang actuel</span></div>'
@@ -781,6 +852,9 @@ function viewPlanif(){
   if(!P.length) return '<header class="top"><h1>Planification</h1></header>'+emptyPanel();
   let h = '<header class="top"><p class="when">'+P.length+' prochains matchs · 12 joueurs dont 2 gardiens par match</p><h1>Planification</h1></header>' + roNote() + jetonBox();
   const n = P.length, q = P.quota;
+  // téléphone : un match à la fois, choisi en haut ; grand écran : les quatre côte à côte
+  const narrow = window.matchMedia && matchMedia("(max-width:560px)").matches, pm = Math.min(S.pm || 0, n - 1);
+  const cols = narrow ? [P[pm]] : P, single = cols.length === 1 && narrow;
   h += '<p class="small muted lecture-only">Rotation : '+(q ? "chacun joue au moins "+q+" des "+n+" matchs" : "libre")+'. Touchez une case pour savoir pourquoi.</p>';
   h += '<div class="edit noprint coach"><label class="small muted" for="regle">Rotation</label><select id="regle">'
     + [[1,"chacun joue au moins 1 des "+n+" matchs"],[2,"chacun joue au moins 2 des "+n+" matchs"],[0,"libre : les mieux notés à chaque match"]]
@@ -788,8 +862,10 @@ function viewPlanif(){
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
     + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
-  h += '<div class="panel scroll plan-wrap"><div class="plan" style="--n:'+P.length+'"><div class="who"></div>'
-    + P.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c"><b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
+  if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
+    + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
+  h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
+    + cols.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c">'+logo(r.m.adversaire, "md")+'<b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
       + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key"><span class="tl">Match clé</span><span class="ts">Clé</span></span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
@@ -804,7 +880,7 @@ function viewPlanif(){
         + '<span class="tl">'+esc(p.nom)+'</span><span class="ts">'+esc(playerShort(p.nom))+'</span>'
         + (poste(p) && !isGK(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
         + (depOf(p) ? ' <small class="dep tl" title="Joue seulement s\'il manque des joueurs ; hors rotation">dépannage</small>' : '')+'</div>';
-      for(const r of P){
+      for(const r of cols){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle];
@@ -819,17 +895,18 @@ function viewPlanif(){
           : sel && depOf(p) ? "retenu en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
           : sel ? (av === "i" ? "retenu, mais incertain" : "retenu : parmi les mieux notés disponibles pour ce match")
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non retenu";
-        h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym+'</button></div>';
+        h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym
+          + (single ? '<span>'+(av === "a" ? "absent" : sel ? (rot ? "entre" : av === "i" ? "incertain" : "retenu") : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
     }
   }
-  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + P.map(r => '<div class="h small"><div class="c">'
+  if(KEYS().length) h += '<div class="who muted small">Postes clefs</div>' + cols.map(r => '<div class="h small"><div class="c">'
       + [{nom: "gardiens", n: r.gks.length, min: r.nGK}, ...r.postes].map(c => '<span class="cov'+(c.n < c.min ? " low" : "")+'" title="'+esc(c.nom)+' : '+c.n+' sur '+c.min+' voulus"><span class="tl">'+esc(c.nom)+'</span><span class="ts">'+esc(c.nom.slice(0, 3).toUpperCase())+'</span> '+c.n+'/'+c.min+'</span>').join(" ")
       + '</div></div>').join("") + '<div></div>';
   h += '<div class="who muted small footlab"><span class="tl">Avec ces choix</span><span class="ts">force<br>victoire<br>risque</span></div>'
-    + P.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
+    + cols.map(r => '<div class="h foot"><div class="c"><div class="meter"><i style="width:'+Math.round(100*r.force)+'%"></i></div>'
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
@@ -1375,7 +1452,7 @@ function viewCoupes(){   // le parcours du club en coupe : hors classement, mais
   const byCup = {};
   for(const c of cs) (byCup[c.coupe] = byCup[c.coupe] || []).push(c);
   return Object.entries(byCup).map(([nom, list]) => '<h2>'+esc(nom)+'</h2><div class="panel">'
-    + list.map(c => { const us = '<b>'+esc(D.meta.club_court)+'</b>', them = teamCell(c.adversaire);
+    + list.map(c => { const us = logo(D.meta.club)+' <b>'+esc(D.meta.club_court)+'</b>', them = teamCell(c.adversaire);
       const [sd, se] = c.domicile ? [c.bp, c.bc] : [c.bc, c.bp];
       return '<div class="res"><span class="r">'+(c.domicile ? us : them)+'</span>'
       + '<span class="sc'+(c.res ? "" : " muted")+'">'+(c.res ? sd+" - "+se : "–")+'</span>'
@@ -1415,6 +1492,8 @@ const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueur
 function render(keepScroll){
   const y = window.scrollY;
   document.getElementById("club-nom").textContent = D.meta.club_court || CFG.club || "HBPSM";
+  const lg = document.getElementById("club-logo"), lgu = D.logos && D.logos[D.meta.club];
+  if(lg && lgu && lg.getAttribute("src") !== lgu){ lg.src = lgu; lg.hidden = false; lg.onerror = () => { lg.hidden = true; }; }
   document.getElementById("club-titre").textContent = "Tableau de bord" + (D.meta.saison ? " · saison " + D.meta.saison : "");
   const newer = NEWER && CFG.versions ? '<p class="demo">Une version plus récente de ce fichier existe. <a href="'
     + esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a></p>' : "";
@@ -1467,6 +1546,7 @@ document.addEventListener("click", ev => {
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
   else if(t.dataset.retirer){ withdraw(t.dataset.retirer); }
+  else if(t.dataset.pm !== undefined){ S.pm = Number(t.dataset.pm); save(); render(true); }
   else if(t.dataset.cpickJ){ PICK.joueur = t.dataset.cpickJ; render(true); }
   else if(t.dataset.cpickR){ PICK.regle = t.dataset.cpickR; PICK.n = 1; PICK.montant = ""; render(true); }
   else if(t.dataset.cpart){ PICK.partie = t.dataset.cpart; render(true); }
@@ -1693,6 +1773,8 @@ async function check(){
 setInterval(check, VERIF);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - (CHECKED || 0) > 60000) check(); });
 window.addEventListener("online", check);
+// passage téléphone / grand écran : la planification change de disposition
+if(window.matchMedia) matchMedia("(max-width:560px)").addEventListener("change", () => { if(typeof D !== "undefined" && D && D.meta) render(true); });
 async function start(phrase){
   if(!window.crypto || !window.crypto.subtle){ gate("Ce navigateur ne sait pas déchiffrer les données. Essaie avec Chrome, Edge ou Firefox récents."); return; }
   if(!phrase){ gate(""); return; }
