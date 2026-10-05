@@ -82,7 +82,9 @@ button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px soli
 .court .tok .n{font:700 17px var(--display);fill:var(--court-deep);text-anchor:middle}
 .court .tok .nm{font:600 11.5px var(--body);fill:#fff;text-anchor:middle}
 .court .tok .ps{font:600 10px var(--body);fill:var(--accent);text-anchor:middle}
-.court .tok.gb .nm,.court .tok.gb .ps{fill:var(--court-deep)}
+.court .tok .sub,.court .sub{font:600 10.5px var(--body);fill:var(--chalk);opacity:.82;text-anchor:middle}
+.court .leg{font:italic 10px var(--body);fill:var(--chalk);opacity:.7}
+.court .tok.gb .nm,.court .tok.gb .ps,.court .tok.gb .sub{fill:var(--court-deep)}
 .court .tok.vide circle{fill:none;stroke:var(--chalk);stroke-dasharray:4 4}
 ul.plain{list-style:none;margin:0;padding:0}
 .row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
@@ -434,7 +436,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b346ce90e002", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "8b7069fe3e5b", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -805,7 +807,7 @@ function viewSemaine(){
     + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+" ; au repos : "+r.resting.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
     + '<div class="edit noprint"><button class="btn" data-tab="planif">'+(COACH ? "Ajuster dans la planification" : "Voir la planification")+'</button>'
     + '<button class="btn ghost" data-tab="convoc">'+(COACH ? "Préparer la convocation" : "Voir la convocation")+'</button></div></div>';
-  if(r.ok && r.sel.some(p => poste(p))) h += courtSVG(startSeven(r));
+  if(r.ok && r.sel.some(p => poste(p))){ const st = startSeven(r); h += courtSVG(st, benchOf(r, st)); }
   h += '</div>';   // la feuille et le sept de départ côte à côte sur grand écran
   h += '<h2>Les matchs suivants</h2><div class="cards">'+P.slice(1).map(x => '<div class="card"><p class="small muted">'+matchLine(x.m)+'</p><b class="card-team">'+logo(x.m.adversaire, "md")+' '+esc(teamShort(x.m.adversaire))+'</b>'
     + (x.m.cle ? ' <span class="tag key">Match clé</span>' : '')+'<p class="small" style="margin:6px 0 0">'+riskTag(x)+' victoire '+pct(x.pAdj)+'</p></div>').join("")+'</div>';
@@ -829,22 +831,43 @@ function startSeven(r){
   }
   return start;
 }
-function courtSVG(start){
-  const pos = {GB:[170,34],ALG:[44,64],ALD:[296,64],PIV:[170,112],ARG:[70,178],DC:[170,204],ARD:[270,178]};
-  let tok = "";
+// les autres joueurs de la feuille, rangés sous le titulaire de leur premier poste
+function benchOf(r, start){
+  const used = new Set(Object.values(start).map(c => c.p)), out = {};
+  for(const p of r.sel){
+    if(used.has(p)) continue;
+    const k = isGK(p) ? "GB" : (poste(p).split("/").find(x => x && x !== "GB" && POSTES.includes(x)) || "");
+    (out[k] = out[k] || []).push(p);
+  }
+  return out;
+}
+function courtSVG(start, bench = {}){
+  const pos = {GB:[170,30],ALG:[44,70],ALD:[296,70],PIV:[170,140],ARG:[70,222],DC:[170,252],ARD:[270,222]};
+  const who = p => esc(p.num ?? "")+' '+esc(shortName(p.nom));
+  let tok = "", low = 305;
   for(const k of POSTES){
-    const [x,y] = pos[k], c = start[k];
+    const [x,y] = pos[k], c = start[k], subs = bench[k] || [];
     const name = c ? esc(shortName(c.p.nom)) : "à pourvoir";
     tok += '<g class="tok'+(c?"":" vide")+(k==="GB"?" gb":"")+'" transform="translate('+x+','+y+')"><circle r="15"/>'
       + '<text class="n" y="6">'+(c ? esc(c.p.num ?? "") : "")+'</text>'
-      + '<text class="nm" y="30">'+name+'</text><text class="ps" y="43">'+k+'</text></g>';
+      + '<text class="nm" y="30">'+name+'</text><text class="ps" y="43">'+k+'</text>'
+      + subs.map((p, i) => '<text class="sub" y="'+(58 + 13*i)+'">'+who(p)+'</text>').join("")+'</g>';
+    if(subs.length) low = Math.max(low, y + 58 + 13*(subs.length - 1) + 10);
   }
-  return '<div class="court"><svg viewBox="0 0 340 262" role="img" aria-label="Sept de départ possible sur le demi-terrain">'
+  // sans poste connu : en bas, trois par ligne
+  const rest = bench[""] || [];
+  for(let i = 0; i < rest.length; i += 3){
+    low += 14;
+    tok += '<text class="sub libre" x="170" y="'+low+'">'+(i ? "" : "Sans poste : ")+rest.slice(i, i + 3).map(who).join(" · ")+'</text>';
+  }
+  const n = Object.values(bench).reduce((a, l) => a + l.length, 0), H = low + (n ? 22 : 6);
+  if(n) tok += '<text class="leg" x="12" y="'+(H - 10)+'">Sous chaque poste : les remplaçants</text>';
+  return '<div class="court"><svg viewBox="0 0 340 '+H+'" role="img" aria-label="Sept de départ possible sur le demi-terrain'+(n ? ", remplaçants sous leur poste" : "")+'">'
     + '<path class="zone" d="M70 6 A100 100 0 0 0 270 6 Z" opacity=".9"/>'
     + '<path class="line" d="M70 6 A100 100 0 0 0 270 6"/>'
     + '<path class="line" d="M20 6 A150 150 0 0 0 320 6" stroke-dasharray="7 7"/>'
     + '<path class="line" d="M4 6 H336 M150 6 V0 H190 V6 M163 76 H177"/>'
-    + '<path class="line" d="M4 6 V258 H336 V6" opacity=".55"/>' + tok + '</svg></div>';
+    + '<path class="line" d="M4 6 V'+(H - 4)+' H336 V6" opacity=".55"/>' + tok + '</svg></div>';
 }
 
 function viewPlanif(){
