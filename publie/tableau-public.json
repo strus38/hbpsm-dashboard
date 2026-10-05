@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-05 11:34",
+ "genere": "2026-10-05 11:47",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -20,6 +20,8 @@
   "domicile": false,
   "journee": 2,
   "poule": "71",
+  "coupe": null,
+  "tour": null,
   "p_victoire": 77,
   "enjeu": 11,
   "cle": false,
@@ -294,6 +296,8 @@
   "matchs": [
    {
     "journee": 2,
+    "coupe": null,
+    "tour": null,
     "date": "2026-10-10T20:30",
     "provisoire": false,
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
@@ -304,7 +308,22 @@
     "rang_adv": 5
    },
    {
+    "journee": null,
+    "coupe": "Coupe de France",
+    "tour": "1ER TOUR",
+    "date": "2026-10-17T18:00",
+    "provisoire": false,
+    "adversaire": "P16M DIV - NORD DROME HANDBALL",
+    "domicile": false,
+    "p_victoire": null,
+    "enjeu": null,
+    "cle": false,
+    "rang_adv": null
+   },
+   {
     "journee": 3,
+    "coupe": null,
+    "tour": null,
     "date": "2026-11-07",
     "provisoire": true,
     "adversaire": "HBC ST DONAT",
@@ -316,6 +335,8 @@
    },
    {
     "journee": 4,
+    "coupe": null,
+    "tour": null,
     "date": "2026-11-14",
     "provisoire": true,
     "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
@@ -327,6 +348,8 @@
    },
    {
     "journee": 6,
+    "coupe": null,
+    "tour": null,
     "date": "2026-12-06T14:00",
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
@@ -338,6 +361,8 @@
    },
    {
     "journee": 7,
+    "coupe": null,
+    "tour": null,
     "date": "2026-12-12",
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
@@ -349,6 +374,8 @@
    },
    {
     "journee": 8,
+    "coupe": null,
+    "tour": null,
     "date": "2027-01-09T18:00",
     "provisoire": false,
     "adversaire": "HBC PILAT-2",
@@ -360,6 +387,8 @@
    },
    {
     "journee": 9,
+    "coupe": null,
+    "tour": null,
     "date": "2027-01-16",
     "provisoire": true,
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
@@ -371,6 +400,8 @@
    },
    {
     "journee": 10,
+    "coupe": null,
+    "tour": null,
     "date": "2027-01-23",
     "provisoire": true,
     "adversaire": "HBC ST DONAT",
@@ -382,6 +413,8 @@
    },
    {
     "journee": 11,
+    "coupe": null,
+    "tour": null,
     "date": "2027-01-30",
     "provisoire": true,
     "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
@@ -393,6 +426,8 @@
    },
    {
     "journee": 13,
+    "coupe": null,
+    "tour": null,
     "date": "2027-03-06",
     "provisoire": true,
     "adversaire": "HB TAIN VION TOURNON 2",
@@ -404,6 +439,8 @@
    },
    {
     "journee": 14,
+    "coupe": null,
+    "tour": null,
     "date": "2027-03-13",
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
