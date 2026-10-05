@@ -198,6 +198,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
   passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
   de la saison passée ne compte pas pour la règle des 2 changements.
+- Poste pour poste (demande de l'auteur, 05/10/2026) : le 2e poste ARD de tous les droitiers faisait
+  passer presque tout échange pour « même poste ». `compat(entrant, sortant)` : 3 même poste principal,
+  2 l'entrant tient le poste principal du sortant, 1 un poste en commun, 0 aucun ; `fit` = min(compat,
+  2) : 3 et 2 aussi bons pour choisir. Rotation : sur l'ensemble des matchs abordables, d'abord un
+  échange de fit 2, le plus abordable ; sinon le moins mauvais. Règle des 2 changements : fit avant
+  l'âge, puis celui qui a le plus joué. Infobulle : « même poste », « il tient son poste », « poste
+  différent, faute de mieux ».
 - Gardiens (demande de l'auteur, 05/10/2026) : pas plus de `GB_SUITE` = 3 matchs de suite sans sortir,
   matchs joués de la saison compris (`derniers` en garde 3, la planification en montre 2). Après la
   rotation, avant la règle des 2 changements : il se repose sur le match le plus abordable de la

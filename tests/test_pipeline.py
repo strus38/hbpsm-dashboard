@@ -413,6 +413,13 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const deux = planning().every(r => r.postesOk && r.sel.length === 12);
           S.postes = {}; S.regle = 1; return {res, sans, deux}; })()""")
         assert cov == {"res": [True, True, True], "sans": False, "deux": True}
+        # poste pour poste : un second poste partagé (ARD) ne suffit pas, l'entrant tient le poste principal
+        # du sortant ; tous les droitiers en 2e poste ARD, comme dans l'effectif
+        swaps = page.evaluate("""(() => { const champ = D.joueurs.filter(p => !isGK(p)), cycle = ["PIV","ARG","DC","ALG","ALD","ARD"];
+          champ.forEach((p, i) => { const c = cycle[i % cycle.length]; S.postes[p.cle] = c === "ALD" || c === "ARD" ? c : c + "/ARD"; });
+          const out = planning().flatMap(r => r.rotated.filter(p => !isGK(p)).map(p => compat(p, r.why[p.cle])));
+          S.postes = {}; return {n: out.length, mini: Math.min(...out), loin: compat({poste: "PIV/ARD", cle: "a"}, {poste: "DC/ARD", cle: "b"})}; })()""")
+        assert swaps["n"] > 0 and swaps["mini"] >= 2 and swaps["loin"] == 1, swaps
         # en dépannage : jamais retenu tant qu'il y a assez de joueurs, retenu quand il en manque
         dep = page.evaluate("""(() => { const champ = D.joueurs.filter(p => !isGK(p)), cycle = ["PIV","ARG","DC","ALG","ALD","ARD"];
           champ.forEach((p, i) => S.postes[p.cle] = cycle[i % cycle.length]);

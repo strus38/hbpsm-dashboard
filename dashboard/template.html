@@ -710,7 +710,15 @@ function coverage(team){   // places de chaque groupe tenues par l'équipe (coup
   return keys.map((g, i) => ({nom: g.nom, postes: g.postes, min: g.min, n: owner.filter((o, s) => o && slots[s] === i).length}));
 }
 const filled = team => coverage(team).reduce((a, c) => a + c.n, 0);
-const samePoste = (a, b) => { const s = postesOf(a).filter(x => postesOf(b).includes(x)); return s.length ? " (même poste : "+s.join("/")+")" : ""; };
+// un échange poste pour poste : 3 même poste principal ; 2 l'entrant tient le poste principal du sortant ;
+// 1 un poste en commun (le 2e poste ARD de tous les droitiers ne suffit pas à se remplacer) ; 0 aucun
+const compat = (i, o) => { const pi = postesOf(i), po = postesOf(o);
+  if(!pi.length || !po.length) return 1;
+  return pi[0] === po[0] ? 3 : pi.includes(po[0]) ? 2 : pi.some(x => po.includes(x)) ? 1 : 0; };
+const fit = (i, o) => Math.min(compat(i, o), 2);   // même poste ou poste tenu : aussi bons pour choisir
+const samePoste = (a, b) => { const c = compat(a, b), pa = postesOf(a), pb = postesOf(b);
+  return c === 3 ? " (même poste : "+pb[0]+")" : c === 2 ? " (il tient son poste : "+pb[0]+")"
+    : pa.length && pb.length ? " (poste différent : "+pa[0]+" pour "+pb[0]+", faute de mieux)" : ""; };
 const covered = team => coverage(team).every(c => c.n >= c.min);
 function planning(){
   const H = horizon(), size = D.meta.effectif || 12, nGK = D.meta.gardiens ?? 2;
@@ -762,19 +770,25 @@ function planning(){
         const owed = D.joueurs.filter(p => isGK(p) === gk && apps(p) < need(p))
           .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || ageRank(a) - ageRank(b) || val(b, H[0]) - val(a, H[0]));
         for(const p of owed){
+          // poste pour poste : sur chaque match abordable, le meilleur sortant ; puis le match où l'échange
+          // respecte le mieux les postes (même poste, ou poste tenu), le plus abordable d'abord ; jamais
+          // en découvrant un poste clef
+          let best = null;
           for(const r of easy){
             if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
-            // poste pour poste quand c'est possible, sans jamais découvrir un poste clef
-            const like = q => postesOf(q).some(x => postesOf(p).includes(x));
             const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q)
                 && (gk || filled(team(r).map(x => x === q ? p : x)) >= filled(team(r))))
-              .sort((a, b) => like(b) - like(a) || ageRank(b) - ageRank(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+              .sort((a, b) => fit(p, b) - fit(p, a) || ageRank(b) - ageRank(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
-            team(r)[team(r).indexOf(out)] = p;
-            r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
-            used[r.k]++; moved = true;
-            break;
+            const c = gk ? 2 : fit(p, out);   // même poste ou poste tenu : aussi bon ; on garde alors le match le plus abordable
+            if(!best || c > best.c) best = {r, out, c};
+            if(c >= 2) break;
           }
+          if(!best) continue;
+          const {r, out} = best;
+          team(r)[team(r).indexOf(out)] = p;
+          r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
+          used[r.k]++; moved = true;
         }
       }
     }
@@ -834,8 +848,7 @@ function planning(){
             .filter(p => isGK(p) === gk && !depOf(p) && !team().includes(p) && !prev.includes(p));   // jamais le dépannage
           for(const o of outs) for(const i of ins){
             if(!gk && filled(list.map(x => x === o ? i : x)) < filled(list)) continue;
-            const like = postesOf(i).some(x => postesOf(o).includes(x)) ? 0 : 1;
-            const cost = [availOf(i, r.m) === "i" ? 1 : 0, ageRank(i) - ageRank(o), like, val(o, r.m) - val(i, r.m), -apps(o)];
+            const cost = [availOf(i, r.m) === "i" ? 1 : 0, 2 - fit(i, o), ageRank(i) - ageRank(o), -apps(o), val(o, r.m) - val(i, r.m)];
             if(!best || cost.some((c, n) => c !== best.cost[n] && cost.slice(0, n).every((d, z) => d === best.cost[z]) && c < best.cost[n]))
               best = {gk, o, i, cost};
           }
