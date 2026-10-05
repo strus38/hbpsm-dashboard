@@ -307,7 +307,7 @@ def test_publication_chiffree(sandbox, monkeypatch):
 def test_effectif_depuis_secret(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
     publish.roster()
-    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age\nIsidore Exemple\nJean Modele,GB\n"
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age,naissance\nIsidore Exemple\nJean Modele,GB\n"
 
 
 def test_page_publiee_dechiffre(sandbox, monkeypatch):
@@ -680,6 +680,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert ro.locator("[data-valider]").count() == 0
         ro.evaluate("localStorage.removeItem('hbpsm:jeton')")   # un joueur sans le jeton
         ro.click("nav.tabs button[data-tab=caisse]")
+        # le rappel d'anniversaire : celui du jour, puis les 30 prochains jours
+        bday = ro.evaluate("""(() => { const keep = D.caisse.anniversaires, k = D.joueurs[0].cle, k2 = D.joueurs[1].cle;
+          D.caisse.anniversaires = [{cle: k, jour: "10-05"}, {cle: k2, jour: "10-06"}, {cle: D.caisse.coach, jour: "10-20"}];
+          const html = birthdayBlock(new Date(2026, 9, 5)); D.caisse.anniversaires = keep; return html; })()""")
+        assert "aujourd" in bday and "demain" in bday and "dans 15 jours" in bday and "Coach" in bday
         ro.wait_for_function("() => CAISSE !== null", timeout=10000)
         assert ro.evaluate("ledger().fines.length") == 1 and ro.locator("[data-cval]").count() == 0
         ro.locator("[data-cpick-j]").first.click()
@@ -1116,6 +1121,18 @@ def test_saison_d_avant(sandbox):
     assert seen and all(p["avant"]["saison"] == "2024-2025" and p["avant"]["m"] >= 1 for p in seen)
     assert all(p["fiabilite"]["avant"] == p["avant"]["m"] for p in seen)
     assert any("2024-2025" in (p.get("note_base") or "") for p in seen)
+
+
+def test_anniversaires(sandbox):
+    """Caisse noire : le jour d'anniversaire de chacun (jamais l'année), entraîneur compris, sans en faire un joueur."""
+    assert an.birthday("2006-09-20") == "09-20" and an.birthday("20/09") == "09-20" and an.birthday("09-20") == "09-20"
+    assert an.birthday("") is None and an.birthday("31/13") is None
+    (sandbox / "roster.csv").write_text("nom,poste,disponible,role,age,naissance\nIsidore Exemple,GB,,,,03-14\n"
+                                        "Jean Modele,ARG,,,,\nZéphyrin,,,coach,,12-25\n", "utf-8")
+    roster = an.load_roster()
+    assert sorted(v["nom"] for v in roster.values()) == ["Isidore Exemple", "Jean Modele"]   # l'entraîneur n'est pas un joueur
+    assert an.birthdays(caisse.COACH) == [dict(cle="R:" + common.name_key("Isidore Exemple"), jour="03-14"),
+                                          dict(cle=caisse.COACH, jour="12-25")]
 
 
 def test_jeunes_pour_un_joueur_sans_match_senior(sandbox):

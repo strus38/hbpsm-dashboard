@@ -536,13 +536,42 @@ def recommend_plan(profile, all_profiles):
     return "equilibre", "Adversaire dans la moyenne des deux poules : pondération équilibrée."
 
 
+def is_staff(row):
+    """Une ligne d'encadrement (rôle « coach », « entraîneur ») : pas un joueur."""
+    role = norm(row.get("role") or "")
+    return "COACH" in role or "ENTRAINEUR" in role
+
+
+def birthday(text):
+    """« 2006-09-20 », « 09-20 », « 20/09 » -> « 09-20 » (le jour seulement, jamais l'année)."""
+    text = str(text or "").strip()
+    m = re.fullmatch(r"(?:\d{4}-)?(\d{1,2})-(\d{1,2})", text) or re.fullmatch(r"(\d{1,2})/(\d{1,2})(?:/\d{2,4})?", text)
+    if not m:
+        return None
+    month, day = (int(m.group(1)), int(m.group(2))) if "-" in text else (int(m.group(2)), int(m.group(1)))
+    return f"{month:02d}-{day:02d}" if 1 <= month <= 12 and 1 <= day <= 31 else None
+
+
+def birthdays(coach):
+    """Les anniversaires de l'effectif et de l'encadrement (caisse noire : le rappel) : [{cle, jour}]."""
+    path = ROOT / "roster.csv"
+    out = []
+    if path.exists():
+        with path.open(encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                day = birthday(row.get("naissance"))
+                if day and (row.get("nom") or "").strip():
+                    out.append(dict(cle=coach if is_staff(row) else "R:" + name_key(row["nom"]), jour=day))
+    return out
+
+
 def load_roster():
     path = ROOT / "roster.csv"
     roster = {}
     if path.exists():
         with path.open(encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
-                if (row.get("nom") or "").strip():
+                if (row.get("nom") or "").strip() and not is_staff(row):
                     # « non » : indisponible ; « dépannage » : joue seulement s'il manque des joueurs
                     state = norm(row.get("disponible") or "oui")
                     roster[name_key(row["nom"])] = dict(nom=row["nom"].strip(),
@@ -1308,6 +1337,7 @@ def analyze(today=None, roster=None):
                                            if c[0].get("players", {}).get(c[1])], roster),
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
+                    anniversaires=birthdays(caisse.COACH),
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],
                     propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]
                                                   + [caisse.COACH], config.get("saison") or "")),

@@ -211,6 +211,7 @@ nav.tabs[hidden]{display:none}
 .injury-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 button.risk{border:0;font:inherit;cursor:help;line-height:inherit}
 .theme-btn{display:none}
+.bday-now{font-size:1.05rem;margin:0 0 6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 22%,var(--surface))}
 .tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
@@ -1750,7 +1751,25 @@ function viewCaisse(){
   h += caisseStatus();
   h += '<div class="kpis"><div><b class="num">'+euros(paid)+'</b><span>dans la caisse</span></div><div><b class="num">'+euros(due - paid)+'</b><span>à encaisser</span></div>'
     + (n => '<div><b class="num">'+n+'</b><span>amende'+(n > 1 ? "s" : "")+'</span></div></div>')(L.fines.filter(f => f.regle !== "cotisation").length);
-  return h + podium(L) + penaltyBlock(L) + proposalsBlock(L) + cotisationBlock(L) + pickerBlock() + balancesBlock(L) + feedBlock(L) + rulesBlock();
+  return h + birthdayBlock() + podium(L) + penaltyBlock(L) + proposalsBlock(L) + cotisationBlock(L) + pickerBlock() + balancesBlock(L) + feedBlock(L) + rulesBlock();
+}
+// les anniversaires : celui du jour, puis ceux des 30 prochains jours (jour et mois, jamais l'âge)
+function birthdayBlock(now = new Date()){
+  const list = (D.caisse && D.caisse.anniversaires) || [];
+  if(!list.length) return "";
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const next = list.map(b => { const [m, d] = b.jour.split("-").map(Number);
+    let when = new Date(today.getFullYear(), m - 1, d);
+    if(when < today) when = new Date(today.getFullYear() + 1, m - 1, d);
+    return {cle: b.cle, when, days: Math.round((when - today) / 86400000)}; }).sort((a, b) => a.days - b.days);
+  const day = x => x.when.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"});
+  const now0 = next.filter(x => x.days === 0), soon = next.filter(x => x.days > 0 && x.days <= 30);
+  let h = '<h2>🎂 Anniversaires</h2><div class="panel">';
+  if(now0.length) h += '<p class="bday-now">🎉 C\'est l\'anniversaire de <b>'+now0.map(x => esc(memberName(x.cle))).join("</b> et de <b>")+'</b> aujourd\'hui !</p>';
+  h += soon.length ? '<ul class="plain">'+soon.map(x => '<li><b>'+esc(memberName(x.cle))+'</b> : '+esc(day(x))
+      +' <span class="small muted">('+(x.days === 1 ? "demain" : "dans "+x.days+" jours")+')</span></li>').join("")+'</ul>'
+    : now0.length ? '' : '<p class="small muted">Prochain anniversaire : <b>'+esc(memberName(next[0].cle))+'</b>, '+esc(day(next[0]))+' (dans '+next[0].days+' jours).</p>';
+  return h + '</div>';
 }
 function denonciation(){
   const r = RULE(PICK.regle), n = PICK.n, amount = r.nature ? null : r.montant != null ? r.montant * n : Number(String(PICK.montant).replace(",", ".")) || 0;

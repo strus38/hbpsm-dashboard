@@ -155,6 +155,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
+  Anniversaires (demande de l'auteur, 05/10/2026) : 6e colonne `naissance` de l'effectif (MM-JJ, jamais
+  l'année ; roster.csv et le secret, jamais le dépôt) ; une ligne de rôle « coach » donne celui de
+  l'entraîneur sans en faire un joueur (`is_staff`). `birthdays` -> `caisse.anniversaires` ; carte
+  « 🎂 Anniversaires » de l'onglet (celui du jour, puis les 30 jours suivants, sinon le prochain).
   Reprise d'un état tenu ailleurs (tableau des trésoriers, 05/10/2026) : `python -m pipeline.caisse import`
   lit le secret temporaire `HBPSM_CAISSE_IMPORT` (opérations en clair : jamais une entrée visible du
   workflow), les vérifie (`validate`) et les ajoute au registre (`add`, sans doublon) ; étape du

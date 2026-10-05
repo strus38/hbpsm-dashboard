@@ -97,12 +97,14 @@ def restore():
 def roster():
     """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE », de « ,non »
     (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs), de « ,trésorier »
-    (tient la caisse noire), et de sa classe d'âge : « ,jeune » (30 ans au plus), « ,intermediaire »
-    (31 à 40 ans) ou « ,experimente » (plus de 40 ans)."""
+    (tient la caisse noire), de sa classe d'âge : « ,jeune » (30 ans au plus), « ,intermediaire »
+    (31 à 40 ans) ou « ,experimente » (plus de 40 ans), et du jour de son anniversaire « ,MM-JJ »
+    (sans l'année). Une ligne de rôle « coach » donne l'anniversaire de l'entraîneur, sans en faire
+    un joueur."""
     text = os.environ.get("HBPSM_EFFECTIF") or ""
     lines = [l.strip() for l in text.replace(";", ",").splitlines() if l.strip()]
     lines = [l for l in lines if not l.lower().startswith("nom,")]
-    (ROOT / "roster.csv").write_text("nom,poste,disponible,role,age\n" + "\n".join(lines) + "\n", "utf-8")
+    (ROOT / "roster.csv").write_text("nom,poste,disponible,role,age,naissance\n" + "\n".join(lines) + "\n", "utf-8")
     print(f"[effectif] {len(lines)} joueurs")
     return 0
 
