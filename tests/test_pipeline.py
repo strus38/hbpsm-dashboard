@@ -306,7 +306,7 @@ def test_publication_chiffree(sandbox, monkeypatch):
 def test_effectif_depuis_secret(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
     publish.roster()
-    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role\nIsidore Exemple\nJean Modele,GB\n"
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age\nIsidore Exemple\nJean Modele,GB\n"
 
 
 def test_page_publiee_dechiffre(sandbox, monkeypatch):
@@ -356,13 +356,20 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
         # les deux derniers matchs joués, avant les quatre à venir : qui était sur la feuille
         assert page.evaluate("D.derniers.length") == 2 and page.locator(".plan .h.past").count() == 2
-        on = page.evaluate("D.derniers.reduce((a, x) => a + D.joueurs.filter(p => (p.journal || []).some(j => j.id === x.id)).length, 0)")
+        on = page.evaluate("D.derniers.reduce((a, x) => a + D.joueurs.filter(p => x.joueurs[p.cle]).length, 0)")
         assert on > 0 and page.locator(".plan .pc.on").count() == on
         # jamais deux fois de suite la même équipe : au moins 2 changements, depuis le dernier match joué
         changes = page.evaluate("""(() => { const last = D.derniers.slice(-1)[0];
-          let prev = D.joueurs.filter(p => (p.journal || []).some(j => j.id === last.id));
+          let prev = D.joueurs.filter(p => last.joueurs[p.cle]);
           return planning().map(r => { const c = r.sel.filter(p => !prev.includes(p)).length; prev = r.sel; return c; }); })()""")
         assert len(changes) == 4 and min(changes) >= 2, changes
+        # classe d'âge (paramètre, jamais affichée) : quand il faut changer, un titulaire plus âgé sort d'abord
+        older_out = page.evaluate("""(() => { const keep = D.joueurs.map(p => p.age); S.regle = 0;
+          const P0 = planning(), x = P0[0].sel.find(p => !isGK(p) && pinOf(p, P0[0].m) !== "in");
+          D.joueurs.forEach(p => p.age = "jeune"); x.age = "experimente";
+          const ok = planning().some(r => r.forced.includes(x) && r.resting.includes(x));
+          D.joueurs.forEach((p, i) => p.age = keep[i]); S.regle = 1; return ok; })()""")
+        assert older_out and "experimente" not in page.inner_text("main") and "+40" not in page.inner_text("main")
         assert "proposé" in page.inner_text(".plan") and "retenu" not in page.inner_text(".plan .h")
         page.click("nav.tabs button[data-tab=semaine]")
         assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur

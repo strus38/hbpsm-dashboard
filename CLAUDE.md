@@ -189,8 +189,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   joueurs (gardiens compris) changent d'un match au suivant, à partir du dernier match joué, même sur
   un match clé ; l'échange le moins coûteux, poste pour poste, sans découvrir un poste clef, jamais
   avec un joueur en dépannage (`forced` ; « N changement(s) seulement » sinon).
-- Planification : les deux derniers matchs du club dont la feuille est lue (`derniers`, `journal.id`
-  des joueurs) en colonnes grisées avant les 4 à venir (✓ et buts, ou arrêts pour un gardien).
+- Planification : les deux derniers matchs terminés du club dont la feuille est lue (`derniers`,
+  `last_matches` : joueurs de la feuille par clé, buts et arrêts), complétés par la fin de la saison
+  passée tant qu'il en manque, en colonnes grisées avant les 4 à venir (6 colonnes au plus). Un match
+  de la saison passée ne compte pas pour la règle des 2 changements.
+- Classe d'âge (demande de l'auteur, 05/10/2026 : miser sur l'avenir, une équipe solide et jeune en
+  cas de montée) : 5e colonne `age` de l'effectif (jeune : 30 ans au plus, intermediaire : 31 à 40,
+  experimente : plus de 40), dans roster.csv et le secret, jamais dans le dépôt. Paramètre seulement,
+  JAMAIS affiché (choix de l'auteur) : à besoin égal, la rotation fait entrer le plus jeune et reposer
+  le plus âgé (poste pour poste d'abord) ; la règle des 2 changements préfère faire entrer un plus
+  jeune (`ageRank`).
 - Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
   config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
   (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du

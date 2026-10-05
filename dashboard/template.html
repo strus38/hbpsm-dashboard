@@ -552,6 +552,9 @@ function reasons(p){
 // disponibilités et les choix de l'entraîneur restent sur cet ordinateur. La page en déduit la
 // feuille proposée (12 joueurs dont 2 gardiens), la force alignée et le risque.
 const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
+// classe d'âge (effectif) : à valeur proche, les changements font jouer d'abord les plus jeunes
+const AGE_RANG = {jeune: 0, intermediaire: 1, experimente: 2};   // paramètre seulement : jamais affiché (choix de l'auteur)
+const ageRank = p => AGE_RANG[p.age] ?? 1;
 const MIN_CHANGES = 2;   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
 const horizon = () => {
   const ms = (D.saison && D.saison.matchs) || [];
@@ -737,7 +740,7 @@ function planning(){
       for(let moved = true; moved;){
         moved = false;
         const owed = D.joueurs.filter(p => isGK(p) === gk && apps(p) < need(p))
-          .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || val(b, H[0]) - val(a, H[0]));
+          .sort((a, b) => (need(b) - apps(b)) - (need(a) - apps(a)) || ageRank(a) - ageRank(b) || val(b, H[0]) - val(a, H[0]));
         for(const p of owed){
           for(const r of easy){
             if(used[r.k] >= cap(r) || !r.sure.includes(p) || team(r).includes(p)) continue;
@@ -745,7 +748,7 @@ function planning(){
             const like = q => postesOf(q).some(x => postesOf(p).includes(x));
             const out = team(r).filter(q => !r.pinned.includes(q) && !r.rotated.includes(q) && apps(q) > need(q)
                 && (gk || filled(team(r).map(x => x === q ? p : x)) >= filled(team(r))))
-              .sort((a, b) => like(b) - like(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
+              .sort((a, b) => like(b) - like(a) || ageRank(b) - ageRank(a) || apps(b) - apps(a) || val(a, r.m) - val(b, r.m))[0];
             if(!out) continue;
             team(r)[team(r).indexOf(out)] = p;
             r.rotated.push(p); r.resting.push(out); r.why[p.cle] = out; r.why[out.cle] = p;
@@ -760,7 +763,8 @@ function planning(){
   // changent d'un match au suivant, à commencer par le dernier match joué ; chaque échange est celui
   // qui coûte le moins, poste pour poste si possible, sans découvrir un poste clef
   const last = (D.derniers || []).slice(-1)[0];
-  let prev = last ? D.joueurs.filter(p => (p.journal || []).some(j => j.id === last.id)) : null;
+  // (un match de la saison passée ne compte pas : l'effectif a changé depuis)
+  let prev = last && (!last.saison || last.saison === D.meta.saison) ? D.joueurs.filter(p => (last.joueurs || {})[p.cle]) : null;
   for(const r of P){
     const team = () => [...r.gks, ...r.field];
     if(prev && prev.length && !r.fixed){
@@ -774,7 +778,7 @@ function planning(){
           for(const o of outs) for(const i of ins){
             if(!gk && filled(list.map(x => x === o ? i : x)) < filled(list)) continue;
             const like = postesOf(i).some(x => postesOf(o).includes(x)) ? 0 : 1;
-            const cost = [availOf(i, r.m) === "i" ? 1 : 0, like, val(o, r.m) - val(i, r.m), -apps(o)];
+            const cost = [availOf(i, r.m) === "i" ? 1 : 0, ageRank(i) - ageRank(o), like, val(o, r.m) - val(i, r.m), -apps(o)];
             if(!best || cost.some((c, n) => c !== best.cost[n] && cost.slice(0, n).every((d, z) => d === best.cost[z]) && c < best.cost[n]))
               best = {gk, o, i, cost};
           }
@@ -1001,15 +1005,15 @@ function viewPlanif(){
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
-  const done = D.derniers || [], jr = (p, x) => (p.journal || []).find(j => j.id === x.id);
+  const done = D.derniers || [], jr = (p, x) => (x.joueurs || {})[p.cle];
   const pastCell = (p, x) => { const j = jr(p, x);
     if(!j) return '<div class="pc" title="'+esc(p.nom)+' : pas sur la feuille contre '+esc(x.adversaire)+'">·</div>';
     const what = isGK(p) ? j.arrets+' arrêt'+(j.arrets > 1 ? "s" : "") : j.buts+' but'+(j.buts > 1 ? "s" : "");
     return '<div class="pc on" title="'+esc(p.nom)+' : sur la feuille contre '+esc(x.adversaire)+', '+what+'">✓<small>'+(isGK(p) ? j.arrets : j.buts || "")+'</small></div>'; };
   h += '<div class="panel scroll plan-wrap"><div class="plan'+(single ? " single" : "")+(done.length ? " pp"+done.length : "")+'" style="--n:'+cols.length+'"><div class="who"></div>'
     + done.map(x => '<div class="h past" title="Joué : '+esc(x.adversaire)+'"><div class="c"><span class="tag done">joué</span><br>'+logo(x.adversaire)
-      + '<br><span class="tl"><b>'+esc(teamShort(x.adversaire))+'</b><br>'+esc(roundShort(x))+' · '+esc(fmtDate((x.date || "").slice(0, 10)))+'<br></span>'
-      + '<span class="ts">'+esc(roundShort(x))+'<br></span><span class="form"><i class="'+x.res+'">'+x.res+'</i></span> <span class="tl">'+x.bp+'-'+x.bc+'</span></div></div>').join("")
+      + '<br><span class="tl"><b>'+esc(teamShort(x.adversaire))+'</b><br>'+esc(roundShort(x))+' · '+(x.saison && x.saison !== D.meta.saison ? esc(x.saison) : esc(fmtDate((x.date || "").slice(0, 10))))+'<br></span>'
+      + '<span class="ts">'+esc(roundShort(x))+(x.saison && x.saison !== D.meta.saison ? '<br>'+esc(x.saison.slice(2, 4)+"-"+x.saison.slice(7)) : '')+'<br></span><span class="form"><i class="'+x.res+'">'+x.res+'</i></span> <span class="tl">'+x.bp+'-'+x.bc+'</span></div></div>').join("")
     + cols.map(r => '<div class="h" title="'+esc(r.m.adversaire)+'"><div class="c">'+logo(r.m.adversaire, "md")+'<b>'+esc(teamShort(r.m.adversaire))+'</b><br>'
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'

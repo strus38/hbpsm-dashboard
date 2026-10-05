@@ -549,8 +549,14 @@ def load_roster():
                                                         poste=(row.get("poste") or "").strip().upper(),
                                                         disponible=state not in ("NON", "0", "FALSE", "N"),
                                                         depannage=state in ("DEPANNAGE", "RESERVE"),
-                                                        tresorier="TRESORIER" in norm(row.get("role") or ""))
+                                                        tresorier="TRESORIER" in norm(row.get("role") or ""),
+                                                        age=AGES.get(norm(row.get("age") or "")))
     return roster
+
+
+# classes d'âge de l'effectif (demande de l'auteur, 05/10/2026) : à valeur proche, les changements
+# font jouer d'abord les plus jeunes, pour une équipe solide et jeune la saison suivante
+AGES = {"JEUNE": "jeune", "INTERMEDIAIRE": "intermediaire", "EXPERIMENTE": "experimente", "AGE": "experimente"}
 
 
 HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
@@ -767,7 +773,7 @@ def club_players(matches, config, roster, history=(), older=()):
             cle="R:" + rkey if rkey else r["cle"], nom=r["nom"],
             num=(r["nums"] or nums).most_common(1)[0][0] if nums else None,
             poste=poste, gardien=gk, disponible=ros.get("disponible", True), depannage=ros.get("depannage", False),
-            tresorier=ros.get("tresorier", False),
+            tresorier=ros.get("tresorier", False), age=ros.get("age"),
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
             min_deux=2 * r["deux_min"], tirs=r["tirs"] or None,
@@ -792,7 +798,7 @@ def club_players(matches, config, roster, history=(), older=()):
         out.append(dict(
             cle="R:" + rkey, nom=ros.get("nom") or rkey.title(), num=None, poste=ros.get("poste", ""),
             gardien="GB" in (ros.get("poste") or "").split("/"), disponible=ros.get("disponible", True),
-            depannage=ros.get("depannage", False), tresorier=ros.get("tresorier", False),
+            depannage=ros.get("depannage", False), tresorier=ros.get("tresorier", False), age=ros.get("age"),
             m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
@@ -800,6 +806,23 @@ def club_players(matches, config, roster, history=(), older=()):
             scores={plan: None for plan in PLANS}, journal=[], passe=None, avant=None, note_base=None,
             fiabilite=reliability(0, 0)))
     return out, club_matches, with_sheet
+
+
+def last_matches(current, past, roster, n=2):
+    """Les n derniers matchs terminés du club dont la feuille est lue : ceux de la saison, complétés par
+    la fin de la saison passée tant qu'il en manque. Pour chacun, qui était sur la feuille (clé du
+    joueur, comme dans joueurs) et ce qu'il y a fait."""
+    out = []
+    for m, side, opp, gf, ga in (list(past) + list(current))[-n:]:
+        who = {}
+        for pl in (m.get("players") or {}).get(side, []):
+            rkey = match_name(pl.get("name"), roster)
+            key = "R:" + rkey if rkey else name_key(pl.get("name")) or f"N{pl.get('num')}"
+            who[key] = dict(buts=pl.get("goals") or 0, arrets=pl.get("saves") or 0)
+        out.append(dict(id=str(m.get("id")), date=m.get("date"), adversaire=opp, domicile=side == "home",
+                        bp=gf, bc=ga, res=outcome(gf, ga), journee=m.get("journee"), coupe=m.get("coupe"),
+                        tour=m.get("tour"), saison=m.get("saison"), joueurs=who))
+    return out
 
 
 def pairs(with_sheet):
@@ -1255,9 +1278,8 @@ def analyze(today=None, roster=None):
         coupes=cup_results(every_match, every_fixture, config),
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
-        derniers=[dict(id=str(m.get("id")), date=m.get("date"), adversaire=opp, domicile=side == "home",
-                       bp=gf, bc=ga, res=outcome(gf, ga), journee=m.get("journee"), coupe=m.get("coupe"),
-                       tour=m.get("tour")) for m, side, opp, gf, ga in with_sheet[-2:]],
+        derniers=last_matches(with_sheet, [c for c in club_matches_of((seasons[-1].get("matches") or []) if seasons else [], config)
+                                           if c[0].get("players", {}).get(c[1])], roster),
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],

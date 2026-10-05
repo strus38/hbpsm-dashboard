@@ -110,7 +110,10 @@ ce qui a pu être saisi dans le navigateur n'y entre, et les notes et chances de
 guident la rotation restent figées entre deux matchs du club (elles repartent à chaque nouvelle
 feuille lue, ou si l'effectif change). D'un match au suivant, au moins deux joueurs changent,
 gardiens compris, à partir du dernier match joué. Une case dit « proposé » tant que l'entraîneur
-n'a pas validé la feuille, « retenu » ensuite.
+n'a pas validé la feuille, « retenu » ensuite. Le tableau montre aussi les deux derniers matchs terminés
+(complétés par la fin de la saison passée en début de saison) : qui était sur la feuille. Une
+classe d'âge, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
+proche ; elle n'est affichée nulle part.
 
 Sur téléphone, la page prend l'allure d'une application : onglets en bas avec icônes, noms
 courts, tableaux sans les colonnes secondaires, planification un match à la fois (choisi par
