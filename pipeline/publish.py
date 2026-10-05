@@ -105,7 +105,8 @@ def roster():
     lines = [l.strip() for l in text.replace(";", ",").splitlines() if l.strip()]
     lines = [l for l in lines if not l.lower().startswith("nom,")]
     (ROOT / "roster.csv").write_text("nom,poste,disponible,role,age,naissance\n" + "\n".join(lines) + "\n", "utf-8")
-    print(f"[effectif] {len(lines)} joueurs")
+    staff = sum(1 for l in lines if any(w in norm(l.split(",")[3] if l.count(",") >= 3 else "") for w in ("COACH", "ENTRAINEUR")))
+    print(f"[effectif] {len(lines) - staff} joueurs" + (f", {staff} de l'encadrement" if staff else ""))
     return 0
 
 
