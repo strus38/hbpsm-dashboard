@@ -207,6 +207,8 @@ nav.tabs[hidden]{display:none}
 .plan .pc small{font-size:.7rem;color:var(--muted);font-weight:500}
 .plan .pc.foot{flex-direction:column;font-size:.74rem}
 .plan .past+.h:not(.past),.plan .pc+div:not(.pc){box-shadow:inset 2px 0 0 var(--rule)}
+.cell.hurt{background:color-mix(in srgb,var(--loss) 14%,var(--surface));color:var(--loss);border-color:color-mix(in srgb,var(--loss) 45%,transparent)}
+.injury-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
 .cell{display:grid;place-items:center;margin:0 auto;width:36px;height:26px;padding:0;border-radius:6px;border:1.5px solid var(--rule);background:var(--surface);font:700 .9rem var(--body);color:var(--muted);cursor:pointer}
@@ -463,7 +465,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "7374e660355e", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "2ccff3236489", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -486,7 +488,7 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, depannage:{}, valide:{}, retire:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null};
+let S = {postes:{}, absents:{}, depannage:{}, valide:{}, retire:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null, blesse:{}};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 // avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
@@ -572,7 +574,24 @@ const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
              : x.buts+" buts"+(x.tirs ? " ("+x.reussite+" %)" : ""));
 // les saisons passées en une ligne : 2025-2026, puis 2024-2025 (comptée pour un quart)
 const passeLine = p => [p.passe, p.avant].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
-const availOf = (p, m) => !dispo(p) ? "a" : ((SP().dm[m.id] || {})[p.cle] || "d");
+// blessé : indisponible à partir d'un match (de), jusqu'à son retour (a, exclu) ; publié avec les feuilles
+// validées, la même chose pour tous ; l'entraîneur voit en plus ce qu'il n'a pas encore publié (null : effacé)
+const blesses = () => { const o = Object.assign({}, (CHOIX && CHOIX.blesses) || {}, COACH ? (S.blesse || {}) : {});
+  for(const k of Object.keys(o)) if(!o[k]) delete o[k]; return o; };
+const injured = (p, m) => { const b = blesses()[p.cle], d = m.date || "9999"; return !!b && d >= b.de && (!b.a || d < b.a); };
+// absent : pour un match, déclaré par l'entraîneur et publié comme les blessures ; ce qu'il a saisi ici prime
+const pubAbs = m => ((CHOIX && CHOIX.absents) || {})[m.id] || [];
+const localAv = (p, m) => (SP().dm[m.id] || {})[p.cle];
+const declaredAbsent = (p, m) => localAv(p, m) === "a" || (localAv(p, m) === undefined && pubAbs(m).includes(p.cle));
+const absentsNow = () => { const out = {};
+  for(const r of PLAN || []){ const l = D.joueurs.filter(p => declaredAbsent(p, r.m)).map(p => p.cle).sort(); if(l.length) out[r.m.id] = l; }
+  return out; };
+const absentsPub = () => { const ids = new Set((PLAN || []).map(r => String(r.m.id))), out = {};
+  for(const [id, l] of Object.entries((CHOIX && CHOIX.absents) || {})) if(ids.has(String(id)) && l.length) out[id] = l.slice().sort();
+  return out; };
+const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringify((CHOIX && CHOIX.blesses) || {})
+  || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()));
+const availOf = (p, m) => !dispo(p) || injured(p, m) || declaredAbsent(p, m) ? "a" : (localAv(p, m) || "d");
 const pinOf = (p, m) => (SP().pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
   const w = String(t).replace(/^P\d+[MF]?\s*(DIV\d*)?\s*-?\s*/i, "").split(/\s+/)
@@ -1002,6 +1021,7 @@ function viewPlanif(){
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
     + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
+  if(statusPending()) h += '<p class="note coach injury-box">Blessés ou absents pas encore publiés : les autres voient encore les propositions sans eux. <button class="btn" data-publier-blessures="1">Publier</button></p>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
@@ -1034,11 +1054,13 @@ function viewPlanif(){
         const av = availOf(p, r.m), pin = pinOf(p, r.m), sel = r.sel.includes(p);
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle];
-        const cls = av === "a" ? "a" : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
-        const sym = av === "a" ? "✕" : sel ? (rot ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
+        const hurt = injured(p, r.m), hb = hurt ? blesses()[p.cle] : null;
+        const cls = hurt ? "a hurt" : av === "a" ? "a" : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
+        const sym = hurt ? "✚" : av === "a" ? "✕" : sel ? (rot ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
         const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
         const forced = r.forced.includes(p);
-        const what = av === "a" ? "absent"
+        const what = hurt ? "blessé depuis le match du "+fmtDate(hb.de)+(hb.a ? ", de retour le "+fmtDate(hb.a) : ", jusqu'à son retour")+" : indisponible"+(COACH ? " ; touchez un match suivant pour le dire rétabli à partir de celui-ci" : "")
+          : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
           : rot && forced ? "entre : au moins "+MIN_CHANGES+" changements d'un match au suivant, à la place de "+other.nom+samePoste(p, other)
@@ -1049,7 +1071,7 @@ function viewPlanif(){
           : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match")
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym
-          + (single ? '<span>'+(av === "a" ? "absent" : sel ? (rot ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
+          + (single ? '<span>'+(hurt ? "blessé" : av === "a" ? "absent" : sel ? (rot ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
@@ -1066,7 +1088,7 @@ function viewPlanif(){
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
     + (r.impact != null && r.impact >= 0.5 ? '<span class="tl"><br><small>−'+fr(r.impact.toFixed(1))+' pt de chance</small></span>' : '')
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
+  h += '<p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p>';
   h += '<p class="note">Force : valeur des 12 proposés rapportée à l\'équipe type, notes du tableau de bord. Victoire : estimation de GitHub au complet, diminuée selon la force alignée. Le risque compare cette baisse à l\'enjeu du match pour la saison. Les disponibilités et vos réglages restent sur cet ordinateur ; seule une feuille validée est publiée, chiffrée, pour les joueurs.</p>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
@@ -1081,8 +1103,15 @@ function cycleCell(id, cle){
     const drop = adding ? r.sel.filter(q => isGK(q) === isGK(p)).sort((a, b) => val(a, r.m) - val(b, r.m))[0] : null;
     for(const q of r.sel) if(q !== p && q !== drop && !pin[q.cle]) pin[q.cle] = "in";
   }
-  const av = availOf(p, r.m);
-  if(av === "a"){ delete dm[cle]; delete pin[cle]; if(!dispo(p)) S.absents[cle] = false; }
+  const av = availOf(p, r.m), d = r.m.date || "";
+  S.blesse = S.blesse || {};
+  if(injured(p, r.m)){   // rétabli à partir de ce match (ou jamais blessé, si c'est le premier match manqué)
+    const b = blesses()[cle];
+    S.blesse[cle] = d <= b.de ? null : {de: b.de, a: d};
+    dm[cle] = "d"; delete pin[cle];
+  }
+  else if(declaredAbsent(p, r.m)){ dm[cle] = "d"; delete pin[cle]; S.blesse[cle] = {de: d, a: null}; }   // blessé à partir de ce match
+  else if(av === "a"){ delete dm[cle]; delete pin[cle]; if(!dispo(p)) S.absents[cle] = false; }
   else if(av === "i") dm[cle] = "a";
   else if(!pin[cle]) pin[cle] = r.sel.includes(p) ? "out" : "in";
   else { delete pin[cle]; dm[cle] = "i"; }
@@ -1719,6 +1748,7 @@ document.addEventListener("click", ev => {
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
   else if(t.dataset.retirer){ withdraw(t.dataset.retirer); }
+  else if(t.dataset.publierBlessures && COACH){ publishChoices(); }
   else if(t.dataset.pm !== undefined){ S.pm = Number(t.dataset.pm); save(); render(true); }
   else if(t.dataset.cpickJ){ PICK.joueur = t.dataset.cpickJ; render(true); }
   else if(t.dataset.cpickR){ PICK.regle = t.dataset.cpickR; PICK.n = 1; PICK.montant = ""; render(true); }
@@ -1865,7 +1895,7 @@ async function publishChoices(){
   for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
   PUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format:"hbpsm-choix", v:1, matchs}, phrase);
+    const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow()}, phrase);
     const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/choix.yml/dispatches", {
       method:"POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {choix: JSON.stringify(env)}}),
       headers:{"Authorization":"Bearer " + token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json"}});
@@ -1880,7 +1910,7 @@ function watchChoices(){   // la mise en ligne prend une minute ou deux : un cou
   PUB_POLL = setInterval(async () => {
     n++;
     if(await fetchChoices()){ render(true); }
-    if(!PLAN.some(r => PENDING.includes(r.etat))){ PUB = ""; render(true); clearInterval(PUB_POLL); }
+    if(!PLAN.some(r => PENDING.includes(r.etat)) && !statusPending()){ PUB = ""; render(true); clearInterval(PUB_POLL); }
     else if(n >= 16) clearInterval(PUB_POLL);
   }, 15000);
 }
