@@ -465,7 +465,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "0dd9ad3fad69", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "50be487ea343", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -573,7 +573,7 @@ const pv = m => m.p_plan ?? m.p_victoire;
 const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
   + (isGK(p) ? (x.pct_arrets != null ? x.pct_arrets+" % d'arrêts" : x.arrets+" arrêts")
              : x.buts+" buts"+(x.tirs ? " ("+x.reussite+" %)" : ""));
-// les saisons passées en une ligne : 2025-2026, puis 2024-2025 (comptée pour un quart)
+// les saisons passées en une ligne : 2025-2026, puis 2024-2025 et les -18 (comptées moins, de moins en moins)
 const passeLine = p => [p.passe, p.avant, p.jeunes].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
 // blessé : indisponible à partir d'un match (de), jusqu'à son retour (a, exclu) ; publié avec les feuilles
 // validées, la même chose pour tous ; l'entraîneur voit en plus ce qu'il n'a pas encore publié (null : effacé)
@@ -662,8 +662,9 @@ function fia(p){
   if(!f) return "";
   const [n, what] = FIA[f.niveau] || FIA.aucune;
   const sur = !f.matchs ? "" : " : "+f.saison+" match"+(f.saison>1?"s":"")+" cette saison"
-    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés pour moitié)" : "")
-    + (f.avant ? " et "+f.avant+" en "+(p.avant ? p.avant.saison : "saison d'avant")+" (pour un quart)" : "");
+    + (f.passee ? " et "+f.passee+" en "+(p.passe ? p.passe.saison : "saison passée")+" (comptés chacun "+fr(f.poids_passee ?? 0.5)+" match)" : "")
+    + (f.avant ? " et "+f.avant+" d'avant (comptés chacun "+fr(f.poids_avant ?? 0.25)+" match)" : "")
+    + (f.passee || f.avant ? ". Les saisons passées pèsent un peu moins à chaque match joué" : "");
   return '<span class="fia" title="'+esc(what+sur+brute(p))+'">'+"●".repeat(n)+"○".repeat(3-n)+'</span>';
 }
 // la note avant d'être ramenée vers la moyenne, quand l'écart compte
