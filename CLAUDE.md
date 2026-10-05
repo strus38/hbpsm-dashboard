@@ -155,6 +155,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
+  Reprise d'un état tenu ailleurs (tableau des trésoriers, 05/10/2026) : `python -m pipeline.caisse import`
+  lit le secret temporaire `HBPSM_CAISSE_IMPORT` (opérations en clair : jamais une entrée visible du
+  workflow), les vérifie (`validate`) et les ajoute au registre (`add`, sans doublon) ; étape du
+  workflow « Caisse noire », sans effet sans le secret, qu'on efface après usage. Reprise du 05/10 :
+  cotisations « * » = payées (amende + paiement, comme le bouton « Payé »), 5 amendes (8 €) dues.
 - Division du dessus (demande de l'auteur, 05/10/2026 : « une division au-dessus » = 1re division
   masculine P16 AURA, 27884 en 2025-2026, 30499 en 2026-2027) : entrée `historique` avec `niveau: 1`
   (fichier `<saison>-niveau1.json`, seules nos équipes et nos adversaires de coupe), `voisines` en

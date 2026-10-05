@@ -939,6 +939,17 @@ def test_caisse_registre(sandbox, monkeypatch):
     send([dict(fine, id="a4")], "une autre phrase bien longue")
     with pytest.raises(vault.VaultError):
         caisse.main()
+    # reprise d'un état tenu ailleurs : par un secret temporaire, vérifiée, sans doublon ; rien sans secret
+    monkeypatch.delenv("HBPSM_CAISSE_IMPORT", raising=False)
+    assert caisse.import_main() == 0
+    reprise = dict(format="hbpsm-caisse-ops", v=1, ops=[dict(fine, id="imp:1"), dict(pay, id="imp:2"), dict(fine, id="a1")])
+    monkeypatch.setenv("HBPSM_CAISSE_IMPORT", json.dumps(reprise))
+    assert caisse.import_main() == 0 and caisse.import_main() == 0
+    book = vault.decrypt(json.loads((sandbox / "publie" / "caisse.enc").read_text("utf-8")), PHRASE)
+    assert [o["id"] for o in book["ops"]] == ["a1", "p1", "imp:1", "imp:2"]
+    monkeypatch.setenv("HBPSM_CAISSE_IMPORT", json.dumps(dict(reprise, ops=[dict(fine, id="imp:3", regle="inventee")])))
+    with pytest.raises(vault.VaultError):
+        caisse.import_main()
 
 
 def test_caisse_propositions():

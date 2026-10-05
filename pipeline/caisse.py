@@ -158,7 +158,11 @@ def check(envelope, secret):
     forme attendue ; VaultError sinon. Rien n'en est jamais affiché."""
     if not isinstance(envelope, dict) or int(envelope.get("iterations") or 0) != vault.ITERATIONS:
         raise vault.VaultError("Caisse refusée : coffre de forme inattendue.")
-    data = vault.decrypt(envelope, secret)
+    return validate(vault.decrypt(envelope, secret))
+
+
+def validate(data):
+    """Des saisies de la forme attendue (format, version, chaque opération) ; VaultError sinon."""
     ops = data.get("ops") if isinstance(data, dict) else None
     if data.get("format") != "hbpsm-caisse-ops" or data.get("v") != 1 or not isinstance(ops, list) or not 0 < len(ops) <= 200:
         raise vault.VaultError("Caisse refusée : contenu de forme inattendue.")
@@ -189,7 +193,11 @@ def main():
         envelope = json.loads(text)
     except ValueError as exc:
         raise vault.VaultError("Caisse refusée : entrée illisible.") from exc
-    ops = check(envelope, secret)
+    return add(check(envelope, secret), secret)
+
+
+def add(ops, secret):
+    """Ajoute des saisies vérifiées au registre chiffré ; une saisie déjà connue n'est pas recomptée."""
     path = common.PUBLIE / NAME
     book = vault.decrypt(read_json(path), secret) if path.exists() else dict(format="hbpsm-caisse", v=1, ops=[])
     known = {o["id"] for o in book["ops"]}
@@ -202,8 +210,27 @@ def main():
     return 0
 
 
+def import_main():
+    """Reprise d'un état tenu ailleurs (le tableau des trésoriers) : les saisies arrivent en clair par un
+    secret GitHub temporaire, HBPSM_CAISSE_IMPORT (jamais par une entrée visible du workflow), sont
+    vérifiées comme les autres et ajoutées au registre chiffré ; le secret est effacé ensuite. Sans
+    secret, rien à faire."""
+    text = os.environ.get("HBPSM_CAISSE_IMPORT") or ""
+    if not text.strip():
+        print("[caisse] aucune reprise à importer")
+        return 0
+    secret = vault.passphrase()
+    if len(text) > 200_000:
+        raise vault.VaultError("Reprise refusée : entrée trop longue.")
+    try:
+        data = json.loads(text)
+    except ValueError as exc:
+        raise vault.VaultError("Reprise refusée : entrée illisible.") from exc
+    return add(validate(data), secret)
+
+
 if __name__ == "__main__":
     try:
-        sys.exit(main())
+        sys.exit(import_main() if sys.argv[1:] == ["import"] else main())
     except vault.VaultError as exc:
         sys.exit(f"::error::{exc}")

@@ -13,7 +13,7 @@ on:
     inputs:
       ops:
         description: "Saisies de la caisse noire, chiffrées (écrit par la page d'un trésorier)"
-        required: true
+        required: false
 
 permissions:
   contents: write
@@ -36,7 +36,14 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
+      - name: Reprise d'un état tenu ailleurs (secret temporaire, effacé ensuite ; rien sinon)
+        env:
+          HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
+          HBPSM_CAISSE_IMPORT: ${{ secrets.HBPSM_CAISSE_IMPORT }}
+        run: python -m pipeline.caisse import
+
       - name: Vérifier et ajouter les saisies au registre (toujours chiffré)
+        if: ${{ inputs.ops != '' }}
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_CAISSE: ${{ inputs.ops }}
