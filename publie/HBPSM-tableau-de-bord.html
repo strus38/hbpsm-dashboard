@@ -261,6 +261,10 @@ table.past tr.back td:first-child{box-shadow:inset 3px 0 0 var(--accent-trait)}
 .ranks .v{color:var(--ink);font-weight:600}
 @media (min-width:620px){h1{font-size:2.6rem}}
 .ts{display:none}
+tr.forfait td,.res.forfait>span{color:var(--muted);opacity:.62}
+tr.forfait .logo,.res.forfait .logo{filter:grayscale(1)}
+tr.forfait td b{font-weight:inherit}
+.tag.gone{background:var(--rule);color:var(--muted);border:0}
 /* ---- allure : cartes aérées, ombres douces, logos, jauges ---- */
 .club{background:linear-gradient(135deg,var(--structure-900),var(--structure-700))}
 .club img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:contain;padding:2px;align-self:center}
@@ -446,7 +450,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "e2257db62fe0", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "17b06b8bdc9d", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -886,28 +890,36 @@ function benchOf(r, start){
   }
   return out;
 }
+// sur le terrain, le prénom ; deux joueurs du même prénom : l'initiale du nom en plus
+const firstName = p => { const w = String(p.nom).trim().split(/\s+/), f = w[0];
+  const twin = D.joueurs.some(q => q !== p && String(q.nom).trim().split(/\s+/)[0] === f);
+  return twin && w.length > 1 ? f + " " + w[w.length - 1][0] + "." : f; };
 function courtSVG(start, bench = {}){
-  const pos = {GB:[170,30],ALG:[44,70],ALD:[296,70],PIV:[170,140],ARG:[70,222],DC:[170,252],ARD:[270,222]};
-  const who = p => esc(p.num ?? "")+' '+esc(shortName(p.nom));
-  let tok = "", low = 305;
+  const pos = {GB:[170,30],ALG:[56,70],ALD:[284,70],PIV:[170,140],ARG:[72,222],DC:[170,252],ARD:[268,222]};
+  // « titulaire / remplaçant », en lignes assez courtes pour tenir au bord du terrain
+  const lines = (names, max) => names.reduce((out, n) => { const i = out.length - 1;
+    if(i >= 0 && (out[i] + " / " + n).length <= max) out[i] += " / " + n;
+    else { if(i >= 0) out[i] += " /"; out.push(n); }
+    return out; }, []);
+  let tok = "", low = 307;
   for(const k of POSTES){
     const [x,y] = pos[k], c = start[k], subs = bench[k] || [];
-    const name = c ? esc(shortName(c.p.nom)) : "à pourvoir";
+    const ls = c ? lines([c.p, ...subs].map(firstName), k === "ALG" || k === "ALD" ? 14 : 20) : ["à pourvoir"];
     tok += '<g class="tok'+(c?"":" vide")+(k==="GB"?" gb":"")+'" transform="translate('+x+','+y+')"><circle r="15"/>'
       + '<text class="n" y="6">'+(c ? esc(c.p.num ?? "") : "")+'</text>'
-      + '<text class="nm" y="30">'+name+'</text><text class="ps" y="43">'+k+'</text>'
-      + subs.map((p, i) => '<text class="sub" y="'+(58 + 13*i)+'">'+who(p)+'</text>').join("")+'</g>';
-    if(subs.length) low = Math.max(low, y + 58 + 13*(subs.length - 1) + 10);
+      + ls.map((l, i) => '<text class="nm" y="'+(30 + 13*i)+'">'+esc(l)+'</text>').join("")
+      + '<text class="ps" y="'+(43 + 13*(ls.length - 1))+'">'+k+'</text></g>';
+    low = Math.max(low, y + 43 + 13*(ls.length - 1) + 12);
   }
-  // sans poste connu : en bas, trois par ligne
+  // sans poste connu : en bas, quatre par ligne
   const rest = bench[""] || [];
-  for(let i = 0; i < rest.length; i += 3){
+  for(let i = 0; i < rest.length; i += 4){
     low += 14;
-    tok += '<text class="sub libre" x="170" y="'+low+'">'+(i ? "" : "Sans poste : ")+rest.slice(i, i + 3).map(who).join(" · ")+'</text>';
+    tok += '<text class="sub libre" x="170" y="'+low+'">'+(i ? "" : "Sans poste : ")+rest.slice(i, i + 4).map(p => esc(firstName(p))).join(" / ")+'</text>';
   }
   const n = Object.values(bench).reduce((a, l) => a + l.length, 0), H = low + (n ? 22 : 6);
-  if(n) tok += '<text class="leg" x="12" y="'+(H - 10)+'">Sous chaque poste : les remplaçants</text>';
-  return '<div class="court"><svg viewBox="0 0 340 '+H+'" role="img" aria-label="Sept de départ possible sur le demi-terrain'+(n ? ", remplaçants sous leur poste" : "")+'">'
+  if(n) tok += '<text class="leg" x="12" y="'+(H - 10)+'">Titulaire / remplaçant</text>';
+  return '<div class="court"><svg viewBox="0 0 340 '+H+'" role="img" aria-label="Sept de départ possible sur le demi-terrain'+(n ? ", chaque titulaire suivi de son remplaçant" : "")+'">'
     + '<path class="zone" d="M70 6 A100 100 0 0 0 270 6 Z" opacity=".9"/>'
     + '<path class="line" d="M70 6 A100 100 0 0 0 270 6"/>'
     + '<path class="line" d="M20 6 A150 150 0 0 0 320 6" stroke-dasharray="7 7"/>'
@@ -1148,7 +1160,13 @@ function pastBlock(e){   // ce que la saison passée dit de cet adversaire
   const x = e.passe;
   if(!x) return '<h2>Saison passée</h2><div class="panel"><p class="small muted">'+(D.meta.historique && D.meta.historique.length ? "Pas vue au même niveau la saison passée." : "Saison passée pas encore collectée.")+'</p></div>';
   const rangs = x.rangs.map(r => ord(r.rang)+" de la poule "+esc(r.poule)+" ("+r.equipes+" équipes)").join(", ");
-  let h = '<h2>Saison '+esc(x.saison)+'</h2><div class="panel">'
+  const div = y => y.division || "division du dessus", haut = y => y.niveau > 0 ? " en "+esc(div(y))+" (au-dessus de la nôtre)" : "";
+  let h = '<h2>Saison '+esc(x.saison)+haut(x)+'</h2><div class="panel">'
+    + (x.niveau > 0 ? '<p class="note">Une division au-dessus la saison passée : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus, d\'autant plus qu\'elle a gardé ses joueurs'+(x.continuite ? ' ('+x.continuite.deja+' sur '+x.continuite.sur+')' : '')+'. Niveau potentiellement supérieur au nôtre.</p>' : '')
+    + (e.dessus ? '<p class="note">Le club jouait aussi en '+esc(div(e.dessus))+' : '+e.dessus.v+'-'+e.dessus.n+'-'+e.dessus.d+', '
+      + e.dessus.rangs.map(r => ord(r.rang)+" sur "+r.equipes).join(", ")
+      + (e.dessus.continuite ? ' ; '+e.dessus.continuite.deja+' de leurs '+e.dessus.continuite.sur+' joueurs de cette saison y jouaient' : ' ; part de ses joueurs encore là : à voir sur leurs feuilles')
+      + '. Ce bilan compte dans leur force, avec l\'écart de division : niveau potentiellement plus élevé que leur bilan dans notre division.</p>' : '')
     + '<div class="kpis"><div><b class="num">'+x.v+'-'+x.n+'-'+x.d+'</b><span>victoires, nuls, défaites</span></div>'
     + '<div><b class="num">'+fr(x.bp_moy)+'</b><span>buts marqués par match</span></div><div><b class="num">'+fr(x.bc_moy)+'</b><span>buts encaissés par match</span></div>'
     + (x.continuite ? '<div><b class="num">'+x.continuite.deja+'/'+x.continuite.sur+'</b><span>joueurs de cette saison déjà là</span></div>' : "")+'</div>'
@@ -1191,7 +1209,9 @@ function viewAdv(){
   const e = D.equipes[adv], us = isUs(adv);
   const next = PLAN.find(r => r.m.adversaire === adv);
   let h = '<header class="top"><p class="when">'+(next ? "Prochaine rencontre : "+matchLine(next.m) : esc(pouleLabel(e)))+'</p><h1>'+teamCell(adv)+'</h1></header>'
-    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+    + '<div class="edit"><label class="small muted" for="adv">Équipe</label><select id="adv">'+names.map(t=>'<option value="'+esc(t)+'"'+(t===adv?" selected":"")+'>'+esc(t)+(isUs(t)?" (nous)":D.equipes[t].forfait?" (forfait)":D.equipes[t].coupe?" (coupe)":"")+'</option>').join("")+'</select></div>';
+  if(e.niveau > 0) h += '<p class="note">Joue cette saison une division au-dessus de la nôtre : sa force compte '+Math.round(100 * (D.meta.ecart_division || .12))+' % de plus que ses résultats, ce qui fait une victoire estimée plus basse en coupe. Niveau potentiellement supérieur au nôtre.</p>';
+  if(e.forfait) h += '<p class="note">Forfait général pour la saison : cette équipe ne jouera pas ; ses matchs ne comptent ni au classement ni dans les chances de la saison.</p>';
   h += '<div class="panel"><p>'+esc(pouleLabel(e))+', '+(e.j ? e.j+' match'+(e.j>1?"s":"")+' joué'+(e.j>1?"s":"")+' '+forme(e.forme) : "aucun match joué pour l'instant")+'</p>'
     + '<div class="kpis"><div><b class="num">'+fr(e.bp_moy)+'</b><span>buts marqués</span></div><div><b class="num">'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
     + (e.arrets_pct!=null ? '<div><b class="num">'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : "")
@@ -1536,7 +1556,7 @@ function viewPoules(){
   let h = '<h2>Poules</h2>'
     + '<div class="seg" role="group" aria-label="Poule">'+ids.map(i=>'<button data-poule="'+i+'" aria-pressed="'+(i===cur)+'">Poule '+i+'</button>').join("")+'</div>'
     + '<h2>Classement</h2><div class="panel scroll"><table><thead><tr><th>#</th><th>Équipe</th><th>Pts</th><th>J</th><th class="opt">V</th><th class="opt">N</th><th class="opt">D</th><th class="opt">BP</th><th class="opt">BC</th><th>Diff</th><th>Forme</th></tr></thead><tbody>'
-    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+'"><td>'+r.rang+'</td><td class="team">'+teamCell(r.equipe)+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td class="opt">'+r.v+'</td><td class="opt">'+r.n+'</td><td class="opt">'+r.d+'</td><td class="opt">'+r.bp+'</td><td class="opt">'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
+    + P.classement.map(r=>'<tr class="'+(isUs(r.equipe)?"us":"")+(r.forfait?" forfait":"")+'"'+(r.forfait?' title="Forfait général : ses matchs ne comptent pas cette saison"':'')+'><td>'+(r.rang ?? "–")+'</td><td class="team">'+teamCell(r.equipe)+(r.forfait?' <span class="tag gone">forfait</span>':'')+'</td><td><b>'+r.pts+'</b></td><td>'+r.j+'</td><td class="opt">'+r.v+'</td><td class="opt">'+r.n+'</td><td class="opt">'+r.d+'</td><td class="opt">'+r.bp+'</td><td class="opt">'+r.bc+'</td><td>'+(r.diff>0?"+":"")+r.diff+'</td><td>'+forme(r.forme)+'</td></tr>').join("")
     + '</tbody></table></div><p class="small muted" style="margin-top:6px">Classement recalculé depuis les scores : victoire 3 points, nul 2, défaite 1.'
     + (P.officiel_lu && !(P.ecarts||[]).length ? " Identique au classement de la fédération." : "")+'</p>';
   const ecart = x => esc(x.equipe)+" "+x.officiel+" points au lieu de "+x.calcule;
@@ -1548,7 +1568,7 @@ function viewPoules(){
   const res = D.resultats.filter(r => r.poule === cur);
   h += '<h2>Résultats</h2><div class="panel">'+(res.length ? res.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc">'+r.sd+" - "+r.se+'</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate((r.date||"").slice(0,10)))+(r.feuille?"":", feuille non lue")+'</span></div>').join("") : "<p>Aucun résultat pour l'instant.</p>")+'</div>';
   const next = D.a_venir.filter(r => r.poule === cur).slice(0,8);
-  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res"><span class="r">'+teamCell(r.dom)+'</span><span class="sc muted">–</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+'</span></div>').join("")+'</div>';
+  if(next.length) h += '<h2>À venir</h2><div class="panel">'+next.map(r=>'<div class="res'+(r.forfait?" forfait":"")+'"><span class="r">'+teamCell(r.dom)+'</span><span class="sc muted">–</span><span>'+teamCell(r.ext)+'</span><span class="meta">J'+esc(r.journee ?? "?")+", "+esc(fmtDate(r.date, r.provisoire))+(r.forfait?", forfait général : ne sera pas joué":"")+'</span></div>').join("")+'</div>';
   h += '<p class="small muted" style="margin-top:14px">Mis à jour le '+esc(D.meta.genere)+'. '+D.meta.feuilles+' feuille'+(D.meta.feuilles>1?"s":"")+' lue'+(D.meta.feuilles>1?"s":"")+' sur '+D.meta.matchs+' match'+(D.meta.matchs>1?"s":"")+' joué'+(D.meta.matchs>1?"s":"")+'.</p>';
   if(GENERE) h += '<p class="status"><span id="source">'+esc(sourceText())+'</span> <button class="link" data-lock="1">Oublier la phrase secrète sur cet ordinateur</button></p>';
   return h;
