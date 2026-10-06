@@ -566,7 +566,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "3f1738d179e6", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "7ffced4668c5", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -657,14 +657,17 @@ function reasons(p){
 // disponibilités et les choix de l'entraîneur restent sur cet ordinateur. La page en déduit la
 // feuille proposée (12 joueurs dont 2 gardiens, 14 en coupe), la force alignée et le risque.
 const HORIZON = 4, NON_NOTE = 35, ROT_CHAMP = 3, ROT_GB = 1, ROT_GB2 = 65;
-// classe d'âge (effectif) : à valeur proche, les changements font jouer d'abord les plus jeunes
-const AGE_RANG = {jeune: 0, intermediaire: 1, experimente: 2};   // paramètre seulement : jamais affiché (choix de l'auteur)
+// tranche d'âge (effectif, 5 ans à partir de 18 ans : « 18-22 » = 0, « 23-27 » = 1…) : à valeur proche, les
+// changements font jouer d'abord les plus jeunes ; paramètre seulement, jamais affiché (choix de l'auteur)
+const OLD_AGE = {jeune: 1, intermediaire: 3, experimente: 5};   // anciennes classes, au milieu de leurs tranches
+const bandRank = a => { const m = /^(\d+)-/.exec(a || ""); return m ? Math.max(0, Math.floor((+m[1] - 18) / 5)) : OLD_AGE[a] ?? 3; };
+const youngGK = p => bandRank(p.age) <= 1;   // jeunes gardiens : 27 ans au plus
 // disponible jusqu'à une date (effectif) : sa présence la saison suivante n'est pas assurée ; à besoin
 // égal il passe après tous les autres en championnat, plus âgés compris, et devant tous en coupe, qui ne
 // compte pas pour le championnat (demandes de l'auteur, 06/10/2026 ; jamais affiché)
 const leaving = p => p.jusqu_au ? 1 : 0;
 const lateAt = (p, r) => leaving(p) ? (r && r.m.coupe ? -1 : 1) : 0;
-const ageRank = (p, r) => lateAt(p, r) ? (lateAt(p, r) < 0 ? -1 : 3) : AGE_RANG[p.age] ?? 1;
+const ageRank = (p, r) => lateAt(p, r) ? (lateAt(p, r) < 0 ? -1 : 99) : bandRank(p.age);
 const MIN_CHANGES = 2;
 const GB_SUITE = 3;
 // début de saison (avant que les résultats départagent) : les jeunes gardiens jouent autant l'un que
@@ -994,7 +997,7 @@ function planning(){
   // compris) ; celui qui a le plus joué cède un match, pas un match clé si possible, du côté où ça
   // l'équilibre, sans dépasser GB_SUITE de suite pour l'entrant
   if((D.meta.club_feuilles ?? 0) < PARTAGE_GB){
-    const young = D.joueurs.filter(p => isGK(p) && p.age === "jeune" && !depOf(p) && dispo(p));
+    const young = D.joueurs.filter(p => isGK(p) && youngGK(p) && !depOf(p) && dispo(p));
     const total = p => (p.journal || []).length + P.filter(r => r.gks.includes(p)).length;
     // l'autre gardien de la feuille : qu'il reste un gardien solide à côté de celui qui entre
     const partner = (r, hi) => Math.max(0, ...r.gks.filter(g => g !== hi).map(g => val(g, r.m)));
