@@ -566,7 +566,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "7ffced4668c5", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "63f2930bdb1e", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1059,6 +1059,9 @@ function planning(){
     const force = Math.min(1, sel.reduce((a, p) => a + val(p, m), 0) / typeVal);
     const base = m.p_victoire;
     const pAdj = base == null ? null : Math.max(3, Math.min(97, Math.round(base - (1 - force) * 60)));
+    // en buts : une équipe moins forte marque d'autant moins (écart attendu du modèle, buts attendus du club)
+    const costGoals = m.ecart == null || m.buts_pour == null ? null : (1 - force) * m.buts_pour;
+    const goalsAdj = costGoals == null ? null : m.ecart - costGoals;
     const impact = base == null || m.enjeu == null ? null : Math.max(0, (base - pAdj) / 100 * m.enjeu);
     const ok = sel.length === size && gks.length === nGK;
     const postes = coverage(field), postesOk = postes.every(c => c.n >= c.min);
@@ -1074,7 +1077,7 @@ function planning(){
       : broken.length ? "a_revoir"
       : pub && keyset(pub) === mine && (!local || keyset(local) === mine) ? "publiee" : "attente";
     const valideLe = (local || pub || {}).le || null;
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, impact, level, rotated, resting, extra, why, forced, peu, serie, gbSuite, partage, postes, postesOk, fixed, broken, etat, valideLe,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, costGoals, goalsAdj, impact, level, rotated, resting, extra, why, forced, peu, serie, gbSuite, partage, postes, postesOk, fixed, broken, etat, valideLe,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
@@ -1125,13 +1128,40 @@ const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+re
 // le risque d'une feuille : ce qu'elle coûte en chances d'atteindre l'objectif de la saison, par rapport
 // à la meilleure équipe (tout le monde présent) = baisse de la victoire estimée × enjeu du match
 const RISK_SEUILS = "faible : moins d'1 point de chance ; modéré : de 1 à 3 ; élevé : plus de 3";
+// parler en buts (demande de l'auteur, 06/10/2026) : « +3 », « −2,5 »
+const butsTxt = (v, digits = 0) => (v > 0 ? "+" : v < 0 ? "−" : "") + fr(Math.abs(v).toFixed(digits)).replace(/,0$/, "");
+const butsMot = v => Math.abs(v) >= 2 ? "buts" : "but";
+// gardiens : buts évités par rapport au gardien moyen des poules lues ; cette saison dès 60 tirs cadrés,
+// sinon la saison passée ; visibles de tous (choix de l'auteur)
+const evitesOf = p => p.evites || p.evites_passe || null;
+const evitesLine = p => { const e = isGK(p) && evitesOf(p); if(!e || e.par_match == null) return "";
+  return '<p class="small"><b>Buts évités</b> : environ '+butsTxt(e.par_match, 1)+' '+butsMot(e.par_match)+' par match ('+butsTxt(e.valeur)+' sur '+e.tirs+' tirs cadrés en '+esc(e.saison)
+    + '), par rapport au gardien moyen des poules ('+e.moyenne+' % d\'arrêts).</p>'; };
+function gkPairLine(r){   // la paire proposée, en buts par match, face à la plus sûre des paires disponibles
+  const per = p => { const e = evitesOf(p); return e && e.par_match != null ? e.par_match : null; };
+  const now = r.gks.map(per);
+  if(now.length < 2 || now.some(v => v == null)) return "";
+  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p) != null).map(per).sort((a, b) => b - a);
+  const mine = now[0] + now[1], best = pool.length >= 2 ? pool[0] + pool[1] : mine, gap = best - mine;
+  return '<p class="small muted">Gardiens proposés : environ '+butsTxt(mine, 1)+' '+butsMot(mine)+' par match par rapport à des gardiens moyens'
+    + (gap >= 1 ? ' ; la paire la plus sûre disponible : '+butsTxt(best, 1)+', soit environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux par match.' : '.')+'</p>';
+}
+// discipline : ce que nous coûte une exclusion de 2 minutes, mesuré sur nos feuilles
+const exclCost = () => { const x = D.meta.exclusion || {}; return x.cout != null && x.cout < 0 ? x.cout : null; };
+const exclNote = () => { const c = exclCost(); return c == null ? "" : 'Une exclusion de 2 minutes nous coûte en moyenne environ '+fr(Math.abs(c).toFixed(1))
+  + ' but (mesuré sur '+D.meta.exclusion.n+' exclusions de nos feuilles).'; };
+const exclLine = p => { const c = exclCost(); if(c == null) return "";
+  const parts = [[p.deux_min, "cette saison"], [(p.passe || {}).deux_min, "en " + ((p.passe || {}).saison || "")]].filter(x => x[0]);
+  return parts.length ? '<p class="small">Exclusions : '+parts.map(([n, s]) => n+' × 2 min '+esc(s)+' (environ '+butsTxt(n * c, 1)+' '+butsMot(n * c)+' pour l\'équipe)').join(", ")+'.</p>' : ""; };
 const riskWhy = r => !r.ok ? "Risque élevé : feuille incomplète, il manque "+(r.missingGK > 0 ? "un gardien" : r.missing+" joueur"+(r.missing > 1 ? "s" : ""))+"."
   : !r.postesOk ? "Risque élevé : un poste clef (gardiens, pivots, arrières) n'est pas couvert sur cette feuille."
   : r.m.coupe ? "Risque faible : match de coupe, sans enjeu pour le classement. Avec cette feuille, victoire estimée "+pct(r.pAdj)+" (au lieu de "+pct(r.m.p_victoire)+" avec la meilleure équipe)."
   : r.impact == null ? "Risque non chiffré : l'enjeu de ce match pour la saison n'est pas encore connu."
   : "Risque "+{ok:"faible", mid:"modéré", hi:"élevé"}[r.level]+" : avec cette feuille (force "+Math.round(100 * r.force)+" %), victoire estimée "+r.pAdj+" % au lieu de "+r.m.p_victoire
     + " % avec la meilleure équipe. Ce match vaut "+(r.m.enjeu > 0 ? "+" : "")+r.m.enjeu+" points de chance de "+objectif((D.saison || {}).cible)
-    + " : la feuille en coûte "+fr(r.impact.toFixed(1))+" ("+(r.m.p_victoire - r.pAdj)+" % de victoire en moins × "+r.m.enjeu+" points). Seuils : "+RISK_SEUILS+".";
+    + " : la feuille en coûte "+fr(r.impact.toFixed(1))+" ("+(r.m.p_victoire - r.pAdj)+" % de victoire en moins × "+r.m.enjeu+" points)"
+    + (r.costGoals != null && r.costGoals >= 0.5 ? ", soit environ "+fr(r.costGoals.toFixed(1))+" "+butsMot(r.costGoals)+" de moins qu'avec l'équipe au complet" : "")
+    + (r.goalsAdj != null ? " (écart attendu : "+butsTxt(r.goalsAdj)+")" : "")+". Seuils : "+RISK_SEUILS+".";
 const riskCost = r => r.ok && r.postesOk && r.impact != null && !r.m.coupe ? (r.impact < 0.05 ? " · 0 pt" : " · −"+fr(r.impact.toFixed(1))+" pt") : "";
 const riskShort = r => '<button type="button" class="risk '+r.level+'" data-why-text="'+esc(riskWhy(r))+'" title="'+esc(riskWhy(r))+'">'
   + (!r.ok ? "incompl." : !r.postesOk ? "poste" : {ok:"faible", mid:"modéré", hi:"élevé"}[r.level])+'</button>';
@@ -1175,10 +1205,11 @@ function viewSemaine(){
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   h = bilanBlock() + h;
   h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
-    + '<div class="kpis"><div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
+    + '<div class="kpis">'+(r.goalsAdj != null ? '<div><b class="num">'+butsTxt(r.goalsAdj)+'</b><span>écart attendu (buts), avec cette équipe</span></div>' : '')
+    + '<div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
     + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>'+(m.coupe ? "match de coupe : hors classement" : "points de chance de "+objectif((D.saison||{}).cible)+" en jeu")+'</span></div></div></div>'
     + (m.p_victoire != null && r.pAdj !== m.p_victoire ? '<p class="small muted">Avec cette équipe ; '+m.p_victoire+' % au complet.</p>' : '')
-    + '<p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>'
+    + '<p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>' + gkPairLine(r)
     + '<p class="small muted">'+(e.j ? 'Forme de l\'adversaire '+forme(e.forme) : "")
     + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
   const conv = COACH && S.convoque[m.id];
@@ -1372,6 +1403,7 @@ function talkSlides(r){
     + '<p style="text-align:center">'+(m.salle ? '📍 '+esc(m.salle.nom)+(m.salle.ville ? ', '+esc(m.salle.ville) : '')+' · ' : '')+(m.domicile ? "à domicile" : "à l'extérieur")
     + (rdv ? ' · rendez-vous à <b>'+esc(rdv.replace(":", "h"))+'</b>' : '')+'</p>'
     + '<div class="tk-kpis"><div><b>'+pct(r.pAdj)+'</b><span>victoire estimée</span></div>'
+    + (r.goalsAdj != null ? '<div><b>'+butsTxt(r.goalsAdj)+'</b><span>écart attendu (buts)</span></div>' : '')
     + (m.coupe ? '<div><b>Coupe</b><span>hors classement</span></div>'
       : '<div><b>'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de '+esc(goal)+'</span></div>')
     + (m.rang_adv ? '<div><b>'+ord(m.rang_adv)+'</b><span>rang de l\'adversaire</span></div>' : '')+'</div>']);
@@ -1395,6 +1427,7 @@ function talkSlides(r){
   const ax = (D.axes || []).slice(0, 3);
   out.push(["Notre plan", '<div class="tk-axis"><b>'+esc(advice(r))+'</b></div>'
     + (e.plan_raison && !isUs(m.adversaire) ? '<div class="tk-axis"><b>Pondération conseillée : '+esc(PLAN_NOM[e.plan] || "Équilibré")+'</b><span class="tk-note">'+esc(e.plan_raison)+'</span></div>' : '')
+    + (exclCost() != null ? '<div class="tk-axis"><b>Discipline : chaque exclusion coûte environ '+fr(Math.abs(exclCost()).toFixed(1))+' but</b><span class="tk-note">'+esc(exclNote())+'</span></div>' : '')
     + (ax.length ? ax.map(a => '<div class="tk-axis"><b>'+esc(a.titre)+'</b><span class="tk-note">'+esc(a.constat)+'</span></div>').join("")
       : '<p class="tk-note">Les axes de travail de la semaine apparaîtront après quelques matchs.</p>')]);
   const st = r.ok && r.sel.some(p => poste(p)) ? startSeven(r) : null;
@@ -1719,6 +1752,7 @@ function playerDetail(p, plan){
     + '<label class="small muted"><input type="checkbox" data-dep="'+esc(p.cle)+'"'+(depOf(p)?" checked":"")+'> en dépannage seulement</label>'
     + '<button class="link" data-abs="'+esc(p.cle)+'">'+(dispo(p)?"Absent pour plusieurs semaines":"De retour : disponible")+'</button>'
     + (p.jusqu_au ? '<span class="small muted">'+esc(untilText(p))+' (effectif)</span>' : '')+'</div>';
+  h += evitesLine(p) + exclLine(p);
   if(!p.m) return h + '<p class="small muted">'+(rated(p) ? 'Pas encore aligné cette saison : note provisoire tirée de la saison '+esc(p.note_base)+' ('+esc(passeLine(p))+').'
     : 'Pas encore de feuille de match lue : pas de note. Il peut compléter une feuille ou entrer dans la rotation.')+'</p></div>';
   h += '<p class="small">'+esc(reasons(p))+'</p>'
@@ -1873,7 +1907,8 @@ function rankBars(s){   // chances de chaque rang final, l'objectif en jaune
 const stakeWhy = (m, s) => teamShort(m.adversaire)+" · J"+(m.journee ?? "?")+", "+fmtDate(m.date, m.provisoire)+", "+(m.domicile ? "à domicile" : "à l'extérieur")
   + (m.rang_adv ? ", adversaire "+ord(m.rang_adv) : "")+(m.cle ? " · match clé" : "")+". Victoire estimée à "+(m.p_victoire ?? "–")+" %. "
   + objectif(s.cible).replace(/^f/, "F")+" : "+(m.si_victoire ?? "–")+" % en cas de victoire, "+(m.sinon ?? "–")+" % sinon"
-  + (m.enjeu != null ? " ("+(m.enjeu > 0 ? "+" : "")+m.enjeu+" points)." : ".");
+  + (m.enjeu != null ? " ("+(m.enjeu > 0 ? "+" : "")+m.enjeu+" points)." : ".")
+  + (m.ecart != null ? " Écart attendu : environ "+butsTxt(m.ecart)+" "+butsMot(m.ecart)+"." : "");
 function stakesChart(s){
   const ms = s.matchs.filter(m => !m.coupe);
   if(!ms.length) return '<p>Plus de match de championnat à jouer.</p>';
@@ -1911,7 +1946,7 @@ function viewSaison(){
       h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées comme le règlement : confrontations directes, puis différence de buts. Règlement AURA : 2 montées par secteur (poules 71 et 72), au terme d\'une deuxième phase dont la formule sera publiée vers février.</p>';
     }
   }
-  h += '<h2>À travailler à l\'entraînement</h2><div class="panel">';
+  h += '<h2>À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
   if(!D.axes || !D.axes.length) h += '<p>'+(D.meta.club_matchs < 2 ? "Les axes de travail apparaîtront après quelques matchs : il faut de quoi comparer le club aux autres équipes." : "Aucun écart marqué par rapport aux autres équipes pour l\'instant.")+'</p>';
   else h += D.axes.map(a => '<div class="axis"><b>'+esc(a.titre)+'</b><span class="tag">'+esc(a.libelle)+'</span><br><span class="small muted">'+esc(a.constat)+'</span></div>').join("");
   h += D.meta.demo ? '<p class="small muted" style="margin-top:10px">Sur le site publié, un bouton télécharge ici la séance à importer dans l\'application de préparation des entraînements.</p>'
