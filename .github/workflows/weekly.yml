@@ -121,7 +121,7 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Collecte en échec : issue d'alerte (son auteur est prévenu par mail)
+      - name: "Collecte en échec, issue d'alerte (son auteur est prévenu par mail)"
         if: failure()
         env:
           GITHUB_TOKEN: ${{ github.token }}

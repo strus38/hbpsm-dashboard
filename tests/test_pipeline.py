@@ -755,6 +755,17 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
     assert errors == []
 
 
+def test_workflows_lisibles():
+    """Chaque workflow (le tableau de bord et le dépôt des propositions) est un YAML que GitHub sait lire,
+    avec ses déclencheurs : un « : » mal placé dans un nom d'étape suffit à le rendre muet."""
+    import yaml
+    files = sorted((ROOT_DIR / ".github" / "workflows").glob("*.yml")) + sorted((ROOT_DIR / "cn" / ".github" / "workflows").glob("*.yml"))
+    assert len(files) >= 4
+    for f in files:
+        d = yaml.safe_load(f.read_text("utf-8"))
+        assert (d.get(True) or d.get("on")) and d.get("jobs"), f.name
+
+
 def test_sante(sandbox, monkeypatch):
     """La santé du tableau de bord : poule non lue, feuilles qui tardent ou illisibles, jetons qui expirent ;
     un fichier public sans nom, réécrit seulement quand quelque chose change."""
