@@ -38,7 +38,7 @@ def norm(text):
 
 
 def name_key(name):
-    """Clé de personne insensible à l'ordre : 'DUPONT Paul' et 'Paul Dupont' donnent la même."""
+    """Clé de personne insensible à l'ordre : 'DUPONT Jean' et 'Jean Dupont' donnent la même."""
     return " ".join(sorted(norm(name).split()))
 
 

@@ -582,8 +582,15 @@ def load_roster():
                                                         depannage=state in ("DEPANNAGE", "RESERVE"),
                                                         tresorier="TRESORIER" in norm(row.get("role") or ""),
                                                         age=age_class(row.get("age")),
-                                                        jusqu_au=until(row.get("jusqu_au")))
+                                                        jusqu_au=until(row.get("jusqu_au")),
+                                                        avis=opinion(row.get("avis")))
     return roster
+
+
+def opinion(text):
+    """L'avis de l'auteur sur un joueur (8e colonne de l'effectif) : 1 à 5 étoiles ; None sans avis."""
+    m = re.fullmatch(r"\s*([1-5])\s*", str(text or ""))
+    return int(m.group(1)) if m else None
 
 
 def until(text):
@@ -769,6 +776,13 @@ EMPTY = dict(m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux
 EXP_NIVEAU = 0.5  # un match une division au-dessus de la nôtre compte 1,5 match, deux divisions 2, trois 2,5…
 EXP_PLEIN = 100   # matchs pondérés pour une expérience pleine (à peu près deux saisons en Excellence)
 EXP_POIDS = 0.10  # part de l'expérience dans la note
+# L'avis de l'auteur (demande de l'auteur, 06/10/2026 : ce que la feuille de match ne dit pas, l'organisation
+# du jeu, les passes, la défense) : 1 à 5 étoiles dans l'effectif, un quart de la note ; jamais affiché.
+# Sans avis, la note ne change pas.
+AVIS_POIDS = 0.25
+# Fins de match : neutres tant que personne n'a d'action décisive, puis ramenées vers le milieu avec peu de
+# matchs (comme si chacun avait aussi joué 3 matchs neutres) : un seul match ne pénalise plus ceux qui l'ont joué.
+CLUTCH_PRUDENCE = 3
 
 
 def experience_of(current, seasons, config):
@@ -829,6 +843,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
     form = lambda r, h: (r["w_buts"] + h["w_buts"]) / (r["w"] + h["w"]) if r["w"] + h["w"] else 0
     max_form = max((form(r, hist_of(r)) for r in players.values()), default=0) or 1
     max_clutch = max((r["clutch"] / r["m"] for r in players.values() if r["m"]), default=0) or 1
+    clutch_seen = any(r["clutch"] for r in players.values())
     max_saves = max((blend(r, hist_of(r), "arrets") / blend(r, hist_of(r), "m")
                      for r in players.values() if blend(r, hist_of(r), "m")), default=0) or 1
     out = []
@@ -859,7 +874,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             eff=(blend(r, h, "tirs_connus") + 2.5) / (tirs + 5) if tirs else 0.5,
             disc=max(0.0, 1 - penal / 2),
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
-            clutch=(r["clutch"] / m) / max_clutch if any_events and m else 0.5,
+            clutch=0.5 + ((r["clutch"] / m) / max_clutch - 0.5) * m / (m + CLUTCH_PRUDENCE) if any_events and m and clutch_seen else 0.5,
             assid=min(1.0, mw / (n_sheet + hw * n_past + hw2 * n_old)) if n_sheet + n_past + n_old else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
             gk_vol=(saves / mw) / max_saves if gk else 0,
@@ -872,6 +887,8 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             else:
                 val = sum(w[k] * comps[k] for k in w)
             val = (1 - EXP_POIDS) * val + EXP_POIDS * comps["exp"]   # l'expérience, jamais affichée
+            if ros.get("avis"):   # l'avis de l'auteur, jamais affiché
+                val = (1 - AVIS_POIDS) * val + AVIS_POIDS * ros["avis"] / 5
             scores[plan] = round(100 * val)
         hp, ho, hy = past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY), young.get(r["cle"], EMPTY)
         ha = anc.get(r["cle"], EMPTY)

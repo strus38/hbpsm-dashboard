@@ -312,7 +312,7 @@ def test_publication_chiffree(sandbox, monkeypatch):
 def test_effectif_depuis_secret(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
     publish.roster()
-    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age,naissance,jusqu_au\nIsidore Exemple\nJean Modele,GB\n"
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age,naissance,jusqu_au,avis\nIsidore Exemple\nJean Modele,GB\n"
 
 
 def test_page_publiee_dechiffre(sandbox, monkeypatch):
@@ -1214,8 +1214,8 @@ def test_caisse_propositions():
 
 def test_noms_ancienne_feuille():
     """Ancienne feuille : nom et prénom collés, nom parfois répété après le prénom, prénom en minuscules."""
-    cases = {"DUPONTjean-DUPONT": "DUPONT Jean", "MARTIN-DUPRÉlouis-alexandre": "MARTIN-DUPRÉ Louis-Alexandre",
-             "DE LA TOURpaul-DE LA TOUR": "DE LA TOUR Paul", "DUPONT Jean": "DUPONT Jean", "Jean DUPONT": "Jean DUPONT"}
+    cases = {"DUPONTjean-DUPONT": "DUPONT Jean", "MARTIN-DUPRÉlouis-hilarion": "MARTIN-DUPRÉ Louis-Hilarion",
+             "DE LA TOURonesime-DE LA TOUR": "DE LA TOUR Onesime", "DUPONT Jean": "DUPONT Jean", "Jean DUPONT": "Jean DUPONT"}
     assert {k: parse_fdme.split_name(k) for k in cases} == cases
 
 
@@ -1410,6 +1410,27 @@ def test_experience_et_tranches_d_age(sandbox):
     template = (ROOT_DIR / "dashboard" / "template.html").read_text("utf-8")
     shown = next(l for l in template.splitlines() if l.startswith("const COMP_NOM"))
     assert "exp:" not in shown and "xpérience" not in shown   # jamais affichée
+
+
+def test_avis_de_l_auteur(sandbox):
+    """L'avis de l'auteur (1 à 5 étoiles) compte pour un quart de la note d'un joueur, sans être affiché ;
+    sans avis, rien ne change. Les fins de match restent neutres tant que personne n'a d'action décisive."""
+    assert [an.opinion(x) for x in ("5", " 3 ", "0", "6", "", "x")] == [5, 3, None, None, None, None]
+    demo(sandbox)
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]]
+    side = "home" if club[0]["home"]["name"] == demo_data.CLUB else "away"
+    names = [q["name"] for q in club[0]["players"][side][1:3]]
+    roster = {common.name_key(n): dict(nom=n, poste="", disponible=True) for n in names}
+    base = {x["nom"]: x for x in an.analyze("2026-10-04", roster=roster)["joueurs"]}
+    roster[common.name_key(names[0])]["avis"] = 5
+    rated = {x["nom"]: x for x in an.analyze("2026-10-04", roster=roster)["joueurs"]}
+    raw0, raw1 = base[names[0]]["scores_bruts"]["equilibre"], rated[names[0]]["scores_bruts"]["equilibre"]
+    assert abs(raw1 - round(100 * ((1 - an.AVIS_POIDS) * raw0 / 100 + an.AVIS_POIDS))) <= 1
+    assert rated[names[1]]["scores_bruts"] == base[names[1]]["scores_bruts"]   # sans avis : inchangé
+    assert all(0 <= x["comps"]["clutch"] <= 1 for x in rated.values())
+    template = (ROOT_DIR / "dashboard" / "template.html").read_text("utf-8")
+    assert "avis" not in next(l for l in template.splitlines() if l.startswith("const COMP_NOM"))
 
 
 def test_anniversaires(sandbox):

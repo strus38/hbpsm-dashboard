@@ -282,6 +282,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   Adresses pas trouvées au 06/10/2026 (demandées à l'auteur) : 2015-2016 et 2016-2017 (Excellence régionale),
   2017-2018 (Prénationale Est), 2018-2019 (Excellence AURA, poule 3), 2020-2021 (Honneur, 2 matchs). Plusieurs
   saisons anciennes sur une fiche : « 2019-2024 » (`saison_ancienne`).
+- Avis de l'auteur (demande de l'auteur, 06/10/2026 : un demi-centre que l'auteur juge clairement le meilleur
+  joueur devrait être au-dessus de 65 ; son jeu ne se lit pas sur la feuille) : 8e colonne `avis` de l'effectif,
+  1 à 5 étoiles (`analyze.opinion`), un quart de la note (`AVIS_POIDS`), roster.csv et le secret seulement, JAMAIS
+  affiché ; sans avis, la note ne change pas. Au 06/10/2026, un seul joueur en a un (5 étoiles).
+- Fins de match (`clutch`, 06/10/2026) : neutres (0,5) tant que personne n'a d'action décisive dans la saison,
+  puis ramenées vers 0,5 avec peu de matchs (`CLUTCH_PRUDENCE` = 3) ; avant, un seul match joué sans but
+  décisif donnait 0, contre 0,5 à ceux qui n'avaient pas joué.
 - Disponible jusqu'à une date (demande de l'auteur, 06/10/2026 : un gardien revenu, intermédiaire, disponible
   jusqu'en avril 2027, présence en 2027-2028 pas confirmée ; 5 gardiens depuis) : 7e colonne `jusqu_au` de
   l'effectif (« AAAA-MM » = fin du mois, ou « AAAA-MM-JJ » ; roster.csv et le secret, jamais le dépôt),

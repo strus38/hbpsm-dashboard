@@ -121,7 +121,9 @@ n'a pas validé la feuille, « retenu » ensuite. Le tableau montre aussi les de
 de la saison : qui était sur la feuille. Une
 tranche d'âge de 5 ans, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
 proche ; elle n'est affichée nulle part. De même, l'expérience au club (les matchs joués depuis 2015, comptés
-davantage dans les divisions plus hautes) entre pour 10 % dans la note, sans être affichée.
+davantage dans les divisions plus hautes) entre pour 10 % dans la note, sans être affichée ; et l'avis de
+l'auteur sur un joueur (1 à 5 étoiles, dans l'effectif), pour ce que la feuille de match ne dit pas, en
+compte pour un quart.
 
 L'entraîneur seul déclare un joueur absent (pour un match) ou blessé (à partir d'un match, jusqu'à
 ce qu'il le dise rétabli), d'un clic sur une case. Le joueur sort des propositions concernées, et

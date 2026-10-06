@@ -121,12 +121,12 @@ def roster():
     (tient la caisse noire), de sa tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
     (âge atteint dans l'année où la saison commence ; jamais l'année de naissance), du jour de son anniversaire « ,MM-JJ »
     (sans l'année) et, s'il ne reste pas toute la saison, du dernier mois ou jour où il est disponible
-    « ,AAAA-MM » ou « ,AAAA-MM-JJ ». Une ligne de rôle « coach » donne l'anniversaire de l'entraîneur,
-    sans en faire un joueur."""
+    « ,AAAA-MM » ou « ,AAAA-MM-JJ », et de l'avis de l'auteur, 1 à 5 étoiles « ,4 » (jamais affiché). Une
+    ligne de rôle « coach » donne l'anniversaire de l'entraîneur, sans en faire un joueur."""
     text = os.environ.get("HBPSM_EFFECTIF") or ""
     lines = [l.strip() for l in text.replace(";", ",").splitlines() if l.strip()]
     lines = [l for l in lines if not l.lower().startswith("nom,")]
-    (ROOT / "roster.csv").write_text("nom,poste,disponible,role,age,naissance,jusqu_au\n" + "\n".join(lines) + "\n", "utf-8")
+    (ROOT / "roster.csv").write_text("nom,poste,disponible,role,age,naissance,jusqu_au,avis\n" + "\n".join(lines) + "\n", "utf-8")
     staff = sum(1 for l in lines if any(w in norm(l.split(",")[3] if l.count(",") >= 3 else "") for w in ("COACH", "ENTRAINEUR")))
     print(f"[effectif] {len(lines) - staff} joueurs" + (f", {staff} de l'encadrement" if staff else ""))
     return 0
