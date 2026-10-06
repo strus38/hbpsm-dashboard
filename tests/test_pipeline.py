@@ -1269,6 +1269,38 @@ def test_saison_d_avant(sandbox):
     assert any("2024-2025" in (p.get("note_base") or "") for p in seen)
 
 
+def test_saison_plus_ancienne_pour_un_joueur_revenu(sandbox):
+    """Une saison plus ancienne (2023-2024) donne une note au joueur revenu au club, sans aucun match
+    plus récent ; elle ne touche pas aux autres, et ne se mêle pas à la saison d'avant (2024-2025)."""
+    demo(sandbox)
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]]
+    side = lambda x: "home" if x["home"]["name"] == demo_data.CLUB else "away"
+    older = [dict(x, id="old" + str(x["id"]), date="2024-11-0" + str(i + 1), saison="2024-2025") for i, x in enumerate(club[:2])]
+    ancient = []
+    for i, x in enumerate(club[:2]):
+        y = json.loads(json.dumps(x))
+        y.update(id=f"anc-{i}", date=f"2023-11-0{i + 1}", saison="2023-2024")
+        y["players"][side(y)] = [dict(y["players"][side(y)][0], name="REVENU Onésime", goals=0, saves=12, num=16)] + y["players"][side(y)][1:]
+        ancient.append(y)
+    for name, saison, matches in (("2024-2025-niveau1", "2024-2025", older), ("2023-2024-niveau2", "2023-2024", ancient)):
+        common.write_json(sandbox / "data" / "historique" / f"{name}.json",
+                          dict(saison=saison, niveau=1, competition="https://exemple/1ere-division-masculine-1/", poules={}, matches=matches))
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", competition="https://exemple/2eme-division-masculine-1/", poules={}, matches=[]))
+    regular = club[0]["players"][side(club[0])][1]["name"]
+    roster = {common.name_key(n): dict(nom=n, poste="GB" if n == "Onésime Revenu" else "", disponible=True)
+              for n in ("Onésime Revenu", regular)}
+    d = an.analyze("2026-10-04", roster=roster)
+    back = next(x for x in d["joueurs"] if x["nom"] == "Onésime Revenu")
+    assert back["m"] == 0 and back["ancienne"]["saison"] == "2023-2024" and back["ancienne"]["m"] == 2
+    assert back["ancienne"]["arrets"] == 24 and back["scores"]["equilibre"] is not None and back["avant"] is None
+    assert back["fiabilite"]["avant"] == 2 and "2023-2024" in back["note_base"]
+    others = [x for x in d["joueurs"] if x["nom"] != "Onésime Revenu"]
+    assert all(not x.get("ancienne") for x in others)   # les autres : rien de 2023-2024
+    assert all(x["avant"]["saison"] == "2024-2025" for x in others if x.get("avant"))
+
+
 def test_anniversaires(sandbox):
     """Caisse noire : le jour d'anniversaire de chacun (jamais l'année), entraîneur compris, sans en faire un joueur."""
     assert an.birthday("2006-09-20") == "09-20" and an.birthday("20/09") == "09-20" and an.birthday("09-20") == "09-20"

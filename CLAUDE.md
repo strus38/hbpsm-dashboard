@@ -199,6 +199,13 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `club_seul: true` (seuls nos matchs et leurs feuilles) ; `club_players(older=)` la compte pour HIST2
   (un quart de match) : `merged`, `season_line`, `avant` sur chaque joueur, `reliability(m, passée,
   avant)`. Elle n'entre pas dans la force des adversaires (seule la saison la plus récente y sert).
+- Saison 2023-2024 (demande de l'auteur, 06/10/2026, pour un gardien revenu au club, aux seniors de 2020 à
+  2024) : le club jouait en Honneur masculin AURA (22315, poule 127119, adresse donnée par l'auteur ; ni en
+  1re ni en 2e division P16 cette saison-là, 33 poules lues). Entrée `historique` avec `niveau: 2` (supposé)
+  et `club_seul: true`, fichier `2023-2024-niveau2.json`. `club_players(ancient=)` : comme les -18, un quart
+  de match et seulement pour un joueur sans aucun match plus récent (cette saison, la passée, celle d'avant) ;
+  ligne `ancienne` sur sa fiche. La saison d'avant (`older`) n'est plus que la plus récente des saisons
+  antérieures (2024-2025) : avant, toute saison plus ancienne s'y serait mêlée sous son nom.
 - Moins de 18 ans du club (demande de l'auteur, 05/10/2026) : entrée `historique` avec `categorie: "M18"`
   (M18 masculin division 2 AURA 2025-2026, 30005, 2e phase poule 12 ; la 1re phase n'est pas dans la
   M18 Excellence 27887, sans doute départementale : non trouvée). Fichier `<saison>-m18.json`, jamais

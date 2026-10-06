@@ -609,7 +609,7 @@ const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
   + (isGK(p) ? (x.pct_arrets != null ? x.pct_arrets+" % d'arrêts" : x.arrets+" arrêts")
              : x.buts+" buts"+(x.tirs ? " ("+x.reussite+" %)" : ""));
 // les saisons passées en une ligne : 2025-2026, puis 2024-2025 et les -18 (comptées moins, de moins en moins)
-const passeLine = p => [p.passe, p.avant, p.jeunes].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
+const passeLine = p => [p.passe, p.avant, p.jeunes, p.ancienne].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
 // blessé : indisponible à partir d'un match (de), jusqu'à son retour (a, exclu) ; publié avec les feuilles
 // validées, la même chose pour tous ; l'entraîneur voit en plus ce qu'il n'a pas encore publié (null : effacé)
 const blesses = () => { const o = Object.assign({}, (CHOIX && CHOIX.blesses) || {}, COACH ? (S.blesse || {}) : {});
@@ -1250,8 +1250,8 @@ function viewMoi(){
             : '<div><b class="num">'+p.buts+'</b><span>buts</span></div><div><b class="num">'+(p.reussite != null ? p.reussite+" %" : "–")+'</b><span>au tir</span></div>')+'</div>'
       + (last ? '<p class="small">Dernier match : '+esc(teamShort(last.adv))+' '+esc(last.res)+' '+esc(last.score)+', '+(gk ? (last.arrets || 0)+' arrêts' : last.buts+' but'+(last.buts > 1 ? "s" : ""))
         + (last.deux_min ? ', '+last.deux_min+' × 2 min' : '')+'.</p>' : '')
-      + (p.passe || p.avant || p.jeunes ? '<p class="small muted">'+esc(passeLine(p))+'</p>' : '')+'</div>';
-  } else if(p) h += '<h2>Mes chiffres</h2><div class="panel"><p class="small muted">Pas encore de match cette saison.'+(p.passe || p.avant || p.jeunes ? ' '+esc(passeLine(p)) : '')+'</p></div>';
+      + (passeLine(p) ? '<p class="small muted">'+esc(passeLine(p))+'</p>' : '')+'</div>';
+  } else if(p) h += '<h2>Mes chiffres</h2><div class="panel"><p class="small muted">Pas encore de match cette saison.'+(passeLine(p) ? ' '+esc(passeLine(p)) : '')+'</p></div>';
   return h;
 }
 function viewPlanif(){
@@ -1437,7 +1437,7 @@ function playerCard(p, plan, refs){
     + (p.m ? spark(p.journal.map(j => gk ? j.arrets : j.buts), gk) : "")
     + (gk ? bar(p.pct_arrets, refs.gk, "Arrêts sur tirs cadrés"+(p.pris_estime ? " (estimé)" : ""))
           : bar(p.reussite, refs.tir, "Réussite au tir"+(p.tirs ? " · "+p.buts+"/"+p.tirs : "")))
-    + (p.passe || p.avant || p.jeunes ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
+    + (passeLine(p) ? '<p class="small muted passe">'+esc(passeLine(p))+'</p>' : '')
     + '<div class="chips">'+chips+'<span class="chip avenir">proposé '+planned+'/'+PLAN.length+' à venir</span></div></div>';
 }
 function viewJoueurs(){

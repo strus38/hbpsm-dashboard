@@ -83,6 +83,14 @@ historique:
     competition: "https://www.ffhandball.fr/competitions/saison-2024-2025-20/regional/1ere-division-masculine-p16-aura-25096/"
     niveau: 1
     club_seul: true
+  # 2023-2024 : le club jouait en Honneur masculin AURA (poule 127119, adresse donnée par l'auteur ; il
+  # n'était ni en 1re ni en 2e division P16) ; niveau 2 supposé, au-dessus de la 1re division P16. Nos
+  # matchs seulement, pour un joueur de l'effectif sans aucun match plus récent (un gardien revenu,
+  # demande de l'auteur, 06/10/2026)
+  - saison: "2023-2024"
+    competition: "https://www.ffhandball.fr/competitions/saison-2023-2024-19/regional/honneur-masculin-aura-22315/"
+    niveau: 2
+    club_seul: true
   # 2025-2026, moins de 18 ans du club (2e phase, poule 12) : seulement pour un joueur de l'effectif
   # sans aucun match senior, qui y jouait (demande de l'auteur, 05/10/2026) ; jamais pour les adversaires
   - saison: "2025-2026"

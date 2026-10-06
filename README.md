@@ -313,7 +313,10 @@ Ce qu'elle apporte :
 - les notes des joueurs partent de la saison passée : un match de l'an dernier compte pour la
   moitié d'un match de cette saison au départ, puis de moins en moins à mesure que la saison avance
   (0,43 après un match, 0,25 après six) : les matchs joués aident de plus en plus à choisir ; un joueur de l'effectif pas encore aligné reçoit une note
-  provisoire ; un joueur parti n'est pas repris ;
+  provisoire ; un joueur parti n'est pas repris ; la saison d'avant (2024-2025, nos matchs seulement)
+  compte pour un quart de match ; nos moins de 18 ans et les saisons plus anciennes (2023-2024, nos
+  matchs seulement) servent, pour un quart de match aussi, au seul joueur sans aucun match plus récent
+  (un jeune qui monte, un joueur revenu au club) ;
 - pour chaque adversaire déjà vu : bilan et classement, confrontations avec le club, joueurs de
   cette saison déjà là l'an dernier, devenir de ses meilleurs buteurs ;
 - dans la simulation, la force de départ d'une équipe connue est celle de la saison passée,
