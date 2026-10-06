@@ -155,6 +155,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
+  Propositions de tous (demande de l'auteur, 06/10/2026) : n'importe qui ayant la phrase propose une
+  amende depuis la page (« Vous êtes », puis « Proposer l'amende ») ; elle part au dépôt public à part
+  strus38/hbpsm-cn (workflow « Proposition d'amende », `propositions.py`, journal chiffré
+  `propositions.enc`), avec un jeton limité à ce seul dépôt (droit Actions) : secret `HBPSM_JETON_CN`
+  du tableau de bord, rangé par la collecte dans les données chiffrées (`caisse.jeton_cn`, jamais dans
+  la page publique ni le journal). S'il fuit : ajouter des propositions, rien d'autre. Les pages relisent
+  le journal (`fetchCN`, `CFG.cn`) ; les propositions rejoignent « À valider » (`cnProposals`) ; seuls les
+  trésoriers valident (« v:<id> ») ou refusent (« r:<id> ») dans le registre. Code du dépôt à part tenu et
+  testé dans `cn/` (son `vault.py` = celui du pipeline) ; secret `HBPSM_CLE` dans les deux dépôts.
   Anniversaires (demande de l'auteur, 05/10/2026) : 6e colonne `naissance` de l'effectif (MM-JJ, jamais
   l'année ; roster.csv et le secret, jamais le dépôt) ; une ligne de rôle « coach » donne celui de
   l'entraîneur sans en faire un joueur (`is_staff`). `birthdays` -> `caisse.anniversaires` ; carte

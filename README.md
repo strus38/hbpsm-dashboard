@@ -331,6 +331,16 @@ ils viennent, à proportion des joueurs retrouvés (Adversaires : « Leurs joueu
 6 de leurs 11 joueurs retrouvés, 6 avec … »). Cela vaut pour toutes les équipes : un club qui a
 gardé ses joueurs retrouve son propre bilan.
 
+## Caisse noire : propositions de tous
+
+N'importe quel joueur qui a la phrase du club propose une amende depuis l'onglet Caisse noire : il dit
+qui il est, choisit le joueur et la règle, puis touche « Proposer l'amende ». La proposition part,
+chiffrée, au dépôt public à part `strus38/hbpsm-cn` (code tenu dans `cn/`), avec un jeton limité à
+ce seul dépôt : la collecte le range dans les données chiffrées, personne n'a rien à coller. Tout le
+monde la voit d'ici une à deux minutes ; seuls les trésoriers la valident ou la refusent. Même extrait
+de la page, ce jeton ne permet que d'ajouter une proposition, jamais de valider une amende ni de
+toucher au tableau de bord. Secrets : `HBPSM_JETON_CN` ici, `HBPSM_CLE` dans les deux dépôts.
+
 ## Lien avec l'application de préparation des entraînements
 
 Le fichier chiffré contient une séance au format d'échange `.hbt.json` de HANDBALL-training :

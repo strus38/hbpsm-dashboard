@@ -12,6 +12,10 @@ from pipeline import analyze as an
 from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, publish, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
+import pathlib
+import sys
+
+ROOT_DIR = pathlib.Path(__file__).resolve().parents[1]
 
 
 def chrome(p):
@@ -690,8 +694,67 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.locator("[data-cpick-j]").first.click()
         ro.locator("[data-cpick-r=m_oubli]").click()
         assert ro.locator("[data-cgo]").count() == 0 and ro.locator("[data-cdenonce]").count() == 1
+        # avec le jeton des propositions (dans les données chiffrées), il propose l'amende directement :
+        # elle part au dépôt à part, tout le monde la voit, seul un trésorier la valide
+        ro.evaluate("""D.caisse.jeton_cn = "jeton-cn-test"; CFG.cn = CFG.caisse.replace("caisse.enc", "propositions.enc");
+          CFG.cn_depot = "exemple/cn"; CFG.cn_workflow = "proposer.yml"; render(true)""")
+        assert ro.locator("[data-cpropose]").is_disabled()   # d'abord : qui propose ?
+        ro.select_option("#cmoi", index=1)
+        before = len(sent)
+        ro.locator("[data-cpropose]").click()
+        wait_sent(before + 1)
+        assert sent[-1]["url"].endswith("/repos/exemple/cn/actions/workflows/proposer.yml/dispatches")
+        assert sent[-1]["auth"] == "Bearer jeton-cn-test" and "Joueur" not in sent[-1]["body"]["inputs"]["prop"]
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("propositions_cn", ROOT_DIR / "cn" / "propositions.py",
+                                                      submodule_search_locations=None)
+        sys.path.insert(0, str(ROOT_DIR / "cn"))
+        cn = importlib.util.module_from_spec(spec); spec.loader.exec_module(cn)
+        monkeypatch.setattr(cn.vault, "ITERATIONS", 2000)
+        monkeypatch.setattr(cn.vault.encrypt, "__defaults__", (2000,))
+        monkeypatch.setenv("HBPSM_PROP", sent[-1]["body"]["inputs"]["prop"])
+        assert cn.main(out / "propositions.enc") == 0   # ce que fait le workflow du dépôt à part
+        ro.evaluate("fetchCN().then(() => render(true))")
+        ro.wait_for_function("() => caisseProposals(ledger()).some(p => p.joueurs)", timeout=10000)
+        prop_id = ro.evaluate("caisseProposals(ledger()).find(p => p.joueurs).id")
+        assert "proposée par" in ro.inner_text("main") and ro.locator(f"[data-cval='{prop_id}']").count() == 0
+        page.evaluate("localStorage.setItem('hbpsm:jeton', 'jeton-de-test')")   # un trésorier
+        page.evaluate("fetchCN().then(() => render(true))")
+        page.click("nav.tabs button[data-tab=caisse]")
+        page.wait_for_selector(f"[data-cval='{prop_id}']", timeout=10000)
+        before = len(sent)
+        page.locator(f"[data-cval='{prop_id}']").click()
+        wait_sent(before + 1)
+        assert sent[-1]["url"].endswith("/actions/workflows/caisse.yml/dispatches")
+        assert [o["auto"] for o in caisse.check(json.loads(sent[-1]["body"]["inputs"]["ops"]), PHRASE)] == [prop_id]
         browser.close()
     assert errors == []
+
+
+def test_depot_des_propositions(tmp_path, monkeypatch):
+    """Le dépôt à part (strus38/hbpsm-cn) n'accepte que des propositions chiffrées avec la phrase du club, de la
+    forme attendue, sans doublon ; son module de chiffrement est celui du tableau de bord."""
+    assert (ROOT_DIR / "cn" / "vault.py").read_bytes() == (ROOT_DIR / "pipeline" / "vault.py").read_bytes()
+    import importlib.util
+    sys.path.insert(0, str(ROOT_DIR / "cn"))
+    spec = importlib.util.spec_from_file_location("propositions_cn2", ROOT_DIR / "cn" / "propositions.py")
+    cn = importlib.util.module_from_spec(spec); spec.loader.exec_module(cn)
+    monkeypatch.setattr(cn.vault, "ITERATIONS", 2000)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    prop = dict(id="prop:1", t="proposition", joueur="R:EXEMPLE ISIDORE", regle="m_oubli", n=1, montant=2,
+                date="2026-10-10", note="gourde", par="R:MODELE JEAN", le="2026-10-10T20:00:00Z", match=None)
+    send = lambda ops, phrase=PHRASE, fmt="hbpsm-cn": monkeypatch.setenv("HBPSM_PROP", json.dumps(cn.vault.encrypt(
+        dict(format=fmt, v=1, ops=ops), phrase, 2000)))
+    book = tmp_path / "propositions.enc"
+    send([prop])
+    assert cn.main(book) == 0 and cn.main(book) == 0   # renvoyée : comptée une fois
+    assert [o["id"] for o in cn.vault.decrypt(json.loads(book.read_text("utf-8")), PHRASE)["ops"]] == ["prop:1"]
+    for bad in (dict(ops=[dict(prop, id="prop:2", t="amende")]), dict(ops=[dict(prop, id="prop:3", montant=1000)]),
+                dict(ops=[dict(prop, id="prop:4", jeton="x")]), dict(ops=[prop], fmt="hbpsm-caisse-ops"),
+                dict(ops=[prop], phrase="une autre phrase bien longue")):
+        send(**bad)
+        with pytest.raises(cn.vault.VaultError):
+            cn.main(book)
 
 
 def test_debut_de_saison(sandbox):

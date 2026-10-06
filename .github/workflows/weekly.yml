@@ -67,6 +67,9 @@ jobs:
 
       - name: Analyse et chiffrement
         id: scelle
+        env:
+          # jeton des propositions d'amendes, limité au dépôt hbpsm-cn : rangé dans les données chiffrées
+          HBPSM_JETON_CN: ${{ secrets.HBPSM_JETON_CN }}
         run: python -m pipeline.publish seal
 
       - name: Enregistrer dans le dépôt (code, réglages, fichiers chiffrés)

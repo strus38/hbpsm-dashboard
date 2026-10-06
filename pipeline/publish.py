@@ -58,9 +58,21 @@ def page_config(config):
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
                 choix=raw + "choix.enc" if raw else "", caisse=raw + "caisse.enc" if raw else "",
                 depot=slug, branche=branch,
+                **cn_config(config),
                 iterations=vault.ITERATIONS,  # la page chiffre les choix de l'entraîneur comme le coffre
                 versions=f"https://github.com/{slug}/releases/latest" if slug else "",
                 app=app_version(), club=config["club"]["nom_affiche"], verif=VERIF)
+
+
+def cn_config(config):
+    """Le dépôt des propositions d'amendes (caisse noire) : où les envoyer, où les relire. Le jeton,
+    lui, n'est jamais dans la page publique : il voyage dans les données chiffrées."""
+    cn = config.get("propositions") or {}
+    if not cn.get("depot"):
+        return dict(cn="", cn_depot="", cn_workflow="")
+    branch = cn.get("branche") or "main"
+    return dict(cn=f"https://raw.githubusercontent.com/{cn['depot']}/{branch}/propositions.enc", cn_depot=cn["depot"],
+                cn_branche=branch, cn_workflow=cn.get("workflow") or "proposer.yml")
 
 
 def collect_state():
@@ -232,7 +244,8 @@ def seal(today=None):
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()
     hist_digest = hashlib.sha256(json.dumps(hist, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
-    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest], sort_keys=True,
+    jeton = hashlib.sha256((os.environ.get("HBPSM_JETON_CN") or "").encode("utf-8")).hexdigest()[:12]   # un jeton posé : republier
+    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest, jeton], sort_keys=True,
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()

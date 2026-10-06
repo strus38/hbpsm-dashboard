@@ -1,0 +1,51 @@
+# Proposition d'amende de la caisse noire HBPSM, envoyée depuis la page par n'importe quel joueur.
+#
+# La page lance ce workflow avec un jeton limité à ce dépôt (droit « Actions » seulement) : il ne
+# peut rien faire d'autre. Sa seule entrée est un coffre chiffré avec la phrase du club ; il est
+# vérifié et ajouté au journal propositions.enc par propositions.py. Le dépôt est public : rien n'est
+# jamais déchiffré dans ce journal, et l'entrée, visible dans le résumé du lancement, n'est que le
+# coffre chiffré. Les trésoriers valident ou refusent dans le tableau de bord.
+name: Proposition d'amende
+
+on:
+  workflow_dispatch:
+    inputs:
+      prop:
+        description: "Proposition chiffrée (écrite par la page)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: propositions
+  cancel-in-progress: false
+
+jobs:
+  ajouter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Vérifier et ajouter la proposition (toujours chiffrée)
+        env:
+          HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
+          HBPSM_PROP: ${{ inputs.prop }}
+        run: python propositions.py
+
+      - name: Enregistrer dans le dépôt
+        run: |
+          git config user.name "hbpsm-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add propositions.enc
+          git diff --cached --quiet && exit 0
+          git commit -m "Proposition d'amende"
+          git push || (git pull --rebase && git push)

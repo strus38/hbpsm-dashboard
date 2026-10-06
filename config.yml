@@ -43,6 +43,13 @@ ecart_division: 0.12
 postes_clefs:
   - {nom: pivots, postes: [PIV], min: 2}
   - {nom: arrières, postes: [ARG, DC, ARD], min: 4}
+# Caisse noire : les propositions d'amendes de n'importe quel joueur arrivent dans ce dépôt à part
+# (jeton limité à lui seul, secret HBPSM_JETON_CN, rangé dans les données chiffrées) ; les trésoriers
+# les valident ou les refusent dans le registre du tableau de bord.
+propositions:
+  depot: "strus38/hbpsm-cn"
+  branche: "main"
+  workflow: "proposer.yml"
 # Forfait général pour la saison (constaté par l'auteur, le site ne le dit pas) : l'équipe reste
 # affichée, en gris et sans rang ; ses matchs ne comptent ni au classement ni dans les chances de
 # la saison, et sortent de la planification.

@@ -8,6 +8,7 @@ import hashlib
 import json
 import itertools
 import math
+import os
 import random
 import re
 import statistics
@@ -1338,6 +1339,8 @@ def analyze(today=None, roster=None):
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
                     anniversaires=birthdays(caisse.COACH),
+                    # le jeton des propositions (limité au dépôt hbpsm-cn) : seulement dans les données chiffrées
+                    jeton_cn=os.environ.get("HBPSM_JETON_CN") or None,
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],
                     propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]
                                                   + [caisse.COACH], config.get("saison") or "")),
