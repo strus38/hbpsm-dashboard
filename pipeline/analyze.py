@@ -844,6 +844,31 @@ def goals_saved(rec, rate, saison):
                 moyenne=round(100 * rate))
 
 
+def goals_saved_mix(now, past, rate_now, rate_past, w, labels):
+    """Buts évités, cette saison et la passée cumulées (la passée comptant w, qui s'efface à mesure que la
+    saison avance, comme pour les notes), avec leur marge à 95 % (demande de l'auteur, 06/10/2026 : avec
+    5 gardiens, une saison seule ne départage personne avant les matchs clés). Chaque saison contre son
+    propre gardien moyen ; seule la saison passée lue en entier sert (pas celles de nos seuls matchs, dont
+    la référence est biaisée). None avec moins de EVITES_MIN tirs pondérés."""
+    parts = []
+    for rec, rate, weight, label in ((now, rate_now, 1.0, labels[0]), (past, rate_past, w, labels[1])):
+        shots = (rec or {}).get("cadres") or 0
+        if rate and shots and weight > 0:
+            saved = shots - (rec.get("pris") or 0)
+            p = saved / shots
+            parts.append(dict(saison=label, poids=round(weight, 2), tirs=shots, valeur=round(saved - shots * rate),
+                              m=rec.get("m") or 0, g=saved - shots * rate, var=shots * p * (1 - p)))
+    shots_w = sum(x["poids"] * x["tirs"] for x in parts)
+    apps = sum(x["poids"] * x["m"] for x in parts)
+    if shots_w < EVITES_MIN or not apps:
+        return None
+    value = sum(x["poids"] * x["g"] for x in parts)
+    margin = 1.96 * math.sqrt(sum(x["poids"] ** 2 * x["var"] for x in parts))
+    return dict(tirs=round(shots_w), valeur=round(value), par_match=round(value / apps, 1), marge=round(margin / apps, 1),
+                moyenne=round(100 * (rate_now or rate_past)),
+                detail=[{k: x[k] for k in ("saison", "poids", "tirs", "valeur")} for x in parts])
+
+
 def exclusion_cost(matches, config):
     """Ce que nous coûte une exclusion de 2 minutes, d'après les déroulés de nos feuilles : l'écart de buts des
     2 minutes qui suivent, moins l'écart moyen du même match sur une durée égale. (buts par exclusion, nombre)."""
@@ -977,6 +1002,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             tirs_subis=r["cadres"] or None, pct_arrets=save_pct(r["cadres"] - r["pris"], r["pris"]),
             evites=goals_saved(r, rate_now, config.get("saison")) if gk else None,
             evites_passe=goals_saved(hp, rate_past, saison_passee) if gk else None,
+            evites_cumul=goals_saved_mix(r, hp, rate_now, rate_past, hw, (config.get("saison"), saison_passee)) if gk else None,
             pris_estime=r["estime"],
             jaunes=r["jaunes"], deux_min=r["deux_min"], rouges=r["rouges"],
             buts_moy=round(r["buts"] / m, 1) if m else 0,

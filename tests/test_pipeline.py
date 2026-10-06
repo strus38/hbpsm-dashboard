@@ -441,10 +441,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # en buts : l'écart attendu de la feuille, les buts évités d'un gardien, le coût des exclusions
         assert page.evaluate("butsTxt(-2.46, 1)") == "−2,5" and page.evaluate("butsTxt(3)") == "+3"
         assert page.evaluate("planning()[0].goalsAdj !== undefined")
-        line = page.evaluate("""(() => { const g = D.joueurs.find(isGK); const keep = g.evites_passe;
-          g.evites_passe = {saison: "2025-2026", tirs: 280, valeur: 29, par_match: 2.1, moyenne: 31};
-          const t = evitesLine(g); g.evites_passe = keep; return t; })()""")
-        assert "Buts évités" in line and "+2,1 buts par match" in line and "31 %" in line
+        line = page.evaluate("""(() => { const g = D.joueurs.find(isGK); const keep = g.evites_cumul;
+          g.evites_cumul = {tirs: 140, valeur: 15, par_match: 2.1, marge: 1.4, moyenne: 31,
+            detail: [{saison: "2026-2027", poids: 1, tirs: 18, valeur: 4}, {saison: "2025-2026", poids: 0.43, tirs: 280, valeur: 29}]};
+          const t = evitesLine(g); g.evites_cumul = keep; return t; })()""")
+        assert "Buts évités" in line and "+2,1 ± 1,4 buts par match" in line and "31 %" in line and "compté à 43 %" in line
         note = page.evaluate("(() => { const k = D.meta.exclusion; D.meta.exclusion = {cout: -0.44, n: 376}; const t = exclNote(); D.meta.exclusion = k; return t; })()")
         assert "environ 0,4 but" in note and "376" in note
         # mode causerie : cinq écrans, au clavier, fermé par Échap
@@ -1457,6 +1458,11 @@ def test_parler_en_buts(sandbox):
     assert an.goals_saved(dict(cadres=100, pris=60, m=5), 0.3, "2025-2026") == dict(
         saison="2025-2026", tirs=100, valeur=10, par_match=2.0, moyenne=30)
     assert an.goals_saved(dict(cadres=50, pris=30, m=3), 0.3, "2025-2026") is None   # trop peu de tirs
+    # cette saison et la passée cumulées, la passée comptant à moitié ; marge à 95 %
+    mix = an.goals_saved_mix(dict(cadres=40, pris=24, m=2), dict(cadres=200, pris=130, m=10), 0.3, 0.3, 0.5, ("2026-2027", "2025-2026"))
+    assert mix["tirs"] == 140 and mix["valeur"] == round(4 + 0.5 * 10) and mix["par_match"] == round(9 / 7, 1)
+    assert mix["marge"] > 0 and [x["saison"] for x in mix["detail"]] == ["2026-2027", "2025-2026"]
+    assert an.goals_saved_mix(dict(cadres=20, pris=12, m=1), None, 0.3, 0.3, 0.5, ("2026-2027", None)) is None
     config = common.load_config()
     club = config["club"]["motifs"][0]
     events = [dict(t=100, side="home", type="goal"), dict(t=600, side="home", type="two_min"),

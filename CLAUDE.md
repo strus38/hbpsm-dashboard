@@ -293,7 +293,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   affiché ; sans avis, la note ne change pas. Au 06/10/2026, un seul joueur en a un (5 étoiles).
 - En buts plutôt qu'en pourcentages (demande de l'auteur, 06/10/2026, visibles de tous) : buts évités par un
   gardien face au gardien moyen des poules lues (`league_save_rate` sur les tirs cadrés dont on sait qui a pris
-  les buts ; `goals_saved`, dès 60 tirs ; `evites` cette saison, `evites_passe` la saison passée) sur sa fiche,
+  les buts ; `goals_saved`, dès 60 tirs ; `evites` cette saison, `evites_passe` la saison passée ; affichés :
+  `evites_cumul` = cette saison et la passée cumulées, la passée comptant HIST × fade comme pour les notes, avec
+  leur marge à 95 % (`goals_saved_mix` ; demande de l'auteur, 06/10/2026 : avec 5 gardiens, une saison seule ne
+  départage personne avant les matchs clés ; les saisons de nos seuls matchs restent hors du calcul, leur
+  gardien moyen étant biaisé ; « dans la marge d'erreur » quand l'écart ne dépasse pas la marge) sur sa fiche,
   et pour la paire proposée dans la Semaine face à la plus sûre disponible (`gkPairLine`) ; écart attendu de
   chaque match (`ecart`, `buts_pour` : buts attendus des forces centrales d'`outlook`, `cup_chance(goals=)` en
   coupe), ajusté à la feuille (`goalsAdj` = écart − (1 − force) × buts attendus du club) dans la Semaine, le
