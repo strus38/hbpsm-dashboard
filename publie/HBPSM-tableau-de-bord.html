@@ -472,7 +472,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "0033ac1f5aba", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "864230ae24a3", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1516,6 +1516,8 @@ const memberName = cle => cle === (D.caisse && D.caisse.coach) ? "Coach" : ((D.j
 const members = () => [...D.joueurs.filter(p => String(p.cle).startsWith("R:")).map(p => p.cle), D.caisse.coach];
 const canWrite = () => !!stored(TOKEN);
 const whoAmI = () => stored(ME) || "";
+// téléphone : la dénonciation se partage directement (menu de partage du téléphone), si le navigateur le permet
+const canShare = () => !!navigator.share && !!window.matchMedia && matchMedia("(max-width:560px)").matches;
 // Propositions d'amendes de n'importe quel joueur (demande de l'auteur, 06/10/2026) : envoyées au dépôt
 // à part hbpsm-cn avec un jeton limité à lui seul, rangé dans les données chiffrées (la phrase du club
 // suffit) ; relues par tous ; seuls les trésoriers les valident ou les refusent dans le registre.
@@ -1780,7 +1782,8 @@ function pickerBlock(){
     + '<div class="edit"><button class="btn" '+(PICK.joueur && (!prop || moi) ? "" : "disabled ")
     + (w ? 'data-cgo="1">Mettre l\'amende' : prop ? 'data-cpropose="1">Proposer l\'amende' : 'data-cdenonce="1">Copier la dénonciation')
     + (amount != null ? ' · '+euros(amount) : '')+'</button>'
-    + (prop ? '<button class="link" data-cdenonce="1"'+(PICK.joueur ? '' : ' disabled')+'>ou copier la dénonciation</button>' : '')+'</div>'
+    + (prop ? '<button class="link" data-cdenonce="1"'+(PICK.joueur ? '' : ' disabled')+'>ou copier la dénonciation</button>' : '')
+    + (!w && canShare() ? '<button class="btn ghost" data-cshare="1"'+(PICK.joueur && PICK.regle ? '' : ' disabled')+'>📤 Partager</button>' : '')+'</div>'
     + (prop && !moi ? '<p class="small muted">Dites d\'abord qui vous êtes : les trésoriers savent ainsi qui propose.</p>' : '');
   return h + '</div>';
 }
@@ -1983,6 +1986,9 @@ document.addEventListener("click", ev => {
     sendCN();
   }
   else if(t.dataset.cnsend){ sendCN(); }
+  else if(t.dataset.cshare && PICK.joueur && PICK.regle){   // le menu de partage du téléphone (WhatsApp, SMS…), le texte prêt
+    navigator.share({title: "Caisse noire HBPSM", text: denonciation()}).catch(() => {});
+  }
   else if(t.dataset.cdenonce && PICK.joueur && PICK.regle){ copyText(denonciation(), () => showWhy("🕵️ Dénonciation copiée : collez-la dans le groupe.")); }
   else if(t.dataset.cval && canWrite()){ const p = caisseProposals(ledger()).find(x => x.id === t.dataset.cval); if(p) addOps([fineOp(p, true)]); }
   else if(t.dataset.cref && canWrite()){ addOps([{id: "r:" + t.dataset.cref, t: "refus", auto: t.dataset.cref, par: whoAmI(), le: new Date().toISOString(), note: ""}]); }
