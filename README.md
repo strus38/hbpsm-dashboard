@@ -35,7 +35,9 @@ une phrase courte se devine par essais successifs.
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom,POSTE,disponibilité » :
    poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
    longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde ; puis
-   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire).
+   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire, la classe d'âge en 5e,
+   l'anniversaire « MM-JJ » en 6e et, pour un joueur qui ne reste pas toute la saison, le dernier
+   mois « AAAA-MM » ou jour « AAAA-MM-JJ » où il est disponible en 7e).
 2. **Settings > Pages** : source « GitHub Actions » (une fois).
 3. **Actions > Collecte quotidienne > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
@@ -265,8 +267,12 @@ estimation, marquée comme telle dans la page. Le même calcul donne le pourcent
 gardiens adverses dans le repérage.
 
 L'équipe proposée compte 12 joueurs dont 2 gardiens (`effectif_feuille` et `gardiens_feuille`
-dans `config.yml`), les mieux notés parmi les disponibles ; s'il manque du monde, un joueur de
-l'effectif pas encore aligné complète la feuille.
+dans `config.yml`), 14 en Coupe de France (`effectif_feuille` de la coupe : « le club peut aligner
+14 joueurs de 17 ans et plus », règlement de la Coupe de France régionale et départementale,
+art. 15), les mieux notés parmi les disponibles ; s'il manque du monde, un joueur de l'effectif pas
+encore aligné complète la feuille. Un joueur disponible jusqu'à une date (effectif, 7e colonne)
+n'est plus proposé ensuite ; à besoin égal, il passe après les autres en championnat et devant
+eux en coupe, qui ne compte pas pour le classement.
 
 Discipline : les trois sanctions de la feuille restent distinctes partout (joueurs, journal des
 matchs, repérage de l'adversaire) : l'avertissement (carton jaune, un au plus par joueur et par

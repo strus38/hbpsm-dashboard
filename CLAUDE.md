@@ -259,6 +259,20 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   JAMAIS affiché (choix de l'auteur) : à besoin égal, la rotation fait entrer le plus jeune et reposer
   le plus âgé (poste pour poste d'abord) ; la règle des 2 changements préfère faire entrer un plus
   jeune (`ageRank`).
+- Disponible jusqu'à une date (demande de l'auteur, 06/10/2026 : un gardien revenu, intermédiaire, disponible
+  jusqu'en avril 2027, présence en 2027-2028 pas confirmée ; 5 gardiens depuis) : 7e colonne `jusqu_au` de
+  l'effectif (« AAAA-MM » = fin du mois, ou « AAAA-MM-JJ » ; roster.csv et le secret, jamais le dépôt),
+  `analyze.until`. Page : indisponible après (`gone` ; case « indispo. », « disponible jusqu'au … » ; fiche),
+  compté à la rotation ; à besoin égal il passe après tous les autres en championnat (`leaving`, `ageRank` 3)
+  et devant tous en coupe (« typiquement sur les coupes de France », demande de l'auteur : `lateAt` -1,
+  `cupFirst`, la coupe avant le côté domicile / extérieur). La raison n'est jamais affichée.
+- Feuille de coupe à 14 (demande de l'auteur, 06/10/2026) : règlement FFHandball de la Coupe de France
+  régionale et départementale, art. 15 (2024-2025 et 2025-2026 ; version 2026-2027 pas trouvée au 06/10/2026) :
+  « 14 joueurs de 17 ans et plus ». `effectif_feuille` sous l'entrée de `coupes`, `cup_ahead` -> `effectif` du
+  match, `sizeOf(m)` dans la page ; toujours 2 gardiens. Règle des 2 changements en entrants ou sortants
+  (de 14 en coupe à 12, deux sortent déjà).
+- Noms courts : deux joueurs de même nom et même initiale : `playerShort` allonge
+  le prénom (« Isi. Exemple »).
 - Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
   config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
   (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du

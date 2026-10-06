@@ -312,7 +312,7 @@ def test_publication_chiffree(sandbox, monkeypatch):
 def test_effectif_depuis_secret(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_EFFECTIF", "nom,poste,disponible\nIsidore Exemple\n\nJean Modele;GB\n")
     publish.roster()
-    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age,naissance\nIsidore Exemple\nJean Modele,GB\n"
+    assert (sandbox / "roster.csv").read_text("utf-8") == "nom,poste,disponible,role,age,naissance,jusqu_au\nIsidore Exemple\nJean Modele,GB\n"
 
 
 def test_page_publiee_dechiffre(sandbox, monkeypatch):
@@ -411,6 +411,20 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const ok = planning().some(r => r.forced.includes(x) && r.resting.includes(x));
           D.joueurs.forEach((p, i) => p.age = keep[i]); S.regle = 1; return ok; })()""")
         assert older_out and "experimente" not in page.inner_text("main") and "+40" not in page.inner_text("main")
+        # disponible jusqu'à une date : plus proposé après, et à besoin égal il passe après tous les autres
+        leave = page.evaluate("""(() => { const g = D.joueurs.filter(isGK), x = g[g.length - 1], P0 = planning();
+          x.jusqu_au = P0[1].m.date.slice(0, 10); render(true);
+          const P = planning(), cells = [...document.querySelectorAll('.plan button.cell[data-cell$="|' + x.cle + '"]')].map(c => c.title);
+          const out = {after: P.slice(2).some(r => r.sel.includes(x)), need: P.need(x), cells,
+                       last: D.joueurs.every(p => p === x || ageRank(p) < ageRank(x))};
+          delete x.jusqu_au; render(true); return out; })()""")
+        assert not leave["after"] and leave["need"] == 1 and leave["last"], leave
+        assert sum("disponible jusqu'au" in c for c in leave["cells"]) == 2, leave["cells"]
+        # deux joueurs de même nom et même initiale : le nom court allonge le prénom
+        short = page.evaluate("""(() => { D.joueurs.push({nom: "Isabeau Exemple"}, {nom: "Isidore Exemple"});
+          const out = [playerShort("Isabeau Exemple"), playerShort("Isidore Exemple"), playerShort("Zéphyrin Modele")];
+          D.joueurs.splice(-2, 2); return out; })()""")
+        assert short == ["Isa. Exemple", "Isi. Exemple", "Z. Modele"], short
         assert "proposé" in page.inner_text(".plan") and "retenu" not in page.inner_text(".plan .h")
         # le risque s'explique : son coût dans l'étiquette, le calcul au toucher
         page.locator(".plan .h.foot button.risk").first.click()
@@ -526,12 +540,20 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # un match de coupe dans la planification : nommé comme tel, la rotation y passe d'abord
         cup = page.evaluate("""(() => { const m = D.saison.matchs[1];
           D.saison.matchs.splice(1, 0, Object.assign({}, m, {id: "coupe-1", coupe: "Coupe de France", tour: "1ER TOUR",
-            journee: null, p_victoire: null, enjeu: null, cle: false}));
+            journee: null, p_victoire: null, enjeu: null, cle: false, effectif: 14}));
           S.regle = 1; const P = planning(), r = P.find(x => x.m.coupe);
           const res = {label: roundOf(r.m), advice: !r.postesOk || advice(r).startsWith("Match de coupe"),   // un poste manquant passe avant
-                       most: P.every(x => x.rotated.length <= r.rotated.length) && r.rotated.length > 0};
-          D.saison.matchs.splice(1, 1); return res; })()""")
-        assert cup == {"label": "Coupe de France · 1er tour", "advice": True, "most": True}
+                       most: P.every(x => x.rotated.length + x.extra.length <= r.rotated.length + r.extra.length) && r.extra.length > 0,
+                       taille: [r.size, r.sel.length, r.gks.length, squadTitle(r).includes("14"), P.filter(x => !x.m.coupe).every(x => x.size === 12)]};
+          // un gardien qui ne reste pas toute la saison : en coupe d'abord, en championnat après tous les autres
+          const t = D.joueurs.filter(q => !isGK(q) && dispo(q) && !depOf(q)).slice(-1)[0]; S.postes[t.cle] = "GB";   // un 3e gardien
+          const g = D.joueurs.filter(isGK).sort((a, b) => val(a, r.m) - val(b, r.m))[0];
+          const league = Q => Q.filter(x => !x.m.coupe && x.gks.includes(g)).length, base = league(planning());
+          g.jusqu_au = "2099-12-31"; const Q = planning();
+          res.coupe = Q.find(x => x.m.coupe).gks.includes(g); res.moins = league(Q) <= base;
+          delete g.jusqu_au; delete S.postes[t.cle]; D.saison.matchs.splice(1, 1); return res; })()""")
+        assert cup == {"label": "Coupe de France · 1er tour", "advice": True, "most": True, "coupe": True, "moins": True,
+                       "taille": [14, 14, 2, True, True]}
         # adversaires : le club figure aussi dans la liste, en tête
         assert page.evaluate("opponent().names[0] === D.meta.club")
         # planification : un clic écarte un retenu, la feuille se complète avec un autre
@@ -1030,6 +1052,8 @@ def test_coupe_dans_la_saison(sandbox):
     # dans les matchs à venir, à sa date : pas d'enjeu, jamais match clé
     cup = next(m for m in d["saison"]["matchs"] if m.get("coupe"))
     assert (cup["id"], cup["tour"], cup["enjeu"], cup["cle"], cup["journee"]) == ("9002", "2EME TOUR", None, False, None)
+    assert cup["effectif"] == 14   # 14 joueurs sur la feuille en Coupe de France (config.yml, règlement)
+    assert all(m.get("effectif") is None for m in d["saison"]["matchs"] if not m.get("coupe"))
     dates = [m["date"] for m in d["saison"]["matchs"]]
     assert dates == sorted(dates)
     assert [c["id"] for c in d["coupes"]] == ["9001", "9002"] and d["coupes"][0]["res"] in "VND"
@@ -1255,6 +1279,19 @@ def test_anniversaires(sandbox):
     assert sorted(v["nom"] for v in roster.values()) == ["Isidore Exemple", "Jean Modele"]   # l'entraîneur n'est pas un joueur
     assert an.birthdays(caisse.COACH) == [dict(cle="R:" + common.name_key("Isidore Exemple"), jour="03-14"),
                                           dict(cle=caisse.COACH, jour="12-25")]
+
+
+def test_disponible_jusqu_a_une_date(sandbox):
+    """Un joueur qui ne reste pas toute la saison : le dernier jour où il est disponible (fin du mois si
+    seul le mois est donné), repris sur sa fiche pour la page."""
+    assert [an.until(x) for x in ("2027-04", "04/2027", "2027-04-15", "15/04/2027", "2027-02", "", "2027-13")] \
+        == ["2027-04-30", "2027-04-30", "2027-04-15", "2027-04-15", "2027-02-28", None, None]
+    (sandbox / "roster.csv").write_text("nom,poste,disponible,role,age,naissance,jusqu_au\nIsidore Exemple,GB,,,intermediaire,,2027-04\n"
+                                        "Jean Modele,ARG,,,,\n", "utf-8")
+    roster = an.load_roster()
+    assert [roster[common.name_key(n)]["jusqu_au"] for n in ("Isidore Exemple", "Jean Modele")] == ["2027-04-30", None]
+    players, _, _ = an.club_players([], {}, roster)
+    assert {x["nom"]: x["jusqu_au"] for x in players} == {"Isidore Exemple": "2027-04-30", "Jean Modele": None}
 
 
 def test_jeunes_pour_un_joueur_sans_match_senior(sandbox):

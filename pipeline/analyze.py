@@ -3,6 +3,7 @@
 Entrées : data/matches/*.json, data/fixtures.json, roster.csv, config.yml
 Sortie  : dictionnaire prêt pour le tableau de bord (docs/data.json).
 """
+import calendar
 import csv
 import hashlib
 import json
@@ -580,8 +581,29 @@ def load_roster():
                                                         disponible=state not in ("NON", "0", "FALSE", "N"),
                                                         depannage=state in ("DEPANNAGE", "RESERVE"),
                                                         tresorier="TRESORIER" in norm(row.get("role") or ""),
-                                                        age=AGES.get(norm(row.get("age") or "")))
+                                                        age=AGES.get(norm(row.get("age") or "")),
+                                                        jusqu_au=until(row.get("jusqu_au")))
     return roster
+
+
+def until(text):
+    """Dernier jour où un joueur est disponible (7e colonne de l'effectif, demande de l'auteur,
+    06/10/2026) : « 2027-04 » ou « 04/2027 » = fin avril 2027, « 2027-04-15 » ou « 15/04/2027 » ;
+    None sinon (disponible toute la saison)."""
+    text = str(text or "").strip()
+    m = re.fullmatch(r"(\d{4})-(\d{1,2})(?:-(\d{1,2}))?", text)
+    y, mo, d = (m.group(1), m.group(2), m.group(3)) if m else (None, None, None)
+    if not m:
+        m = re.fullmatch(r"(?:(\d{1,2})/)?(\d{1,2})/(\d{4})", text)
+        if not m:
+            return None
+        d, mo, y = m.group(1), m.group(2), m.group(3)
+    y, mo = int(y), int(mo)
+    if not 1 <= mo <= 12:
+        return None
+    last = calendar.monthrange(y, mo)[1]
+    d = int(d) if d else last
+    return f"{y:04d}-{mo:02d}-{d:02d}" if 1 <= d <= last else None
 
 
 # classes d'âge de l'effectif (demande de l'auteur, 05/10/2026) : à valeur proche, les changements
@@ -822,7 +844,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             cle="R:" + rkey if rkey else r["cle"], nom=r["nom"],
             num=(r["nums"] or nums).most_common(1)[0][0] if nums else None,
             poste=poste, gardien=gk, disponible=ros.get("disponible", True), depannage=ros.get("depannage", False),
-            tresorier=ros.get("tresorier", False), age=ros.get("age"),
+            tresorier=ros.get("tresorier", False), age=ros.get("age"), jusqu_au=ros.get("jusqu_au"),
             m=m, m_total=n_sheet, buts=r["buts"], pen=r["pen"],
             presence=round(r["tranches"] / r["m_deroule"], 1) if r["m_deroule"] else None,
             min_deux=2 * r["deux_min"], tirs=r["tirs"] or None,
@@ -848,7 +870,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=()):
             cle="R:" + rkey, nom=ros.get("nom") or rkey.title(), num=None, poste=ros.get("poste", ""),
             gardien="GB" in (ros.get("poste") or "").split("/"), disponible=ros.get("disponible", True),
             depannage=ros.get("depannage", False), tresorier=ros.get("tresorier", False), age=ros.get("age"),
-            m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
+            jusqu_au=ros.get("jusqu_au"), m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
             comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
@@ -1176,6 +1198,7 @@ def cup_ahead(fixtures, config, today, league):
     jamais match clé. Victoire estimée : celle d'un match de championnat contre le même adversaire
     s'il y en a un, sinon inconnue (une équipe d'une autre division)."""
     out = []
+    sizes = {c.get("nom"): c.get("effectif_feuille") for c in config.get("coupes") or []}   # 14 en Coupe de France
     for f in fixtures:
         if not f.get("coupe") or f.get("score_home") is not None or (f.get("date") or "9999") < today:
             continue
@@ -1188,7 +1211,7 @@ def cup_ahead(fixtures, config, today, league):
                         journee=None, coupe=f["coupe"], tour=f.get("tour"), adversaire=adv, domicile=dom,
                         salle=f.get("salle"), rang_adv=same and same.get("rang_adv"), pts_adv=None,
                         p_victoire=same and same.get("p_victoire"), si_victoire=None, sinon=None,
-                        enjeu=None, cle=False))
+                        enjeu=None, cle=False, effectif=int(sizes.get(f["coupe"]) or 0) or None))
     return out
 
 

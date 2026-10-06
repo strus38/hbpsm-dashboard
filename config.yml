@@ -22,6 +22,9 @@ gardiens_feuille: 2
 coupes:
   - nom: Coupe de France
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/coupe-de-france/coupe-de-france-departementale-masculine-2026-2027-33244/"
+    # « Le club peut aligner 14 joueurs de 17 ans et plus sur la feuille de match » (règlement FFHandball
+    # de la Coupe de France régionale et départementale, art. 15, 2024-2025 et 2025-2026)
+    effectif_feuille: 14
 # Où chercher un adversaire de coupe qui ne joue pas dans nos poules : la collecte retrouve sa
 # poule dans ces compétitions et lit ses matchs (et leurs feuilles) pour sa fiche dans
 # Adversaires, hors de nos classements.
