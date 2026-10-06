@@ -164,6 +164,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   le journal (`fetchCN`, `CFG.cn`) ; les propositions rejoignent « À valider » (`cnProposals`) ; seuls les
   trésoriers valident (« v:<id> ») ou refusent (« r:<id> ») dans le registre. Code du dépôt à part tenu et
   testé dans `cn/` (son `vault.py` = celui du pipeline) ; secret `HBPSM_CLE` dans les deux dépôts.
+  Téléphone : bouton « 📤 Partager » à côté de la dénonciation (menu de partage du téléphone, `navigator.share`,
+  `canShare`), sous 560 px et si le navigateur le permet ; sinon le copier-coller.
   Anniversaires (demande de l'auteur, 05/10/2026) : 6e colonne `naissance` de l'effectif (MM-JJ, jamais
   l'année ; roster.csv et le secret, jamais le dépôt) ; une ligne de rôle « coach » donne celui de
   l'entraîneur sans en faire un joueur (`is_staff`). `birthdays` -> `caisse.anniversaires` ; carte

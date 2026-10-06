@@ -694,6 +694,14 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.locator("[data-cpick-j]").first.click()
         ro.locator("[data-cpick-r=m_oubli]").click()
         assert ro.locator("[data-cgo]").count() == 0 and ro.locator("[data-cdenonce]").count() == 1
+        # téléphone : la dénonciation se partage directement (menu de partage du téléphone)
+        ro.set_viewport_size({"width": 360, "height": 780})
+        ro.evaluate("navigator.share = async d => { window.__partage = d; }; render(true)")
+        ro.locator("[data-cshare]").click()
+        ro.wait_for_function("() => window.__partage", timeout=3000)
+        assert "Dénonciation" in ro.evaluate("window.__partage.text")
+        ro.set_viewport_size({"width": 1100, "height": 900})
+        ro.wait_for_function("() => !document.querySelector('[data-cshare]')", timeout=3000)
         # avec le jeton des propositions (dans les données chiffrées), il propose l'amende directement :
         # elle part au dépôt à part, tout le monde la voit, seul un trésorier la valide
         ro.evaluate("""D.caisse.jeton_cn = "jeton-cn-test"; CFG.cn = CFG.caisse.replace("caisse.enc", "propositions.enc");
