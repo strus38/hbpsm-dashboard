@@ -291,8 +291,8 @@ les notes sont des tendances.
 
 ## Objectif de saison et matchs clés
 
-L'onglet Saison estime les chances d'atteindre le rang visé (`objectif.rang`, 3 : se qualifier
-pour la deuxième phase) en simulant les matchs restants de la poule, montre les chances de chaque
+L'onglet Saison estime les chances d'atteindre le rang visé (`objectif.rang`, 2 : finir 1er ou 2e,
+les places de montée) en simulant les matchs restants de la poule, montre les chances de chaque
 rang final, et donne pour chaque match du club l'écart de chances entre une victoire et un autre
 résultat : les trois plus gros écarts sont les matchs clés. La force de chaque équipe reste
 incertaine : chaque saison simulée la tire autour de son estimation (±8 % de buts au départ),

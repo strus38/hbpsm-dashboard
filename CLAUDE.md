@@ -79,7 +79,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   éligibles de chaque secteur » montent en 1re division ; pas de descente. Poules 71 et 72 = un
   secteur (déduit de la numérotation). Deuxième phase au calendrier (avril à juin 2027), formule
   publiée vers février-mars ; aucun play-off 71/72 écrit. Précédent 2025-2026 : poule haute avec les
-  4 premiers de chaque poule. Objectif de 1re phase réglé à 3 (choix de l'auteur, `objectif.rang`) ;
+  4 premiers de chaque poule. Objectif réglé à 2, finir 1er ou 2e (choix de l'auteur, 06/10/2026 ; 3 avant ;
+  `objectif.rang`), simulé sur la première phase ;
   l'onglet Saison montre aussi les chances de chaque rang final. À revoir quand la formule paraîtra.
 - Départage (RG FFHB 3.3, repris par l'AURA) : points, puis points et différence de buts des
   confrontations directes (répétés), différence générale, buts marqués (`rank_teams`). Non
@@ -277,11 +278,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   divisions au-dessus de la nôtre : 1re div. 1, Honneur 2, Excellence 3, Prénationale 4) ; composante `exp`
   = min(1, total / 100) ; 10 % de la note (`EXP_POIDS`), gardiens compris. JAMAIS affichée (choix de
   l'auteur) : absente de `COMP_NOM`. Les chiffres affichés des saisons passées restent bruts.
-  Saisons lues pour cela (nos matchs seulement, `club_seul`) : Excellence AURA 2019-2020 (13164, poule 3),
-  2021-2022 (17618, poule 3), 2022-2023 (19735, poule 2), niveau 3 ; Honneur 2023-2024 ; 1re division 2024-2025.
-  Adresses pas trouvées au 06/10/2026 (demandées à l'auteur) : 2015-2016 et 2016-2017 (Excellence régionale),
-  2017-2018 (Prénationale Est), 2018-2019 (Excellence AURA, poule 3), 2020-2021 (Honneur, 2 matchs). Plusieurs
-  saisons anciennes sur une fiche : « 2019-2024 » (`saison_ancienne`).
+  Saisons lues pour cela (nos matchs seulement, `club_seul` ; adresses retrouvées par l'auteur) : Excellence
+  régionale 2015-2016 (1012) et 2016-2017 (4541), Prénationale Est 2017-2018 (7656, niveau 4), Excellence AURA
+  2018-2019 (10485), 2019-2020 (13164), 2021-2022 (17618), 2022-2023 (19735) (niveau 3), Honneur 2020-2021 (15582)
+  et 2023-2024 (niveau 2), 1re division 2024-2025 (niveau 1). L'équipe réserve (départemental 2015-2017) et la
+  coupe de l'Isère n'y sont pas. Avant 2018-2019, le serveur n'a plus les feuilles (404) : la page « statistiques »
+  de la poule du club (bloc `competitions---stats-joueurs` : matchs, buts, arrêts de chaque joueur) en tient lieu,
+  lue une fois par saison (`history.club_stats` -> `joueurs_club`) ; l'expérience prend, saison par saison, le plus
+  grand des deux décomptes. Liste des compétitions de la ligue pour une saison : …/regional/o-ligue-
+  auvergne-rhone-alpes-4/. Plusieurs saisons anciennes sur une fiche : « 2015-2024 » (`saison_ancienne`).
 - Avis de l'auteur (demande de l'auteur, 06/10/2026 : un demi-centre que l'auteur juge clairement le meilleur
   joueur devrait être au-dessus de 65 ; son jeu ne se lit pas sur la feuille) : 8e colonne `avis` de l'effectif,
   1 à 5 étoiles (`analyze.opinion`), un quart de la note (`AVIS_POIDS`), roster.csv et le secret seulement, JAMAIS

@@ -786,15 +786,23 @@ CLUTCH_PRUDENCE = 3
 
 
 def experience_of(current, seasons, config):
-    """Matchs joués au club (feuilles lues), cette saison (current) et les saisons passées (niveau de
-    chacune), pondérés par le niveau : {clé du joueur: matchs pondérés}. Les moins de 18 ans n'y sont pas."""
+    """Matchs joués au club, cette saison (current) et les saisons passées (niveau de chacune), pondérés
+    par le niveau : {clé du joueur: matchs pondérés}. Par saison, pour chaque joueur, le plus grand des
+    deux décomptes : ses feuilles lues, ou la page « statistiques » de la poule (joueurs_club ; seule trace
+    avant 2018-2019, le serveur n'ayant plus les feuilles). Les moins de 18 ans n'y sont pas."""
     out = Counter()
-    for matches, level in [(current, 0)] + [(s.get("matches") or [], int(s.get("niveau") or 0)) for s in seasons]:
-        for m, side, *_ in club_matches_of(matches, config):
+    for season in [dict(matches=current, niveau=0)] + list(seasons):
+        played = Counter()
+        for m, side, *_ in club_matches_of(season.get("matches") or [], config):
             for p in (m.get("players") or {}).get(side, []):
-                key = name_key(p.get("name"))
-                if key:
-                    out[key] += 1 + EXP_NIVEAU * level
+                if name_key(p.get("name")):
+                    played[name_key(p.get("name"))] += 1
+        for r in season.get("joueurs_club") or []:
+            key = name_key(r.get("name"))
+            if key:
+                played[key] = max(played[key], int(r.get("m") or 0))
+        for key, n in played.items():
+            out[key] += n * (1 + EXP_NIVEAU * int(season.get("niveau") or 0))
     return out
 
 
@@ -1217,7 +1225,9 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
     les publications suivantes recalculent. Un match qui entre dans l'horizon reçoit ses valeurs du
     jour. Même résultat pour tout le monde, et d'une ouverture à l'autre."""
     # history : saisons passées et jeunes, avec leurs feuilles lues ; une saison ajoutée relâche aussi
+    # l'objectif aussi : les matchs clés en dépendent
     key = dict(feuilles=sorted(str(s) for s in sheets), forfaits=sorted(config.get("forfaits") or []),
+               objectif=int((config.get("objectif") or {}).get("rang", 1)),
                historique=sorted([x.get("saison") or "", x.get("niveau") or 0, x.get("categorie") or "",
                                   sum(1 for m in x.get("matches") or [] if (m.get("source") or {}).get("fdme"))] for x in history),
                effectif=hashlib.sha256(json.dumps(roster, sort_keys=True, ensure_ascii=False, default=str)

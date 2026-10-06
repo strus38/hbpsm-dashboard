@@ -1395,6 +1395,15 @@ def test_experience_et_tranches_d_age(sandbox):
     side = lambda x: "home" if x["home"]["name"] == demo_data.CLUB else "away"
     config = common.load_config()
     counts = an.experience_of([], [dict(matches=old, niveau=3)], config)
+    # saison sans feuilles (avant 2018-2019) : les matchs de la page « statistiques » de la poule
+    from pipeline import history
+    rows = history.club_rows(dict(rowsData=[dict(nom="EXEMPLE", prenom="ISIDORE", matchCount="12", totalButs="30",
+                                                 equipeLibelle=demo_data.CLUB),
+                                            dict(nom="AUTRE", prenom="JOUEUR", matchCount="9", equipeLibelle="CLUB BRAVO")]),
+                             lambda t: common.is_club(t, config))
+    assert rows == [dict(name="EXEMPLE ISIDORE", m=12, buts=30, arrets=0)]
+    assert an.experience_of([], [dict(matches=[], joueurs_club=rows, niveau=4)], config) \
+        == {common.name_key("Isidore Exemple"): 12 * (1 + 4 * an.EXP_NIVEAU)}
     first = common.name_key(club[0]["players"][side(club[0])][0]["name"])
     assert counts[first] == (1 + 3 * an.EXP_NIVEAU) * sum(
         1 for x in old if first in {common.name_key(q["name"]) for q in x["players"][side(x)]})

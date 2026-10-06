@@ -16,6 +16,10 @@ en attendant le délai qu'il demande, dans un budget de temps par passage ; le p
 reprend où le précédent s'est arrêté. Les
 déroulés ne sont gardés que pour les matchs du club (buts pris par chaque gardien) : tableaux et
 scores suffisent pour les autres, et le fichier chiffré reste léger.
+
+Saisons de nos seuls matchs (club_seul) : la page « statistiques » de la poule du club donne aussi ses
+joueurs et leurs matchs (joueurs_club) ; avant 2018-2019, le serveur n'a plus les feuilles (404) et c'est
+la seule trace de qui jouait : l'expérience de nos joueurs en tient compte (demande de l'auteur, 06/10/2026).
 """
 import sys
 import urllib.error
@@ -80,6 +84,29 @@ def read_sheet(match, path, is_ours):
     if not (is_ours(fx["home"]) or is_ours(fx["away"])):
         new["events"] = []
     return new
+
+
+def club_rows(block, is_ours):
+    """Les joueurs du club dans le bloc « stats-joueurs » d'une poule : [{name, m, buts, arrets}]."""
+    out = []
+    for r in (block or {}).get("rowsData") or []:
+        if is_ours(r.get("equipeLibelle")) and (r.get("nom") or r.get("prenom")):
+            num = lambda k: int(r.get(k) or 0) if str(r.get(k) or "0").isdigit() else 0
+            out.append(dict(name=f"{(r.get('nom') or '').strip()} {(r.get('prenom') or '').strip()}".strip(),
+                            m=num("matchCount"), buts=num("totalButs"), arrets=num("totalArrets")))
+    return out
+
+
+def club_stats(season, is_ours):
+    """Les joueurs du club et leurs matchs, d'après la page « statistiques » de ses poules."""
+    rows = []
+    for label, p in (season.get("poules") or {}).items():
+        teams = p.get("equipes") or []
+        if not any(is_ours(t) for t in teams):
+            continue
+        page = collect.page_data(f"{season['competition']}poule-{p['id']}/statistiques/", f"historique_{season['saison']}_{p['id']}_stats")
+        rows += club_rows(page.get("competitions---stats-joueurs"), is_ours)
+    return rows
 
 
 def fetch_sheets(season, target, is_ours, budget=SHEET_BUDGET):
@@ -158,6 +185,12 @@ def main():
                 print(f"[historique] {entry['saison']} : {exc}", file=sys.stderr)
                 continue
             write_json(target, season)
+        if entry.get("club_seul") and "joueurs_club" not in season:   # une page par saison, une fois
+            try:
+                season["joueurs_club"] = club_stats(season, is_ours)
+                write_json(target, season)
+            except (urllib.error.URLError, OSError) as exc:
+                print(f"[historique] {entry['saison']} : statistiques des joueurs non lues ({exc})", file=sys.stderr)
         left = fetch_sheets(season, target, is_ours, budget=max(0, deadline - collect.time.monotonic()))
         read = sum(1 for m in season["matches"] if m["source"].get("fdme"))
         print(f"[historique] {target.stem} : {read} feuilles lues" + (f", {left} à venir" if left else ", complète"))
