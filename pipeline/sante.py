@@ -26,8 +26,8 @@ API = "https://api.github.com"
 
 
 def token_days(token, repo, now=None):
-    """Jours avant l'échéance d'un jeton GitHub à grain fin (en-tête de l'API), None s'il n'en a pas ;
-    « refusé » s'il ne marche plus."""
+    """Jours avant l'échéance d'un jeton GitHub à grain fin (en-tête de l'API) ; « sans échéance » s'il
+    n'en a pas, « refusé » s'il ne marche plus, None s'il n'a pas pu être vérifié."""
     if not token or not repo:
         return None
     req = urllib.request.Request(f"{API}/repos/{repo}", headers={"Authorization": f"Bearer {token}",
@@ -40,7 +40,7 @@ def token_days(token, repo, now=None):
     except (urllib.error.URLError, OSError):
         return None
     if not end:
-        return None
+        return "sans échéance"
     try:
         when = dt.datetime.strptime(end.strip()[:19], "%Y-%m-%d %H:%M:%S").date()
     except ValueError:
@@ -146,7 +146,9 @@ def main(argv=None):
                                                        publish.history_state()))
         PUBLIE.mkdir(parents=True, exist_ok=True)
         write_json(path, state)
-    print(f"[santé] {state['etat']} : {len(alerts)} point(s) à surveiller ; issue : {issue(alerts, failed) or 'rien à faire'}")
+    seen = ", ".join(f"{label} " + (f"{days} j" if isinstance(days, int) else days or "non vérifié") for label, days in tokens.items())
+    print(f"[santé] {state['etat']} : {len(alerts)} point(s) à surveiller ; jetons : {seen or 'aucun'} ; "
+          f"issue : {issue(alerts, failed) or 'rien à faire'}")
     return 0
 
 
