@@ -438,6 +438,15 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert "cid=webcal%3A%2F%2Fexemple.test" in page.get_attribute(".matchcard a[href*='calendar.google.com/calendar/r?cid=']", "href")
         page.evaluate("CFG.ics = ''; render(true)")
         assert page.locator(".matchcard summary:has-text('Tous les matchs')").count() == 0
+        # en buts : l'écart attendu de la feuille, les buts évités d'un gardien, le coût des exclusions
+        assert page.evaluate("butsTxt(-2.46, 1)") == "−2,5" and page.evaluate("butsTxt(3)") == "+3"
+        assert page.evaluate("planning()[0].goalsAdj !== undefined")
+        line = page.evaluate("""(() => { const g = D.joueurs.find(isGK); const keep = g.evites_passe;
+          g.evites_passe = {saison: "2025-2026", tirs: 280, valeur: 29, par_match: 2.1, moyenne: 31};
+          const t = evitesLine(g); g.evites_passe = keep; return t; })()""")
+        assert "Buts évités" in line and "+2,1 buts par match" in line and "31 %" in line
+        note = page.evaluate("(() => { const k = D.meta.exclusion; D.meta.exclusion = {cout: -0.44, n: 376}; const t = exclNote(); D.meta.exclusion = k; return t; })()")
+        assert "environ 0,4 but" in note and "376" in note
         # mode causerie : cinq écrans, au clavier, fermé par Échap
         page.click("button[data-talk]")
         title = "document.querySelector('#talk h2').textContent"
@@ -1440,6 +1449,26 @@ def test_avis_de_l_auteur(sandbox):
     assert all(0 <= x["comps"]["clutch"] <= 1 for x in rated.values())
     template = (ROOT_DIR / "dashboard" / "template.html").read_text("utf-8")
     assert "avis" not in next(l for l in template.splitlines() if l.startswith("const COMP_NOM"))
+
+
+def test_parler_en_buts(sandbox):
+    """En buts plutôt qu'en pourcentages : buts évités par un gardien face au gardien moyen, coût d'une
+    exclusion de 2 minutes, écart attendu de chaque match."""
+    assert an.goals_saved(dict(cadres=100, pris=60, m=5), 0.3, "2025-2026") == dict(
+        saison="2025-2026", tirs=100, valeur=10, par_match=2.0, moyenne=30)
+    assert an.goals_saved(dict(cadres=50, pris=30, m=3), 0.3, "2025-2026") is None   # trop peu de tirs
+    config = common.load_config()
+    club = config["club"]["motifs"][0]
+    events = [dict(t=100, side="home", type="goal"), dict(t=600, side="home", type="two_min"),
+              dict(t=650, side="away", type="goal"), dict(t=700, side="away", type="pen_goal"),
+              dict(t=2000, side="home", type="goal")]
+    match = dict(id="x", date="2026-01-01", home=dict(name=club, score=2), away=dict(name="CLUB BRAVO", score=2), events=events)
+    assert an.exclusion_cost([match], config) == (-2.0, 1)   # deux buts pris pendant l'exclusion, rythme du match nul
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    assert 0 < an.league_save_rate([json.loads(f.read_text("utf-8")) for f in (sandbox / "data" / "matches").glob("*.json")]) < 1
+    m = d["saison"]["matchs"][0]
+    assert m["ecart"] is not None and m["buts_pour"] > 0 and isinstance(d["meta"]["exclusion"], dict)
 
 
 def test_anniversaires(sandbox):

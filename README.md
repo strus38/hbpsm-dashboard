@@ -360,6 +360,15 @@ gardé ses joueurs retrouve son propre bilan.
   rappelle aussi de prendre en compte la formule de la deuxième phase (« phase2: vue » sous `objectif`
   dans `config.yml` une fois fait) ; ce rappel ne s'affiche qu'à l'entraîneur et aux trésoriers.
 
+## En buts plutôt qu'en pourcentages
+
+- **Buts évités par un gardien** : ses arrêts, moins ce qu'aurait arrêté le gardien moyen des poules sur les
+  mêmes tirs cadrés (dès 60 tirs) ; sur sa fiche, et pour la paire proposée dans la Semaine.
+- **Écart attendu** de chaque match, en buts, à côté de la victoire estimée, et ajusté à l'équipe retenue :
+  une feuille moins forte marque d'autant moins.
+- **Coût d'une exclusion de 2 minutes**, mesuré sur nos feuilles : l'écart de buts des deux minutes qui
+  suivent, comparé au rythme du match (environ −0,4 but) ; dans « À travailler », sur les fiches et en causerie.
+
 ## Calendrier, application, image du bilan, causerie
 
 - **Tous les matchs dans son agenda** : le menu « 🔔 Tous les matchs » (Semaine, Ma semaine) abonne

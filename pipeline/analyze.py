@@ -483,7 +483,7 @@ def history_profiles(seasons, profiles, matches, config, above=(), rosters=None)
     return priors
 
 
-def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=4000, seed=38160):
+def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=4000, seed=38160, goals=None):
     """Chances de gagner un match de coupe contre une équipe d'une autre poule, ou d'une autre
     division (level : 1 = celle du dessus). Sa force se lit sur ses matchs, rapportés à ce qu'on
     marque dans sa poule, puis se décale de l'écart de division ; elle part de la moyenne de sa
@@ -506,6 +506,9 @@ def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=
         out.append((seen * j + base * k) / (j + k))
     att_t, dfn_t = out
     att_u, dfn_u = forces[club]
+    if goals is not None:   # buts attendus, forces centrales : l'écart attendu du match de coupe
+        mu0 = avg * att_u * dfn_t * (1.04 if home else 0.96)
+        goals.update(pour=round(mu0, 1), ecart=round(mu0 - avg * att_t * dfn_u * (0.96 if home else 1.04), 1))
     rng, won = random.Random(seed), 0.0
     for _ in range(sims):
         fu, ft = math.exp(rng.gauss(0, UNSURE)), math.exp(rng.gauss(0, 1.5 * UNSURE))
@@ -806,6 +809,60 @@ def experience_of(current, seasons, config):
     return out
 
 
+# Parler en buts, pas en pourcentages (demande de l'auteur, 06/10/2026) : les buts évités par un gardien
+# par rapport au gardien moyen des poules lues, et ce que nous coûte une exclusion de 2 minutes.
+EVITES_MIN = 60   # tirs cadrés au moins avant de dire des buts évités
+EXCLUSION = 120   # secondes d'une exclusion
+
+
+def league_save_rate(matches):
+    """Part des tirs cadrés arrêtés par l'ensemble des gardiens des feuilles lues, là où l'on sait qui a pris
+    quels buts ; None sans feuille."""
+    saved = shots = 0
+    for m in matches:
+        for side in ("home", "away"):
+            plist = (m.get("players") or {}).get(side, [])
+            if not plist:
+                continue
+            conceded, _ = keepers_conceded(m, side)
+            for p in plist:
+                if p.get("saves") and p.get("num") in conceded:
+                    saved += p["saves"]
+                    shots += p["saves"] + conceded[p["num"]]
+    return saved / shots if shots else None
+
+
+def goals_saved(rec, rate, saison):
+    """Buts évités par un gardien par rapport au gardien moyen : ses arrêts sur les tirs cadrés connus, moins
+    ce qu'en aurait arrêté le gardien moyen ; None avec trop peu de tirs."""
+    shots = (rec or {}).get("cadres") or 0
+    if not rate or shots < EVITES_MIN:
+        return None
+    value = shots - (rec.get("pris") or 0) - shots * rate
+    m = rec.get("m") or 0
+    return dict(saison=saison, tirs=shots, valeur=round(value), par_match=round(value / m, 1) if m else None,
+                moyenne=round(100 * rate))
+
+
+def exclusion_cost(matches, config):
+    """Ce que nous coûte une exclusion de 2 minutes, d'après les déroulés de nos feuilles : l'écart de buts des
+    2 minutes qui suivent, moins l'écart moyen du même match sur une durée égale. (buts par exclusion, nombre)."""
+    diffs = []
+    for m, side, *_ in club_matches_of(matches, config):
+        events = [e for e in m.get("events") or [] if isinstance(e.get("t"), (int, float))]
+        goals = [(e["t"], 1 if e.get("side") == side else -1) for e in events if e.get("type") in ("goal", "pen_goal")]
+        if not goals:
+            continue
+        end = max(3600, max(t for t, _ in goals))
+        pace = sum(g for _, g in goals) / end
+        for e in events:
+            if e.get("type") == "two_min" and e.get("side") == side:
+                t0, t1 = e["t"], min(e["t"] + EXCLUSION, end)
+                if t1 > t0:
+                    diffs.append(sum(g for t, g in goals if t0 < t <= t1) - pace * (t1 - t0))
+    return (round(sum(diffs) / len(diffs), 2), len(diffs)) if diffs else (None, 0)
+
+
 def club_players(matches, config, roster, history=(), older=(), youth=(), ancient=(), experience=None):
     """Statistiques individuelles du club et notes. La saison passée (history : matchs) sert de
     point de départ : ses matchs comptent pour HIST dans la forme, le tir, la discipline, les
@@ -844,6 +901,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
         if key not in players and match_name(h["nom"], roster):
             players[key] = dict(EMPTY, cle=key, nom=h["nom"], nums=Counter(), clutch=0, diffs=[], journal=[],
                                 tranches=0, m_deroule=0, estime=False)
+    rate_now, rate_past = league_save_rate(matches), league_save_rate(history)   # le gardien moyen, chaque saison
     all_diffs = [gf - ga for _, _, _, gf, ga in with_sheet]
     blend = lambda r, h, k: r[k] + hw * h[k]
     hist_of = lambda r: merged(merged(merged(past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY)), young.get(r["cle"], EMPTY)),
@@ -917,6 +975,8 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             reussite=round(100 * r["tirs_connus"] / r["tirs"]) if r["tirs"] else None,
             arrets=r["arrets"], pris=r["pris"] if r["cadres"] else None,
             tirs_subis=r["cadres"] or None, pct_arrets=save_pct(r["cadres"] - r["pris"], r["pris"]),
+            evites=goals_saved(r, rate_now, config.get("saison")) if gk else None,
+            evites_passe=goals_saved(hp, rate_past, saison_passee) if gk else None,
             pris_estime=r["estime"],
             jaunes=r["jaunes"], deux_min=r["deux_min"], rouges=r["rouges"],
             buts_moy=round(r["buts"] / m, 1) if m else 0,
@@ -1100,6 +1160,9 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         s = stat[f["id"]]
         dom = f["home"] == club
         adv = f["away"] if dom else f["home"]
+        # buts attendus (forces centrales) : l'écart attendu, en buts (demande de l'auteur, 06/10/2026)
+        mu = avg * att0[club] * dfn0[adv] * (1.04 if dom else 0.96)
+        mt = avg * att0[adv] * dfn0[club] * (0.96 if dom else 1.04)
         si_v = 100 * s["v_ok"] / s["v"] if s["v"] else None
         si_o = 100 * s["o_ok"] / s["o"] if s["o"] else None
         enjeu = round(si_v) - round(si_o) if si_v is not None and si_o is not None else None
@@ -1109,7 +1172,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
             rang_adv=table[adv]["rang"], pts_adv=table[adv]["pts"],
             p_victoire=round(100 * s["v"] / sims),
             si_victoire=None if si_v is None else round(si_v),
-            sinon=None if si_o is None else round(si_o), enjeu=enjeu))
+            sinon=None if si_o is None else round(si_o), enjeu=enjeu,
+            buts_pour=round(mu, 1), ecart=round(mu - mt, 1)))
     ranked = sorted((m for m in base["matchs"] if m["enjeu"] is not None), key=lambda m: -m["enjeu"])
     keys = {m["id"] for m in ranked[:3] if m["enjeu"] > 0}
     for m in base["matchs"]:
@@ -1279,6 +1343,7 @@ def cup_ahead(fixtures, config, today, league):
                         journee=None, coupe=f["coupe"], tour=f.get("tour"), adversaire=adv, domicile=dom,
                         salle=f.get("salle"), rang_adv=same and same.get("rang_adv"), pts_adv=None,
                         p_victoire=same and same.get("p_victoire"), si_victoire=None, sinon=None,
+                        buts_pour=same and same.get("buts_pour"), ecart=same and same.get("ecart"),
                         enjeu=None, cle=False, effectif=int(sizes.get(f["coupe"]) or 0) or None))
     return out
 
@@ -1417,9 +1482,11 @@ def analyze(today=None, roster=None):
         gap = 1 + float(config.get("ecart_division", ECART))
         for m in saison["matchs"]:  # adversaire d'une autre poule ou d'une autre division
             if m.get("coupe") and m.get("p_victoire") is None:
+                goals = {}
                 m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
                                              profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
-                                             gap, priors.get(m["adversaire"]), m["domicile"])
+                                             gap, priors.get(m["adversaire"]), m["domicile"], goals=goals)
+                m["buts_pour"], m["ecart"] = goals.get("pour"), goals.get("ecart")
     chances = record_chances(saison, len(with_sheet))
     plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
                              all_history)
@@ -1434,7 +1501,9 @@ def analyze(today=None, roster=None):
                   prudence=PRUDENCE,
                   club_matchs=len(club_matches), club_feuilles=len(with_sheet),
                   historique=[x.get("saison") for x in seasons],
-                  ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since),
+                  ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since,
+                  exclusion=dict(zip(("cout", "n"), exclusion_cost(
+                      every_match + [m for x in history for m in x.get("matches") or []], config)))),
         prochain=nxt,
         parcours=config.get("parcours") or [],   # le parcours de l'équipe depuis 2015 (onglet Saison)
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)

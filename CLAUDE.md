@@ -291,6 +291,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   joueur devrait être au-dessus de 65 ; son jeu ne se lit pas sur la feuille) : 8e colonne `avis` de l'effectif,
   1 à 5 étoiles (`analyze.opinion`), un quart de la note (`AVIS_POIDS`), roster.csv et le secret seulement, JAMAIS
   affiché ; sans avis, la note ne change pas. Au 06/10/2026, un seul joueur en a un (5 étoiles).
+- En buts plutôt qu'en pourcentages (demande de l'auteur, 06/10/2026, visibles de tous) : buts évités par un
+  gardien face au gardien moyen des poules lues (`league_save_rate` sur les tirs cadrés dont on sait qui a pris
+  les buts ; `goals_saved`, dès 60 tirs ; `evites` cette saison, `evites_passe` la saison passée) sur sa fiche,
+  et pour la paire proposée dans la Semaine face à la plus sûre disponible (`gkPairLine`) ; écart attendu de
+  chaque match (`ecart`, `buts_pour` : buts attendus des forces centrales d'`outlook`, `cup_chance(goals=)` en
+  coupe), ajusté à la feuille (`goalsAdj` = écart − (1 − force) × buts attendus du club) dans la Semaine, le
+  risque, la causerie et les barres de la Saison ; coût d'une exclusion (`exclusion_cost` : écart de buts des
+  2 minutes qui suivent, moins le rythme du match, sur tous nos déroulés depuis 2018 ; `meta.exclusion`, environ
+  −0,44 but sur 376 au 06/10/2026) dans « À travailler », la fiche (exclusions en buts) et la causerie.
 - Fins de match (`clutch`, 06/10/2026) : neutres (0,5) tant que personne n'a d'action décisive dans la saison,
   puis ramenées vers 0,5 avec peu de matchs (`CLUTCH_PRUDENCE` = 3) ; avant, un seul match joué sans but
   décisif donnait 0, contre 0,5 à ceux qui n'avaient pas joué.
