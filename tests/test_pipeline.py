@@ -1382,6 +1382,36 @@ def test_saison_plus_ancienne_pour_un_joueur_revenu(sandbox):
     assert all(x["avant"]["saison"] == "2024-2025" for x in others if x.get("avant"))
 
 
+def test_experience_et_tranches_d_age(sandbox):
+    """L'expérience au club (matchs depuis 2015, comptés davantage plus haut) entre pour une part dans la
+    note, sans être affichée ; les tranches d'âge de 5 ans se lisent dans l'effectif, les anciens mots aussi."""
+    assert [an.age_class(x) for x in ("18-22", " 23 - 27 ", "jeune", "Expérimenté", "", "x")] \
+        == ["18-22", "23-27", "jeune", "experimente", None, None]
+    demo(sandbox)
+    before = {x["cle"]: x for x in an.analyze("2026-10-04")["joueurs"]}
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]][:2]
+    old = [dict(x, id="exc" + str(x["id"]), date=f"2021-11-0{i + 1}", saison="2021-2022") for i, x in enumerate(club)]
+    side = lambda x: "home" if x["home"]["name"] == demo_data.CLUB else "away"
+    config = common.load_config()
+    counts = an.experience_of([], [dict(matches=old, niveau=3)], config)
+    first = common.name_key(club[0]["players"][side(club[0])][0]["name"])
+    assert counts[first] == (1 + 3 * an.EXP_NIVEAU) * sum(
+        1 for x in old if first in {common.name_key(q["name"]) for q in x["players"][side(x)]})
+    common.write_json(sandbox / "data" / "historique" / "2021-2022-niveau3.json",
+                      dict(saison="2021-2022", niveau=3, competition="https://exemple/excellence-1/", poules={}, matches=old))
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", competition="https://exemple/2eme-division-masculine-1/", poules={}, matches=[]))
+    after = {x["cle"]: x for x in an.analyze("2026-10-04")["joueurs"]}
+    keys = {common.name_key(q["name"]) for x in old for q in x["players"][side(x)]} & set(before) & set(after)
+    assert keys and all(after[k]["comps"]["exp"] > before[k]["comps"]["exp"] for k in keys)
+    assert all(after[k]["scores_bruts"]["equilibre"] >= before[k]["scores_bruts"]["equilibre"] for k in keys)
+    assert all(after[k]["comps"]["exp"] == before[k]["comps"]["exp"] for k in set(before) - keys if k in after)
+    template = (ROOT_DIR / "dashboard" / "template.html").read_text("utf-8")
+    shown = next(l for l in template.splitlines() if l.startswith("const COMP_NOM"))
+    assert "exp:" not in shown and "xpérience" not in shown   # jamais affichée
+
+
 def test_anniversaires(sandbox):
     """Caisse noire : le jour d'anniversaire de chacun (jamais l'année), entraîneur compris, sans en faire un joueur."""
     assert an.birthday("2006-09-20") == "09-20" and an.birthday("20/09") == "09-20" and an.birthday("09-20") == "09-20"

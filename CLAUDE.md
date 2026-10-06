@@ -261,11 +261,27 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   pour tout le monde avant même que la feuille soit validée ; bandeau « pas encore publiés » et
   bouton Publier (`statusPending`). Ce qu'il a saisi ici prime sur le publié (« d » efface).
 - Classe d'âge (demande de l'auteur, 05/10/2026 : miser sur l'avenir, une équipe solide et jeune en
-  cas de montée) : 5e colonne `age` de l'effectif (jeune : 30 ans au plus, intermediaire : 31 à 40,
-  experimente : plus de 40), dans roster.csv et le secret, jamais dans le dépôt. Paramètre seulement,
-  JAMAIS affiché (choix de l'auteur) : à besoin égal, la rotation fait entrer le plus jeune et reposer
-  le plus âgé (poste pour poste d'abord) ; la règle des 2 changements préfère faire entrer un plus
-  jeune (`ageRank`).
+  cas de montée) : 5e colonne `age` de l'effectif, dans roster.csv et le secret, jamais dans le dépôt.
+  Depuis le 06/10/2026 (demande de l'auteur), tranches de 5 ans à partir de 18 ans : « 18-22 », « 23-27 »,
+  « 28-32 »… (`analyze.age_class`, `bandRank` dans la page), d'après l'âge atteint dans l'année où la saison
+  commence, les moins de 18 ans dans la première ; calculées depuis les dates de naissance du fichier de la
+  caisse noire de l'auteur, lues en mémoire : seule la tranche est gardée, JAMAIS l'année ; à refaire chaque
+  saison (juillet) avec son fichier. Les anciens mots restent compris (jeune = tranche 1, intermediaire = 3,
+  experimente = 5) : au 06/10/2026, trois joueurs sans date les gardent. Jeunes gardiens (partage du temps de
+  jeu en début de saison) : 27 ans au plus (`youngGK`). Paramètre seulement, JAMAIS affiché (choix de
+  l'auteur) : à besoin égal, la rotation fait entrer le plus jeune et reposer le plus âgé (poste pour poste
+  d'abord) ; la règle des 2 changements préfère faire entrer un plus jeune (`ageRank`).
+- Expérience (demande de l'auteur, 06/10/2026 : avoir joué plus haut donne de l'expérience, de la maturité, la
+  capacité à tirer l'équipe vers le haut) : `analyze.experience_of`, matchs joués au club (feuilles lues),
+  cette saison et toutes les saisons passées lues sauf les -18, un match comptant 1 + 0,5 × niveau (niveau =
+  divisions au-dessus de la nôtre : 1re div. 1, Honneur 2, Excellence 3, Prénationale 4) ; composante `exp`
+  = min(1, total / 100) ; 10 % de la note (`EXP_POIDS`), gardiens compris. JAMAIS affichée (choix de
+  l'auteur) : absente de `COMP_NOM`. Les chiffres affichés des saisons passées restent bruts.
+  Saisons lues pour cela (nos matchs seulement, `club_seul`) : Excellence AURA 2019-2020 (13164, poule 3),
+  2021-2022 (17618, poule 3), 2022-2023 (19735, poule 2), niveau 3 ; Honneur 2023-2024 ; 1re division 2024-2025.
+  Adresses pas trouvées au 06/10/2026 (demandées à l'auteur) : 2015-2016 et 2016-2017 (Excellence régionale),
+  2017-2018 (Prénationale Est), 2018-2019 (Excellence AURA, poule 3), 2020-2021 (Honneur, 2 matchs). Plusieurs
+  saisons anciennes sur une fiche : « 2019-2024 » (`saison_ancienne`).
 - Disponible jusqu'à une date (demande de l'auteur, 06/10/2026 : un gardien revenu, intermédiaire, disponible
   jusqu'en avril 2027, présence en 2027-2028 pas confirmée ; 5 gardiens depuis) : 7e colonne `jusqu_au` de
   l'effectif (« AAAA-MM » = fin du mois, ou « AAAA-MM-JJ » ; roster.csv et le secret, jamais le dépôt),

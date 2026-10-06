@@ -36,7 +36,8 @@ une phrase courte se devine par essais successifs.
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom,POSTE,disponibilité » :
    poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
    longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde ; puis
-   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire, la classe d'âge en 5e,
+   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire, la tranche d'âge en 5e (5 ans
+   à partir de 18 ans : « 18-22 », « 23-27 »… ; jamais l'année de naissance),
    l'anniversaire « MM-JJ » en 6e et, pour un joueur qui ne reste pas toute la saison, le dernier
    mois « AAAA-MM » ou jour « AAAA-MM-JJ » où il est disponible en 7e).
 2. **Settings > Pages** : source « GitHub Actions » (une fois).
@@ -118,8 +119,9 @@ suite sans sortir, matchs déjà joués compris. Les échanges se font poste pou
 possible, matchs à domicile et à l'extérieur pour chacun. Une case dit « proposé » tant que l'entraîneur
 n'a pas validé la feuille, « retenu » ensuite. Le tableau montre aussi les deux derniers matchs terminés
 de la saison : qui était sur la feuille. Une
-classe d'âge, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
-proche ; elle n'est affichée nulle part.
+tranche d'âge de 5 ans, dans l'effectif (secret), oriente les changements vers les plus jeunes à valeur
+proche ; elle n'est affichée nulle part. De même, l'expérience au club (les matchs joués depuis 2015, comptés
+davantage dans les divisions plus hautes) entre pour 10 % dans la note, sans être affichée.
 
 L'entraîneur seul déclare un joueur absent (pour un match) ou blessé (à partir d'un match, jusqu'à
 ce qu'il le dise rétabli), d'un clic sur une case. Le joueur sort des propositions concernées, et

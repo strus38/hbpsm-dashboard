@@ -581,7 +581,7 @@ def load_roster():
                                                         disponible=state not in ("NON", "0", "FALSE", "N"),
                                                         depannage=state in ("DEPANNAGE", "RESERVE"),
                                                         tresorier="TRESORIER" in norm(row.get("role") or ""),
-                                                        age=AGES.get(norm(row.get("age") or "")),
+                                                        age=age_class(row.get("age")),
                                                         jusqu_au=until(row.get("jusqu_au")))
     return roster
 
@@ -607,8 +607,16 @@ def until(text):
 
 
 # classes d'âge de l'effectif (demande de l'auteur, 05/10/2026) : à valeur proche, les changements
-# font jouer d'abord les plus jeunes, pour une équipe solide et jeune la saison suivante
+# font jouer d'abord les plus jeunes, pour une équipe solide et jeune la saison suivante. Depuis le
+# 06/10/2026, des tranches de 5 ans à partir de 18 ans (« 18-22 », « 23-27 »…, âge atteint dans l'année
+# où la saison commence ; les moins de 18 ans dans la première) ; les anciens mots restent compris.
 AGES = {"JEUNE": "jeune", "INTERMEDIAIRE": "intermediaire", "EXPERIMENTE": "experimente", "AGE": "experimente"}
+
+
+def age_class(text):
+    """« 23-27 » (tranche de 5 ans) ou un ancien mot (jeune, intermédiaire, expérimenté) ; None sinon."""
+    m = re.fullmatch(r"\s*(\d{2})\s*-\s*(\d{2})\s*", str(text or ""))
+    return f"{m.group(1)}-{m.group(2)}" if m else AGES.get(norm(text or ""))
 
 
 HIST = 0.5  # poids d'un match de la saison passée face à un match de la saison en cours
@@ -755,7 +763,28 @@ EMPTY = dict(m=0, buts=0, pen=0, tirs=0, tirs_connus=0, arrets=0, jaunes=0, deux
              w_buts=0.0, w=0.0, pris=0, cadres=0, nums=Counter())
 
 
-def club_players(matches, config, roster, history=(), older=(), youth=(), ancient=()):
+# L'expérience (demande de l'auteur, 06/10/2026 : avoir joué plus haut fait gagner de l'expérience, de la
+# maturité, la capacité à tirer l'équipe vers le haut) : les matchs joués au club depuis 2015, cette saison
+# comprise, comptés davantage aux niveaux plus hauts ; une part de la note, jamais affichée (choix de l'auteur).
+EXP_NIVEAU = 0.5  # un match une division au-dessus de la nôtre compte 1,5 match, deux divisions 2, trois 2,5…
+EXP_PLEIN = 100   # matchs pondérés pour une expérience pleine (à peu près deux saisons en Excellence)
+EXP_POIDS = 0.10  # part de l'expérience dans la note
+
+
+def experience_of(current, seasons, config):
+    """Matchs joués au club (feuilles lues), cette saison (current) et les saisons passées (niveau de
+    chacune), pondérés par le niveau : {clé du joueur: matchs pondérés}. Les moins de 18 ans n'y sont pas."""
+    out = Counter()
+    for matches, level in [(current, 0)] + [(s.get("matches") or [], int(s.get("niveau") or 0)) for s in seasons]:
+        for m, side, *_ in club_matches_of(matches, config):
+            for p in (m.get("players") or {}).get(side, []):
+                key = name_key(p.get("name"))
+                if key:
+                    out[key] += 1 + EXP_NIVEAU * level
+    return out
+
+
+def club_players(matches, config, roster, history=(), older=(), youth=(), ancient=(), experience=None):
     """Statistiques individuelles du club et notes. La saison passée (history : matchs) sert de
     point de départ : ses matchs comptent pour HIST dans la forme, le tir, la discipline, les
     arrêts et l'assiduité ; l'impact et les fins de match restent ceux de la saison en cours,
@@ -787,7 +816,8 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
     anc_ws = [c for c in club_matches_of(ancient, config) if c[0].get("players", {}).get(c[1])]
     anc, _ = player_stats(anc_ws, lambda i: hw2 * DECAY ** (len(anc_ws) - 1 - i))
     anc = {k: h for k, h in anc.items() if k not in players and k not in past and k not in old and k not in young}
-    saison_ancienne = max((c[0].get("saison") or "" for c in anc_ws), default="") or None
+    spans = sorted({c[0].get("saison") or "" for c in anc_ws} - {""})   # « 2023-2024 », ou « 2019-2024 » pour plusieurs
+    saison_ancienne = (spans[0] if len(spans) == 1 else f"{spans[0][:4]}-{spans[-1][5:]}") if spans else None
     for key, h in list(past.items()) + list(old.items()) + list(young.items()) + list(anc.items()):  # joueurs des saisons passées encore dans l'effectif
         if key not in players and match_name(h["nom"], roster):
             players[key] = dict(EMPTY, cle=key, nom=h["nom"], nums=Counter(), clutch=0, diffs=[], journal=[],
@@ -833,6 +863,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             assid=min(1.0, mw / (n_sheet + hw * n_past + hw2 * n_old)) if n_sheet + n_past + n_old else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
             gk_vol=(saves / mw) / max_saves if gk else 0,
+            exp=min(1.0, (experience or {}).get(r["cle"], 0) / EXP_PLEIN),
         )
         scores = {}
         for plan, w in PLANS.items():
@@ -840,6 +871,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
                 val = 0.5 * comps["gk"] + 0.15 * comps["gk_vol"] + 0.2 * comps["imp"] + 0.15 * comps["assid"]
             else:
                 val = sum(w[k] * comps[k] for k in w)
+            val = (1 - EXP_POIDS) * val + EXP_POIDS * comps["exp"]   # l'expérience, jamais affichée
             scores[plan] = round(100 * val)
         hp, ho, hy = past.get(r["cle"], EMPTY), old.get(r["cle"], EMPTY), young.get(r["cle"], EMPTY)
         ha = anc.get(r["cle"], EMPTY)
@@ -882,7 +914,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             jusqu_au=ros.get("jusqu_au"), m=0, m_total=n_sheet, presence=None, min_deux=0, buts=0, pen=0, tirs=None, reussite=None,
             arrets=0, pris=None, tirs_subis=None, pct_arrets=None, pris_estime=False,
             jaunes=0, deux_min=0, rouges=0, buts_moy=0, forme_buts=0, impact=0, decisifs=0,
-            comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol")},
+            comps={k: 0 for k in ("att", "eff", "disc", "imp", "clutch", "assid", "gk", "gk_vol", "exp")},
             scores={plan: None for plan in PLANS}, journal=[], passe=None, avant=None, jeunes=None, ancienne=None, note_base=None,
             fiabilite=reliability(0, 0, 0, hw, hw2)))
     return out, club_matches, with_sheet
@@ -1324,7 +1356,8 @@ def analyze(today=None, roster=None):
     ancient = [m for x in history if before and (x.get("saison") or "") < before[-1] for m in x.get("matches") or []]
     players, club_matches, with_sheet = club_players(every_match, config, roster,
                                                      history=(seasons[-1].get("matches") or []) if seasons else (),
-                                                     older=older, youth=youth, ancient=ancient)
+                                                     older=older, youth=youth, ancient=ancient,
+                                                     experience=experience_of(every_match, history, config))
 
     club_name = next((t for t in profiles if is_club(t, config)), None)
     upcoming = sorted((f for f in every_fixture if f.get("score_home") is None

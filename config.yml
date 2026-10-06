@@ -92,6 +92,21 @@ historique:
     competition: "https://www.ffhandball.fr/competitions/saison-2023-2024-19/regional/honneur-masculin-aura-22315/"
     niveau: 2
     club_seul: true
+  # 2019-2020 à 2022-2023 : Excellence AURA (R2, trois divisions au-dessus de la nôtre), nos matchs
+  # seulement : l'expérience de nos joueurs (demande de l'auteur, 06/10/2026), et les chiffres d'un joueur
+  # sans aucun match plus récent. 2015-2016 à 2018-2019 et 2020-2021 : adresses pas encore trouvées.
+  - saison: "2022-2023"
+    competition: "https://www.ffhandball.fr/competitions/saison-2022-2023-18/regional/excellence-masculin-aura-19735/"
+    niveau: 3
+    club_seul: true
+  - saison: "2021-2022"
+    competition: "https://www.ffhandball.fr/competitions/saison-2021-2022-17/regional/excellence-masculin-aura-17618/"
+    niveau: 3
+    club_seul: true
+  - saison: "2019-2020"
+    competition: "https://www.ffhandball.fr/competitions/saison-2019-2020-15/regional/excellence-masculin-aura-13164/"
+    niveau: 3
+    club_seul: true
   # 2025-2026, moins de 18 ans du club (2e phase, poule 12) : seulement pour un joueur de l'effectif
   # sans aucun match senior, qui y jouait (demande de l'auteur, 05/10/2026) ; jamais pour les adversaires
   - saison: "2025-2026"

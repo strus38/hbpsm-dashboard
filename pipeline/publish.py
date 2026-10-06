@@ -118,8 +118,8 @@ def restore():
 def roster():
     """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE », de « ,non »
     (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs), de « ,trésorier »
-    (tient la caisse noire), de sa classe d'âge : « ,jeune » (30 ans au plus), « ,intermediaire »
-    (31 à 40 ans) ou « ,experimente » (plus de 40 ans), du jour de son anniversaire « ,MM-JJ »
+    (tient la caisse noire), de sa tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
+    (âge atteint dans l'année où la saison commence ; jamais l'année de naissance), du jour de son anniversaire « ,MM-JJ »
     (sans l'année) et, s'il ne reste pas toute la saison, du dernier mois ou jour où il est disponible
     « ,AAAA-MM » ou « ,AAAA-MM-JJ ». Une ligne de rôle « coach » donne l'anniversaire de l'entraîneur,
     sans en faire un joueur."""
