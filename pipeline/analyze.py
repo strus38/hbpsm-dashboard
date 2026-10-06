@@ -1376,6 +1376,7 @@ def analyze(today=None, roster=None):
                   historique=[x.get("saison") for x in seasons],
                   ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since),
         prochain=nxt,
+        parcours=config.get("parcours") or [],   # le parcours de l'équipe depuis 2015 (onglet Saison)
         poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)
                 for p in sorted(set(by_poule) | set(teams))},
         resultats=sorted((dict(id=m["id"], poule=str(m.get("poule")), journee=m.get("journee"),

@@ -68,7 +68,7 @@ La page suit la semaine de l'entraîneur :
 | Convocation | après l'entraînement du vendredi : les 12, la date, le gymnase (lu sur ffhandball.fr), l'heure du rendez-vous, un message à copier pour le groupe et une version imprimable |
 | Joueurs | fiches graphiques : note, buts ou arrêts par match, réussite au tir ou pourcentage d'arrêts face à la référence, sanctions, sélections à venir |
 | Adversaires | toutes les équipes des deux poules, HBPSM compris : buts, mi-temps, discipline, gardiens, joueurs à surveiller (avec leurs chiffres de la saison passée s'ils étaient déjà là), repères communs, et les joueurs de la saison passée, ceux revus cette saison en tête |
-| Saison | chances de finir premier, matchs à gagner, axes de travail, séance à importer, classements |
+| Saison | chances de finir premier, matchs à gagner (une barre par match : ce qu'il met en jeu ; le détail au toucher), axes de travail, séance à importer, classements, parcours de l'équipe depuis 2015 (division et place de chaque saison, `parcours` dans `config.yml`) |
 
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
 (notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur et les postes clefs

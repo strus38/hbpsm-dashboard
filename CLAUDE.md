@@ -383,6 +383,14 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   absent / blessé, rendez-vous, agenda, Maps), les 4 matchs, sa caisse (reste à payer, dernières amendes,
   cotisation, anniversaire), ses chiffres. Le rendez-vous de l'entraîneur part avec ses choix (`rdv`, vérifié
   par `choix.check`) ; `rdvOf` le lit pour tous.
+- Onglet Saison (demande de l'auteur, 06/10/2026 : « Matchs à gagner » trop long, surtout sur téléphone) :
+  une barre par match de championnat, haute des points de chance en jeu, match clé en jaune, journée, lieu
+  et victoire estimée dessous, le calcul au toucher (`stakesChart`, `stakeWhy`) ; le détail match par match
+  dans un tiroir fermé. En fin d'onglet, « Parcours de l'équipe » (`viewParcours`) : courbe des divisions
+  depuis 2015 (R1 Prénationale à R5 2e division P16), point coloré selon la suite (montée, descente,
+  maintien, en cours), place finale au-dessus, détail saison par saison dans un tiroir. Données : `parcours`
+  dans config.yml (fourni par l'auteur, 2023-2024 à 2025-2026 recoupés avec les classements officiels) ; la
+  saison en cours se complète d'après le classement de notre poule (`parcoursList`).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

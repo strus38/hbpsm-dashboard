@@ -574,6 +574,14 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         main = page.inner_text("main")
         assert "× 2 min" in main and "Réussite au tir" in main and "Arrêts sur tirs cadrés" in main
         page.click("nav.tabs button[data-tab=saison]")
+        # matchs à gagner : une barre par match de championnat ; parcours de l'équipe : un point par saison,
+        # la saison en cours complétée d'après le classement
+        saison = page.evaluate("""(() => ({barres: document.querySelectorAll('.stakes .sk').length,
+          ligue: D.saison.matchs.filter(m => !m.coupe).length, points: document.querySelectorAll('.parcours-chart circle').length,
+          parcours: D.parcours.length, encours: !!document.querySelector('.parcours-chart circle.now'),
+          place: parcoursList().find(e => e.en_cours).phases[0].place, statut: D.saison.statut}))()""")
+        assert saison["points"] == saison["parcours"] > 0 and saison["encours"] and saison["place"], saison
+        assert saison["statut"] == "en_cours" and saison["barres"] == saison["ligue"] > 0, saison
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18
         demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte

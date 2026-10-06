@@ -84,7 +84,7 @@ historique:
     niveau: 1
     club_seul: true
   # 2023-2024 : le club jouait en Honneur masculin AURA (poule 127119, adresse donnée par l'auteur ; il
-  # n'était ni en 1re ni en 2e division P16) ; niveau 2 supposé, au-dessus de la 1re division P16. Nos
+  # n'était ni en 1re ni en 2e division P16) ; niveau 2 : Honneur (R3), au-dessus de la 1re division P16. Nos
   # matchs seulement, pour un joueur de l'effectif sans aucun match plus récent (un gardien revenu,
   # demande de l'auteur, 06/10/2026)
   - saison: "2023-2024"
@@ -97,6 +97,30 @@ historique:
     competition: "https://www.ffhandball.fr/competitions/saison-2025-2026-21/regional/m18-ans-masculin-division-2-aura-30005/"
     categorie: "M18"
     club_seul: true
+# Le parcours de l'équipe 1 seniors masculins depuis 2015, pour l'onglet Saison (fourni par l'auteur le
+# 06/10/2026 ; 2023-2024 à 2025-2026 recoupés avec les classements officiels lus). echelon : 1 = Prénationale
+# (R1), 2 = Excellence (R2), 3 = Honneur (R3), 4 = 1re division P16 (R4), 5 = 2e division P16 (R5) ; suite :
+# monte, descend ou reste ; v-n-d : victoires, nuls, défaites ; la saison en cours se complète d'après le classement.
+parcours:
+  - {saison: "2015-2016", division: "Excellence masculine régionale", echelon: 2, poule: "unique", place: 7, sur: 12, v: 10, n: 1, d: 11, diff: 22, suite: reste, note: "les 3 premiers montent"}
+  - {saison: "2016-2017", division: "Excellence masculine régionale", echelon: 2, poule: "unique", place: 3, sur: 12, v: 13, n: 2, d: 7, diff: 33, suite: monte}
+  - {saison: "2017-2018", division: "Prénationale Est", echelon: 1, poule: "unique", place: 10, sur: 12, v: 7, n: 0, d: 15, diff: -93, suite: descend}
+  - {saison: "2018-2019", division: "Excellence AURA", echelon: 2, poule: "3", place: 11, sur: 12, v: 4, n: 1, d: 17, diff: -91, suite: reste, note: "maintenu malgré la 11e place"}
+  - {saison: "2019-2020", division: "Excellence AURA", echelon: 2, poule: "3", place: 12, sur: 12, v: 2, n: 2, d: 11, diff: -108, suite: descend, note: "arrêtée après 15 des 22 matchs, Covid"}
+  - {saison: "2020-2021", division: "Honneur AURA", echelon: 3, poule: "3", place: 9, sur: 12, v: 0, n: 0, d: 2, diff: -9, suite: monte, note: "abandonnée après 2 matchs, Covid ; réaffecté"}
+  - {saison: "2021-2022", division: "Excellence AURA", echelon: 2, poule: "3", place: 9, sur: 12, v: 5, n: 1, d: 16, diff: -114, suite: reste}
+  - {saison: "2022-2023", division: "Excellence AURA", echelon: 2, poule: "2", place: 12, sur: 12, v: 4, n: 0, d: 18, diff: -195, suite: descend}
+  - {saison: "2023-2024", division: "Honneur AURA", echelon: 3, poule: "2", place: 12, sur: 12, v: 0, n: 1, d: 21, diff: -237, suite: descend}
+  - {saison: "2024-2025", division: "1re division P16 AURA", echelon: 4, poule: "6", place: 10, sur: 12, v: 6, n: 2, d: 12, diff: -56, suite: descend}
+  - saison: "2025-2026"
+    division: "2e division P16 AURA"
+    echelon: 5
+    phases:
+      - {poule: "5A", place: 1, sur: 8, v: 11, n: 1, d: 0, diff: 137}
+      - {poule: "5 haute", place: 3, sur: 8, v: 9, n: 1, d: 4, diff: 63}
+    suite: reste
+    note: "pas dans les 2 places de montée"
+  - {saison: "2026-2027", division: "2e division P16 AURA", echelon: 5, poule: "71", en_cours: true}
 # Lien avec l'application de préparation de séances (fichier .hbt.json à importer)
 entrainement:
   equipe: "Seniors garçons"
