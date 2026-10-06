@@ -566,7 +566,7 @@ body:not(.lecture) .lecture-only{display:none!important}
 </nav>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "63f2930bdb1e", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "f02d85defa20", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1131,20 +1131,25 @@ const RISK_SEUILS = "faible : moins d'1 point de chance ; modéré : de 1 à 3 ;
 // parler en buts (demande de l'auteur, 06/10/2026) : « +3 », « −2,5 »
 const butsTxt = (v, digits = 0) => (v > 0 ? "+" : v < 0 ? "−" : "") + fr(Math.abs(v).toFixed(digits)).replace(/,0$/, "");
 const butsMot = v => Math.abs(v) >= 2 ? "buts" : "but";
-// gardiens : buts évités par rapport au gardien moyen des poules lues ; cette saison dès 60 tirs cadrés,
-// sinon la saison passée ; visibles de tous (choix de l'auteur)
-const evitesOf = p => p.evites || p.evites_passe || null;
+// gardiens : buts évités par rapport au gardien moyen des poules lues, cette saison et la passée cumulées (la
+// passée compte de moins en moins), avec leur marge à 95 % ; visibles de tous (choix de l'auteur)
+const evitesOf = p => p.evites_cumul || null;
 const evitesLine = p => { const e = isGK(p) && evitesOf(p); if(!e || e.par_match == null) return "";
-  return '<p class="small"><b>Buts évités</b> : environ '+butsTxt(e.par_match, 1)+' '+butsMot(e.par_match)+' par match ('+butsTxt(e.valeur)+' sur '+e.tirs+' tirs cadrés en '+esc(e.saison)
-    + '), par rapport au gardien moyen des poules ('+e.moyenne+' % d\'arrêts).</p>'; };
+  const parts = (e.detail || []).map(x => esc(x.saison)+' : '+butsTxt(x.valeur)+' sur '+x.tirs+' tirs'+(x.poids < 1 ? ', compté à '+Math.round(100 * x.poids)+' %' : ''));
+  return '<p class="small"><b>Buts évités</b> : environ '+butsTxt(e.par_match, 1)+' ± '+fr(e.marge.toFixed(1))+' '+butsMot(Math.abs(e.par_match) + e.marge)+' par match, par rapport au gardien moyen des poules ('
+    + e.moyenne+' % d\'arrêts)'+(Math.abs(e.par_match) <= e.marge ? ' : dans la marge d\'erreur, pas d\'écart sûr' : '')+'. '+parts.join(" ; ")+'.</p>'; };
 function gkPairLine(r){   // la paire proposée, en buts par match, face à la plus sûre des paires disponibles
-  const per = p => { const e = evitesOf(p); return e && e.par_match != null ? e.par_match : null; };
+  const per = p => { const e = evitesOf(p); return e && e.par_match != null ? e : null; };
   const now = r.gks.map(per);
   if(now.length < 2 || now.some(v => v == null)) return "";
-  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p) != null).map(per).sort((a, b) => b - a);
-  const mine = now[0] + now[1], best = pool.length >= 2 ? pool[0] + pool[1] : mine, gap = best - mine;
-  return '<p class="small muted">Gardiens proposés : environ '+butsTxt(mine, 1)+' '+butsMot(mine)+' par match par rapport à des gardiens moyens'
-    + (gap >= 1 ? ' ; la paire la plus sûre disponible : '+butsTxt(best, 1)+', soit environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux par match.' : '.')+'</p>';
+  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p)).map(per).sort((a, b) => b.par_match - a.par_match);
+  const best = pool.length >= 2 ? pool.slice(0, 2) : now, sum = l => l[0].par_match + l[1].par_match;
+  const gap = sum(best) - sum(now);
+  // marge de l'écart entre les deux paires (gardiens distincts, indépendants)
+  const margin = Math.sqrt([...new Set([...now, ...best])].reduce((a, e) => a + e.marge * e.marge, 0));
+  return '<p class="small muted">Gardiens proposés : environ '+butsTxt(sum(now), 1)+' '+butsMot(sum(now))+' par match par rapport à des gardiens moyens'
+    + (gap < 0.5 ? '.' : gap <= margin ? ' ; la paire la plus sûre disponible ferait environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux, mais dans la marge d\'erreur (± '+fr(margin.toFixed(1))+').'
+      : ' ; la paire la plus sûre disponible : '+butsTxt(sum(best), 1)+', soit environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux par match (± '+fr(margin.toFixed(1))+').')+'</p>';
 }
 // discipline : ce que nous coûte une exclusion de 2 minutes, mesuré sur nos feuilles
 const exclCost = () => { const x = D.meta.exclusion || {}; return x.cout != null && x.cout < 0 ? x.cout : null; };
