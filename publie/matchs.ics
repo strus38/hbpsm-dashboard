@@ -1,0 +1,199 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//HBPSM//Tableau de bord//FR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:HBPSM · matchs seniors
+X-WR-TIMEZONE:Europe/Paris
+REFRESH-INTERVAL;VALUE=DURATION:PT6H
+X-PUBLISHED-TTL:PT6H
+BEGIN:VTIMEZONE
+TZID:Europe/Paris
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+TZNAME:CEST
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+TZNAME:CET
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:hbpsm-2727553@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;TZID=Europe/Paris:20261003T210000
+DTEND;TZID=Europe/Paris:20261003T223000
+SUMMARY:HBPSM 32-19 Pilat-2 · J1
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 1\nÀ domicile\nRé
+ sultat : HBPSM 32-19 Pilat-2\nFeuille de match et résultats : https://ww
+ w.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-m
+ asculine-p16-aura-30501/poule-196332/rencontre-2727553/\nTableau de bord 
+ : https://strus38.github.io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727553/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727558@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;TZID=Europe/Paris:20261010T203000
+DTEND;TZID=Europe/Paris:20261010T220000
+SUMMARY:Sablons Rhodia – HBPSM · J2
+LOCATION:Gymnase Joseph Plat\, Impasse Jean Bouin\, 38150 Salaise Sur Sann
+ e
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 2\nÀ l'extérieur\
+ nFeuille de match et résultats : https://www.ffhandball.fr/competitions/
+ saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule
+ -196332/rencontre-2727558/\nTableau de bord : https://strus38.github.io/h
+ bpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727558/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2734133@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;TZID=Europe/Paris:20261017T180000
+DTEND;TZID=Europe/Paris:20261017T193000
+SUMMARY:Nord Drome – HBPSM · Coupe de France\, 1er tour
+LOCATION:Salle Omnisports\, Rue Du Levant\, 26140 St Rambert D Albon
+DESCRIPTION:Coupe de France\, 1er tour\nÀ l'extérieur\nFeuille de match 
+ et résultats : https://www.ffhandball.fr/competitions/saison-2026-2027-2
+ 2/coupe-de-france/coupe-de-france-departementale-masculine-2026-2027-3324
+ 4/poule-196380/rencontre-2734133/\nTableau de bord : https://strus38.gith
+ ub.io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/coupe-de-fr
+ ance/coupe-de-france-departementale-masculine-2026-2027-33244/poule-19638
+ 0/rencontre-2734133/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727563@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20261107
+DTEND;VALUE=DATE:20261109
+STATUS:TENTATIVE
+SUMMARY:HBPSM – St Donat · J3 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 3\nÀ domicile\nHor
+ aire pas encore fixé par la fédération : le match se joue ce week-end-
+ là.\nFeuille de match et résultats : https://www.ffhandball.fr/competit
+ ions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/
+ poule-196332/rencontre-2727563/\nTableau de bord : https://strus38.github
+ .io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727563/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727575@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;TZID=Europe/Paris:20261206T140000
+DTEND;TZID=Europe/Paris:20261206T153000
+SUMMARY:Tain Vion 2 – HBPSM · J6
+LOCATION:Halle Des Sports L. Sausset\, Boulevard De Montgolfier\, 07300 To
+ urnon Sur Rhone
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 6\nÀ l'extérieur\
+ nFeuille de match et résultats : https://www.ffhandball.fr/competitions/
+ saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule
+ -196332/rencontre-2727575/\nTableau de bord : https://strus38.github.io/h
+ bpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727575/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727578@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20261212
+DTEND;VALUE=DATE:20261214
+STATUS:TENTATIVE
+SUMMARY:HBPSM – Bievre · J7 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 7\nÀ domicile\nHor
+ aire pas encore fixé par la fédération : le match se joue ce week-end-
+ là.\nFeuille de match et résultats : https://www.ffhandball.fr/competit
+ ions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/
+ poule-196332/rencontre-2727578/\nTableau de bord : https://strus38.github
+ .io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727578/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727581@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;TZID=Europe/Paris:20270109T180000
+DTEND;TZID=Europe/Paris:20270109T193000
+SUMMARY:Pilat-2 – HBPSM · J8
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 8\nÀ l'extérieur\
+ nFeuille de match et résultats : https://www.ffhandball.fr/competitions/
+ saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule
+ -196332/rencontre-2727581/\nTableau de bord : https://strus38.github.io/h
+ bpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727581/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727586@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20270116
+DTEND;VALUE=DATE:20270118
+STATUS:TENTATIVE
+SUMMARY:HBPSM – Sablons Rhodia · J9 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 9\nÀ domicile\nHor
+ aire pas encore fixé par la fédération : le match se joue ce week-end-
+ là.\nFeuille de match et résultats : https://www.ffhandball.fr/competit
+ ions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/
+ poule-196332/rencontre-2727586/\nTableau de bord : https://strus38.github
+ .io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727586/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727591@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20270123
+DTEND;VALUE=DATE:20270125
+STATUS:TENTATIVE
+SUMMARY:St Donat – HBPSM · J10 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 10\nÀ l'extérieur
+ \nHoraire pas encore fixé par la fédération : le match se joue ce week
+ -end-là.\nFeuille de match et résultats : https://www.ffhandball.fr/com
+ petitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-3
+ 0501/poule-196332/rencontre-2727591/\nTableau de bord : https://strus38.g
+ ithub.io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727591/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727603@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20270306
+DTEND;VALUE=DATE:20270308
+STATUS:TENTATIVE
+SUMMARY:HBPSM – Tain Vion 2 · J13 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 13\nÀ domicile\nHo
+ raire pas encore fixé par la fédération : le match se joue ce week-end
+ -là.\nFeuille de match et résultats : https://www.ffhandball.fr/competi
+ tions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501
+ /poule-196332/rencontre-2727603/\nTableau de bord : https://strus38.githu
+ b.io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727603/
+END:VEVENT
+BEGIN:VEVENT
+UID:hbpsm-2727606@hbpsm-dashboard
+DTSTAMP:20261006T094117Z
+DTSTART;VALUE=DATE:20270313
+DTEND;VALUE=DATE:20270315
+STATUS:TENTATIVE
+SUMMARY:Bievre – HBPSM · J14 (horaire à confirmer)
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 14\nÀ l'extérieur
+ \nHoraire pas encore fixé par la fédération : le match se joue ce week
+ -end-là.\nFeuille de match et résultats : https://www.ffhandball.fr/com
+ petitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-3
+ 0501/poule-196332/rencontre-2727606/\nTableau de bord : https://strus38.g
+ ithub.io/hbpsm-dashboard/
+URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
+ me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727606/
+END:VEVENT
+END:VCALENDAR
