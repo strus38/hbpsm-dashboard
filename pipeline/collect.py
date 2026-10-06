@@ -226,15 +226,17 @@ def crawl_poule(poule, known, old, now, is_ours=None, only=None):
     days = journees(first)
     official = standings(first, base)
     current = first.get("competitions---rencontre-list") or {}
-    lists = {}
-    if str(current.get("selected_numero_journee") or "").isdigit():
+    lists, closed, pages = {}, 0, 0
+    if str(current.get("selected_numero_journee") or "").isdigit():   # celle que montre la page de la poule
         lists[int(current["selected_numero_journee"])] = current.get("rencontres") or []
     for n in sorted(days):
         if n in lists:
             continue
         before = [f for f in old.values() if str(f.get("poule")) == pid and f.get("journee") == n]
         if finished(before, known, now):
+            closed += 1
             continue
+        pages += 1
         data = page_data(f"{base}journee-{n}/", f"{pid}_journee_{n}")
         lists[n] = (data.get("competitions---rencontre-list") or {}).get("rencontres") or []
     fixtures = {}
@@ -247,7 +249,8 @@ def crawl_poule(poule, known, old, now, is_ours=None, only=None):
     if is_ours:
         add_venues(fixtures, old, is_ours)
     sheets = fetch_sheets(fixtures, known, now)
-    print(f"[collecte] poule {pid}: {len(lists)} journées lues sur {len(days)}, "
+    print(f"[collecte] poule {pid}: {len(lists)} journées lues sur {len(days)} ({pages} pages de journée, "
+          f"{closed} close{'s' if closed > 1 else ''} non relue{'s' if closed > 1 else ''}), "
           f"{len(fixtures)} rencontres, {sheets} feuilles téléchargées, "
           f"classement officiel {'oui' if official else 'non'}")
     return fixtures, official
