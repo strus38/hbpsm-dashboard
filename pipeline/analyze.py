@@ -1156,6 +1156,21 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
     return (prev.get("depuis") if same else None) or paris_now().strftime("%Y-%m-%d %H:%M")
 
 
+CHANCES = "chances.json"  # l'évolution des chances d'atteindre l'objectif (data/, repris de etat.enc)
+
+
+def record_chances(saison, played):
+    """Garde l'évolution des chances d'atteindre l'objectif, une ligne quand elles changent (ou qu'un
+    match du club est joué) : le bilan d'un match dit ce qu'il a changé. Les 80 dernières suffisent."""
+    hist = read_json(DATA / CHANCES, []) or []
+    if saison and saison.get("proba") is not None:
+        line = dict(date=paris_now().strftime("%Y-%m-%d %H:%M"), proba=saison["proba"], joues=played)
+        if not hist or (hist[-1].get("proba"), hist[-1].get("joues")) != (line["proba"], line["joues"]):
+            hist = (hist + [line])[-80:]
+            write_json(DATA / CHANCES, hist)
+    return hist
+
+
 def cup_ahead(fixtures, config, today, league):
     """Les matchs de coupe à venir du club, pour la planification : pas d'enjeu pour le classement,
     jamais match clé. Victoire estimée : celle d'un match de championnat contre le même adversaire
@@ -1309,6 +1324,7 @@ def analyze(today=None, roster=None):
                 m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
                                              profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
                                              gap, priors.get(m["adversaire"]), m["domicile"])
+    chances = record_chances(saison, len(with_sheet))
     plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
                              all_history)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
@@ -1334,6 +1350,7 @@ def analyze(today=None, roster=None):
         coupes=cup_results(every_match, every_fixture, config),
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
+        chances=chances,
         derniers=last_matches(with_sheet, [c for c in club_matches_of((seasons[-1].get("matches") or []) if seasons else [], config)
                                            if c[0].get("players", {}).get(c[1])], roster),
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),

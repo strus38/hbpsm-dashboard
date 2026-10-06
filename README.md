@@ -331,6 +331,19 @@ ils viennent, à proportion des joueurs retrouvés (Adversaires : « Leurs joueu
 6 de leurs 11 joueurs retrouvés, 6 avec … »). Cela vaut pour toutes les équipes : un club qui a
 gardé ses joueurs retrouve son propre bilan.
 
+## Ma semaine, bilan du match, santé
+
+- **Ma semaine** (onglet « Moi ») : chaque joueur choisit une fois qui il est sur son appareil et voit
+  son prochain match (proposé, retenu par l'entraîneur, au repos, absent ou blessé), le rendez-vous,
+  l'ajout à l'agenda et le gymnase, ses quatre prochains matchs, sa caisse noire et ses chiffres.
+- **Bilan du match** : dès que la feuille du dernier match est lue, l'onglet Semaine s'ouvre sur son
+  bilan : buteurs, gardiens, discipline, écart avec le choix de l'entraîneur, chances d'atteindre
+  l'objectif avant et après, axes de travail de la semaine.
+- **Santé** : à chaque collecte, `pipeline/sante.py` vérifie que le site de la fédération est bien lu,
+  que les feuilles du club arrivent et se lisent, et que les jetons n'approchent pas de leur échéance.
+  En cas de souci, la page affiche un bandeau et une issue « Tableau de bord : alerte » s'ouvre (son
+  auteur est prévenu par mail) ; elle se ferme d'elle-même quand tout va bien.
+
 ## Caisse noire : propositions de tous
 
 N'importe quel joueur qui a la phrase du club propose une amende depuis l'onglet Caisse noire : il dit

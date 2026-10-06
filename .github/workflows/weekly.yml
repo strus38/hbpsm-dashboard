@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  issues: write   # l'issue « Tableau de bord : alerte » (pipeline/sante.py), sans aucun nom
 
 concurrency:
   group: collecte
@@ -72,6 +73,13 @@ jobs:
           HBPSM_JETON_CN: ${{ secrets.HBPSM_JETON_CN }}
         run: python -m pipeline.publish seal
 
+      - name: Santé du tableau de bord (bandeau de la page, issue d'alerte ; sans aucun nom)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HBPSM_JETON_CN: ${{ secrets.HBPSM_JETON_CN }}
+          HBPSM_JETON_PUBLICATION: ${{ secrets.HBPSM_JETON_PUBLICATION }}
+        run: python -m pipeline.sante || echo "::warning::Santé du tableau de bord non vérifiée"
+
       - name: Enregistrer dans le dépôt (code, réglages, fichiers chiffrés)
         run: |
           git config user.name "hbpsm-bot"
@@ -112,6 +120,12 @@ jobs:
           path: brut.7z
           retention-days: 14
           if-no-files-found: ignore
+
+      - name: Collecte en échec : issue d'alerte (son auteur est prévenu par mail)
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m pipeline.sante --echec || true
 
   # La page du tableau de bord à une adresse fixe : https://strus38.github.io/hbpsm-dashboard/
   # (HANDBALL-training l'ouvre). Elle ne contient aucune donnée : elle lit hbpsm.enc, chiffré.

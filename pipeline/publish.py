@@ -35,7 +35,7 @@ from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
 from .export_training import build_exports
 
-STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json", "planif.json")
+STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json", "planif.json", "chances.json")
 PAGE_NAME = "HBPSM-tableau-de-bord.html"
 # Séance du prochain entraînement, publiée EN CLAIR pour l'application HANDBALL-training : elle ne
 # porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.
@@ -57,6 +57,7 @@ def page_config(config):
     raw = f"https://raw.githubusercontent.com/{slug}/{branch}/publie/" if slug else ""
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
                 choix=raw + "choix.enc" if raw else "", caisse=raw + "caisse.enc" if raw else "",
+                sante=raw + "sante.json" if raw else "",
                 depot=slug, branche=branch,
                 **cn_config(config),
                 iterations=vault.ITERATIONS,  # la page chiffre les choix de l'entraîneur comme le coffre

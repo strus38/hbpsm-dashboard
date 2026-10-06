@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, publish, vault
+from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, publish, sante, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 import pathlib
@@ -43,12 +43,13 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish, choix, caisse):
+    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, val)
     monkeypatch.setattr(publish, "ROOT", tmp_path)
+    monkeypatch.setattr(sante, "ROOT", tmp_path)
     monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
         json.loads(p.read_text("utf-8")) for p in sorted((data / "matches").glob("*.json"))])
@@ -359,6 +360,20 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # la page s'ouvre sur la planification
         assert page.get_attribute("nav.tabs button[data-tab=planif]", "aria-selected") == "true"
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
+        # Semaine : le bilan du dernier match joué en tête ; « Ma semaine » : ce qui concerne un joueur
+        page.click("nav.tabs button[data-tab=semaine]")
+        assert page.locator(".bilan").count() == 1 and "Buteurs" in page.inner_text(".bilan")
+        page.click("nav.tabs button[data-tab=moi]")
+        assert "Choisissez qui vous êtes" in page.inner_text("main")
+        page.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle); render(true)")
+        assert page.locator(".moi-statut").count() == 1 + page.evaluate("PLAN.length") and "Ma caisse noire" in page.inner_text("main")
+        page.evaluate("localStorage.removeItem('hbpsm:moi')")
+        # santé : un bandeau quand quelque chose cloche ; les jetons, pour l'entraîneur et les trésoriers seulement
+        page.evaluate("""SANTE = {etat: "alerte", alertes: [{niveau: "alerte", code: "poule-71", message: "Poule 71 : aucune rencontre lue."},
+          {niveau: "info", code: "jeton-des propositions", message: "Jeton des propositions : expire dans 10 jours."}]}; render(true)""")
+        assert "aucune rencontre lue" in page.inner_text(".sante") and "Jeton" in page.inner_text(".sante")
+        page.evaluate("SANTE = null; render(true)")
+        page.click("nav.tabs button[data-tab=planif]")
         # la page a évolué : un fichier gardé sur l'ordinateur se télécharge de nouveau (en ligne, elle se
         # recharge d'elle-même dès que GitHub sert la nouvelle)
         page.evaluate("NEWER = true; render(true)")
@@ -621,6 +636,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         wait_sent(4)
         published = publish_last()
         assert published["blesses"][hurt["cle"]]["a"] and hurt["absent"] in published["absents"][hurt["id2"]]
+        assert isinstance(published["rdv"], dict)   # les rendez-vous partent avec les choix (« Ma semaine »)
         assert not page.evaluate("statusPending()") and page.locator("[data-publier-blessures]").count() == 0
         # caisse noire : un trésorier met une amende ; elle part chiffrée au workflow « Caisse noire »
         page.click("nav.tabs button[data-tab=caisse]")
@@ -737,6 +753,29 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert [o["auto"] for o in caisse.check(json.loads(sent[-1]["body"]["inputs"]["ops"]), PHRASE)] == [prop_id]
         browser.close()
     assert errors == []
+
+
+def test_sante(sandbox, monkeypatch):
+    """La santé du tableau de bord : poule non lue, feuilles qui tardent ou illisibles, jetons qui expirent ;
+    un fichier public sans nom, réécrit seulement quand quelque chose change."""
+    config = dict(common.load_config(), poules=[{"id": "71"}, {"id": "72"}], saison="2026-2027")
+    club = config["club"]["motifs"][0]
+    fixtures = [dict(id="1", poule="71", home=club, away="CLUB BRAVO", date="2026-10-01T20:00", score_home=30, score_away=20, pdf_url="x"),
+                dict(id="2", poule="71", home="CLUB BRAVO", away=club, date="2026-11-01T20:00", score_home=None, score_away=None)]
+    out = sante.checks(config, fixtures, [], dict(erreurs=2, actions_inconnues=["Bizarre"]), "2026-10-06",
+                       {"des propositions": 12, "de publication": "refusé"})
+    codes = {a["code"]: a["niveau"] for a in out}
+    assert codes == {"poule-72": "alerte", "feuilles": "info", "illisibles": "alerte", "libelles": "info",
+                     "jeton-des propositions": "info", "jeton-de publication": "alerte"}
+    assert sante.checks(config, fixtures + [dict(fixtures[1], id="3", poule="72")],
+                        [dict(id="1", players=dict(home=[1]))], {}, "2026-10-06", {}) == []
+    demo(sandbox)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    assert sante.main([]) == 0
+    first = (sandbox / "publie" / "sante.json").read_text("utf-8")
+    assert json.loads(first)["format"] == "hbpsm-sante" and "Joueur" not in first
+    assert sante.main([]) == 0 and (sandbox / "publie" / "sante.json").read_text("utf-8") == first   # rien de changé : pas réécrit
+    assert sante.main(["--echec"]) == 0 and json.loads((sandbox / "publie" / "sante.json").read_text("utf-8"))["etat"] == "alerte"
 
 
 def test_depot_des_propositions(tmp_path, monkeypatch):
@@ -868,6 +907,7 @@ def test_choix_de_l_entraineur(sandbox, monkeypatch):
                vault.encrypt(dict(good, matchs={"1": dict(joueurs=["x"] * 20, le="")}), PHRASE, 2000),
                vault.encrypt(dict(good, blesses={"R:X": dict(de="2026-10-10", a=None, note="?")}), PHRASE, 2000),
                vault.encrypt(dict(good, absents={"42": "R:X"}), PHRASE, 2000),         # une liste attendue
+               vault.encrypt(dict(good, rdv={"42": "19:15:00 trop long"}), PHRASE, 2000),
                vault.encrypt(good, PHRASE, 1000)]                                      # chiffrement affaibli
     for bad in refused:
         monkeypatch.setenv("HBPSM_CHOIX", json.dumps(bad))

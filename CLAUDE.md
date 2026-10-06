@@ -346,6 +346,22 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   mais « elle s'affichera d'elle-même d'ici quelques minutes » ; `waitNewPage` relit la page chaque minute
   (une demi-heure au plus) et recharge dès qu'elle porte la nouvelle empreinte, en gardant l'onglet
   (`sessionStorage` « hbpsm:onglet »). Un fichier gardé sur l'ordinateur garde le lien vers la Release.
+- Santé du tableau de bord (proposée et validée par l'auteur, 06/10/2026) : `pipeline/sante.py` après chaque
+  publication : rencontres lues pour chaque poule, prochain match du club trouvé, feuilles du club en
+  retard (> 3 jours) ou illisibles, libellés inconnus, jetons qui expirent (< 30 jours, lu dans l'en-tête de
+  l'API ; `HBPSM_JETON_CN`, et `HBPSM_JETON_PUBLICATION` facultatif) ; `publie/sante.json` (public, sans nom,
+  relu par `check_public`, réécrit seulement s'il change) et issue « Tableau de bord : alerte » (ouverte,
+  mise à jour, fermée d'elle-même ; `issues: write`) ; `--echec` quand la collecte échoue. Page : bandeau
+  (`santeBanner`), les jetons pour l'entraîneur et les trésoriers seulement.
+- Bilan du dernier match (06/10/2026) : en tête de Semaine (`bilanBlock`, ouvert 4 jours) : buteurs, gardiens,
+  discipline, écart entre le choix publié de l'entraîneur et la feuille (les choix des derniers matchs
+  restent publiés), chances d'atteindre l'objectif avant et après (`data/chances.json`, `record_chances`,
+  repris de etat.enc), axes de la semaine.
+- « Ma semaine » (06/10/2026) : 8e onglet « Moi » (`viewMoi`), le joueur choisi une fois sur l'appareil (même
+  choix que pour proposer une amende, « hbpsm:moi ») : prochain match (statut proposé / retenu / repos /
+  absent / blessé, rendez-vous, agenda, Maps), les 4 matchs, sa caisse (reste à payer, dernières amendes,
+  cotisation, anniversaire), ses chiffres. Le rendez-vous de l'entraîneur part avec ses choix (`rdv`, vérifié
+  par `choix.check`) ; `rdvOf` le lit pour tous.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

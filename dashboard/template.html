@@ -211,6 +211,23 @@ nav.tabs[hidden]{display:none}
 .injury-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 button.risk{border:0;font:inherit;cursor:help;line-height:inherit}
 .theme-btn{display:none}
+.sante{border-left:4px solid var(--warn)}
+.bilan{margin:14px 0 8px;padding:12px 14px}
+.bilan summary{cursor:pointer;list-style:none}
+.bilan summary::-webkit-details-marker{display:none}
+.bilan p{margin:.5em 0}
+.matchcard.moi{text-align:left}
+.moi-adv{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:1.1rem}
+.moi-statut{display:inline-block;margin:6px 0;padding:3px 10px;border-radius:99px;font-weight:600;background:rgba(127,127,127,.15)}
+.moi-statut.in{background:color-mix(in srgb,var(--win) 22%,transparent)}
+.moi-statut.hurt,.moi-statut.a{background:color-mix(in srgb,var(--loss) 22%,transparent)}
+.moi-statut.rest{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+.matchcard .moi-statut{color:#fff}
+.moi-rdv{margin:4px 0}
+.moi-list li{padding:8px 0;border-bottom:1px solid var(--rule)}
+.moi-list li:last-child{border-bottom:0}
+.moi-caisse{font:700 1.4rem var(--display);margin:0 0 6px;color:var(--win)}
+.moi-caisse.du{color:var(--loss)}
 .bday-now{font-size:1.05rem;margin:0 0 6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 22%,var(--surface))}
 .tag.done{background:var(--rule);color:var(--muted);border:0;margin:0}
 .plan .grp{grid-column:1/-1;font:600 .74rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:12px;border-bottom:0}
@@ -395,7 +412,7 @@ body:not(.lecture) .lecture-only{display:none!important}
   header.top .when{font-size:1rem}
   .panel{padding:12px}
   /* menu d'onglets en bas, comme une application */
-  nav.tabs{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:0;
+  nav.tabs{display:grid;grid-template-columns:repeat(8,1fr);position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:0;
     border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px);background:color-mix(in srgb,var(--surface) 94%,transparent);
     -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 -6px 18px rgba(11,42,82,.08)}
   nav.tabs button{max-width:none;min-width:0;padding:8px 0 6px;font-size:.64rem;letter-spacing:0;display:flex;flex-direction:column;align-items:center;gap:3px;
@@ -468,6 +485,7 @@ body:not(.lecture) .lecture-only{display:none!important}
   <button role="tab" data-tab="joueurs" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.5c2.5.2 4.2 1.8 5 4.5"/></svg><span>Joueurs</span></button>
   <button role="tab" data-tab="adv" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/></svg><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
   <button role="tab" data-tab="saison" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Saison</span></button>
+  <button role="tab" data-tab="moi" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-7 8-7s7 2.5 8 7"/></svg><span class="tl">Ma semaine</span><span class="ts">Moi</span></button>
   <button role="tab" data-tab="caisse" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg><span class="tl">Caisse noire</span><span class="ts">Caisse</span></button>
 </nav>
 <main id="app"></main>
@@ -602,8 +620,12 @@ const absentsNow = () => { const out = {};
 const absentsPub = () => { const ids = new Set((PLAN || []).map(r => String(r.m.id))), out = {};
   for(const [id, l] of Object.entries((CHOIX && CHOIX.absents) || {})) if(ids.has(String(id)) && l.length) out[id] = l.slice().sort();
   return out; };
+// le rendez-vous d'un match : celui que l'entraîneur saisit ici, sinon celui qu'il a publié
+const rdvOf = m => (COACH && S.rdv[m.id]) || (CHOIX && CHOIX.rdv && CHOIX.rdv[m.id]) || "";
+const rdvNow = () => { const out = {}; for(const r of PLAN || []){ const v = rdvOf(r.m); if(v) out[r.m.id] = v; } return out; };
+const rdvPub = () => { const out = {}; for(const r of PLAN || []){ const v = CHOIX && CHOIX.rdv && CHOIX.rdv[r.m.id]; if(v) out[r.m.id] = v; } return out; };
 const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringify((CHOIX && CHOIX.blesses) || {})
-  || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()));
+  || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()) || JSON.stringify(rdvNow()) !== JSON.stringify(rdvPub()));
 const availOf = (p, m) => !dispo(p) || injured(p, m) || declaredAbsent(p, m) ? "a" : (localAv(p, m) || "d");
 const pinOf = (p, m) => (SP().pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
@@ -638,7 +660,7 @@ function matchEvent(m){
   const home = m.domicile ? D.meta.club_court : teamShort(m.adversaire), away = m.domicile ? teamShort(m.adversaire) : D.meta.club_court;
   const page = location.protocol === "https:" ? location.origin + location.pathname : "";
   const notes = [roundOf(m) + (m.domicile ? " · à domicile" : " · à l'extérieur"),
-    S.rdv[m.id] ? "Rendez-vous à " + S.rdv[m.id].replace(":", "h") : "", page ? "Tableau de bord : " + page : ""].filter(Boolean).join("\n");
+    rdvOf(m) ? "Rendez-vous à " + rdvOf(m).replace(":", "h") : "", page ? "Tableau de bord : " + page : ""].filter(Boolean).join("\n");
   return {titre: "Handball : " + home + " – " + away, debut: stamp(start), fin: stamp(end), lieu: m.salle ? adresse(m.salle) : "", notes, uid: m.id};
 }
 const googleAgenda = e => "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(e.titre)
@@ -1028,6 +1050,7 @@ function viewSemaine(){
     + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener" title="Ouvrir dans Maps">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')
     + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span></div></header>' + roNote();
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
+  h = bilanBlock() + h;
   h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
     + '<div class="kpis"><div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
     + '<div><b class="num">'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>'+(m.coupe ? "match de coupe : hors classement" : "points de chance de "+objectif((D.saison||{}).cible)+" en jeu")+'</span></div></div></div>'
@@ -1112,6 +1135,87 @@ function courtSVG(start, bench = {}){
     + '<path class="line" d="M4 6 V'+(H - 4)+' H336 V6" opacity=".55"/>' + tok + '</svg></div>';
 }
 
+// le bilan du dernier match joué de la saison, dès que sa feuille est lue : buteurs, gardiens, discipline,
+// écart avec le choix de l'entraîneur, ce que le résultat a changé aux chances, les axes de la semaine
+function bilanBlock(now = new Date()){
+  const x = (D.derniers || []).filter(d => !d.saison || d.saison === D.meta.saison).slice(-1)[0];
+  if(!x) return "";
+  const rows = D.joueurs.map(p => ({p, j: (p.journal || []).find(j => j.id === x.id)})).filter(o => o.j);
+  const scorers = rows.filter(o => !isGK(o.p) && o.j.buts).sort((a, b) => b.j.buts - a.j.buts);
+  const gks = rows.filter(o => isGK(o.p) && (o.j.arrets || o.j.pris != null));
+  const sum = k => rows.reduce((a, o) => a + (o.j[k] || 0), 0), deux = sum("deux_min"), jaunes = sum("jaunes"), rouges = sum("rouges");
+  const day = (x.date || "").slice(0, 10), fresh = (now - new Date(day + "T12:00")) / 86400000 <= 4;
+  const ch = D.chances || [], before = ch.filter(c => String(c.date).slice(0, 10) < day).slice(-1)[0], cur = ch.slice(-1)[0];
+  const chosen = CHOIX && CHOIX.matchs && CHOIX.matchs[x.id], goal = objectif((D.saison || {}).cible);
+  let h = '<details class="panel bilan"'+(fresh ? " open" : "")+'><summary><b>Bilan · '+esc(roundShort(x))+' contre '+esc(teamShort(x.adversaire))+'</b> '
+    + '<span class="form"><i class="'+x.res+'">'+x.res+'</i></span> '+x.bp+'-'+x.bc+'</summary>'
+    + '<p>'+({V: "Victoire", D: "Défaite", N: "Match nul"}[x.res] || "")+' '+x.bp+'-'+x.bc+(x.domicile ? " à domicile" : " à l'extérieur")+', '+esc(fmtDate(day))+' ; '+rows.length+' joueurs sur la feuille.</p>';
+  if(scorers.length) h += '<p><b>Buteurs</b> : '+scorers.map(o => esc(firstName(o.p))+' '+o.j.buts).join(", ")+'.</p>';
+  if(gks.length) h += '<p><b>Gardiens</b> : '+gks.map(o => esc(firstName(o.p))+' '+(o.j.arrets || 0)+' arrêt'+((o.j.arrets || 0) > 1 ? "s" : "")+(o.j.pct != null ? ' ('+o.j.pct+' %)' : '')).join(", ")+'.</p>';
+  h += '<p><b>Discipline</b> : '+(deux ? deux+' × 2 min' : 'aucune exclusion')+(jaunes ? ' · '+carton("j", jaunes) : '')+(rouges ? ' · '+carton("r", rouges) : '')+'.</p>';
+  if(chosen){
+    const sheet = new Set(rows.map(o => o.p.cle)), sel = new Set(chosen.joueurs || []);
+    const away = [...sel].filter(k => !sheet.has(k)).map(byCle).filter(Boolean), extra = rows.filter(o => !sel.has(o.p.cle)).map(o => o.p);
+    h += '<p><b>Choix de l\'entraîneur et feuille</b> : '+(!away.length && !extra.length ? "identiques."
+      : (away.length ? 'retenus mais pas sur la feuille : '+away.map(q => esc(firstName(q))).join(", ")+'. ' : '')
+        + (extra.length ? 'sur la feuille sans avoir été retenus : '+extra.map(q => esc(firstName(q))).join(", ")+'.' : ''))+'</p>';
+  }
+  if(cur) h += '<p><b>Chances de '+esc(goal)+'</b> : '+(before && before.proba !== cur.proba ? before.proba+' % avant le match, '+cur.proba+' % maintenant' : cur.proba+' %')+'.</p>';
+  const ax = (D.axes || []).slice(0, 3);
+  if(ax.length) h += '<p><b>À travailler cette semaine</b> : '+ax.map(a => esc(a.titre)).join(" · ")+'.</p>';
+  return h + '</details>';
+}
+// « Ma semaine » : ce qui concerne un joueur (choisi une fois sur l'appareil, comme pour proposer une amende)
+function viewMoi(){
+  const me = stored(MOI) || "", P = PLAN, p = byCle(me);
+  let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>'
+    + '<div class="edit"><label class="small muted" for="cmoi">Vous êtes</label><select id="cmoi"><option value="">—</option>'
+    + members().map(c => '<option value="'+esc(c)+'"'+(c === me ? " selected" : "")+'>'+esc(memberName(c))+'</option>').join("")+'</select></div>';
+  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  const status = r => {
+    if(!p) return ["", ""];
+    if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
+    if(availOf(p, r.m) === "a") return ["a", "absent"];
+    const decided = DECIDE.includes(r.etat);
+    if(r.sel.includes(p)) return ["in", decided ? "✅ retenu par l'entraîneur" : "proposé (pas encore validé par l'entraîneur)"];
+    if(r.resting.includes(p)) return ["rest", "au repos (rotation)"];
+    return ["", decided ? "pas retenu" : "pas sur la feuille proposée"]; };
+  if(P.length && p){
+    const r = P[0], m = r.m, [c, txt] = status(r), rdv = rdvOf(m), ev = matchEvent(m), quand = '📅 '+esc(fmtDate(m.date, m.provisoire));
+    const lieu = m.salle ? esc(m.salle.nom)+(m.salle.ville ? ", "+esc(m.salle.ville) : "") : "lieu pas encore fixé";
+    h += '<header class="matchcard moi"><p class="mc-when">'+esc(roundOf(m))+'</p>'
+      + '<p class="moi-adv">'+logo(m.adversaire, "md")+' <b>'+esc(teamShort(m.adversaire))+'</b> <span class="small">'+(m.domicile ? "à domicile" : "à l'extérieur")+'</span></p>'
+      + '<p class="moi-statut '+c+'">'+txt+'</p>'
+      + '<p class="moi-rdv">'+(rdv ? 'Rendez-vous à <b>'+esc(rdv.replace(":", "h"))+'</b>' : 'Rendez-vous : donné par l\'entraîneur avec la convocation')+'</p>'
+      + '<div class="mc-chips">'+(ev ? '<details class="agenda"><summary class="chipx" title="Ajouter le match à mon agenda">'+quand+' <span aria-hidden="true">＋</span></summary>'
+          + '<span class="agenda-menu"><a href="'+esc(googleAgenda(ev))+'" target="_blank" rel="noopener">Google Agenda</a>'
+          + '<a href="#" data-ics="'+esc(m.id)+'" download="match-'+esc(String(m.id).replace(/[^\w-]/g, ""))+'.ics">Agenda du téléphone, Outlook… (.ics)</a></span></details>'
+        : '<span class="chipx">'+quand+'</span>')
+      + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')+'</div></header>';
+    h += '<h2>Les prochains matchs</h2><div class="panel"><ul class="plain moi-list">'+P.map(r => { const [c, txt] = status(r);
+      return '<li><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+' <span class="small muted">'+esc(fmtDate(r.m.date, r.m.provisoire))+'</span><br><span class="moi-statut '+c+'">'+txt+'</span></li>'; }).join("")+'</ul></div>';
+  }
+  if(D.caisse){
+    const L = ledger(), b = L.bal[me] || {du: 0, paye: 0, cotise: false}, reste = Math.round(((b.du || 0) - (b.paye || 0)) * 100) / 100;
+    const mine = L.fines.filter(f => f.joueur === me && f.regle !== "cotisation").slice(-5).reverse();
+    const bday = ((D.caisse.anniversaires || []).find(x => x.cle === me) || {}).jour;
+    h += '<h2>Ma caisse noire</h2><div class="panel"><p class="moi-caisse'+(reste > 0 ? " du" : "")+'">'+(reste > 0 ? euros(reste)+' à payer' : 'À jour 👍')+'</p>'
+      + (mine.length ? '<ul class="plain">'+mine.map(f => { const r = RULE(f.regle) || {};
+          return '<li>'+(r.emoji || "")+' '+esc(r.titre || f.regle)+' · '+(f.montant == null ? "🍻 tournée" : euros(f.montant))+' <span class="small muted">'+esc(fmtDate(f.date))+'</span></li>'; }).join("")+'</ul>' : '<p class="small muted">Aucune amende pour l\'instant.</p>')
+      + (b.cotise ? '' : '<p class="small muted">Cotisation de la saison : pas encore réglée.</p>')
+      + (bday ? '<p class="small">🎂 Votre anniversaire : le '+esc(new Date(2000, Number(bday.slice(0, 2)) - 1, Number(bday.slice(3))).toLocaleDateString("fr-FR", {day: "numeric", month: "long"}))+'.</p>' : '')+'</div>';
+  }
+  if(p && p.m){
+    const last = (p.journal || []).slice(-1)[0], gk = isGK(p);
+    h += '<h2>Mes chiffres</h2><div class="panel"><div class="kpis"><div><b class="num">'+p.m+'</b><span>match'+(p.m > 1 ? "s" : "")+' sur '+p.m_total+'</span></div>'
+      + (gk ? '<div><b class="num">'+(p.pct_arrets != null ? p.pct_arrets+" %" : "–")+'</b><span>arrêts</span></div>'
+            : '<div><b class="num">'+p.buts+'</b><span>buts</span></div><div><b class="num">'+(p.reussite != null ? p.reussite+" %" : "–")+'</b><span>au tir</span></div>')+'</div>'
+      + (last ? '<p class="small">Dernier match : '+esc(teamShort(last.adv))+' '+esc(last.res)+' '+esc(last.score)+', '+(gk ? (last.arrets || 0)+' arrêts' : last.buts+' but'+(last.buts > 1 ? "s" : ""))
+        + (last.deux_min ? ', '+last.deux_min+' × 2 min' : '')+'.</p>' : '')
+      + (p.passe || p.avant || p.jeunes ? '<p class="small muted">'+esc(passeLine(p))+'</p>' : '')+'</div>';
+  } else if(p) h += '<h2>Mes chiffres</h2><div class="panel"><p class="small muted">Pas encore de match cette saison.'+(p.passe || p.avant || p.jeunes ? ' '+esc(passeLine(p)) : '')+'</p></div>';
+  return h;
+}
 function viewPlanif(){
   const P = PLAN;
   if(!P.length) return '<header class="top"><h1>Planification</h1></header>'+emptyPanel();
@@ -1127,7 +1231,7 @@ function viewPlanif(){
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
     + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
-  if(statusPending()) h += '<p class="note coach injury-box">Blessés ou absents pas encore publiés : les autres voient encore les propositions sans eux. <button class="btn" data-publier-blessures="1">Publier</button></p>';
+  if(statusPending()) h += '<p class="note coach injury-box">Blessés, absents ou rendez-vous pas encore publiés : les autres ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
@@ -1527,6 +1631,24 @@ const cnToken = () => (D && D.caisse && D.caisse.jeton_cn) || "";
 const canPropose = () => !canWrite() && !!cnToken() && !!CFG.cn_depot;
 const cnOutbox = () => { try { return JSON.parse(stored(CN_OUT) || "[]"); } catch (e) { return []; } };
 const setCnOutbox = l => { try { localStorage.setItem(CN_OUT, JSON.stringify(l)); } catch (e) {} };
+// la santé du tableau de bord (pipeline/sante.py, publie/sante.json, sans nom) : un bandeau quand
+// quelque chose cloche ; les jetons ne concernent que l'entraîneur et les trésoriers
+let SANTE = null;
+async function fetchSante(){
+  if(!CFG.sante) return false;
+  try {
+    const r = await fetch(CFG.sante + "?t=" + Date.now(), {cache: "no-store"});
+    if(!r.ok) return false;
+    const s = await r.json(), changed = JSON.stringify(s) !== JSON.stringify(SANTE);
+    SANTE = s;
+    return changed;
+  } catch (e) { return false; }
+}
+const santeBanner = () => {
+  if(!SANTE || SANTE.etat === "ok") return "";
+  const list = (SANTE.alertes || []).filter(a => COACH || canWrite() || !String(a.code).startsWith("jeton"));
+  return list.length ? '<p class="demo sante">⚠️ '+list.map(a => esc(a.message)).join(" ")+'</p>' : "";
+};
 const CN_TXT = {envoi: "Envoi de la proposition…", envoyee: "Proposition envoyée : visible par tous d'ici une à deux minutes.",
   erreur: "Envoi impossible pour l'instant (connexion ?) : la proposition reste ici, réessayez.", lent: "La mise en ligne tarde : elle apparaîtra au prochain passage."};
 const outbox = () => { try { return JSON.parse(stored(OUTBOX) || "[]"); } catch (e) { return []; } };
@@ -1900,7 +2022,7 @@ function viewPoules(){
 const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
 const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueurs:viewJoueurs, adv:viewAdv,
-               saison: () => viewSaison() + viewCoupes() + viewPoules(), caisse: viewCaisse};
+               saison: () => viewSaison() + viewCoupes() + viewPoules(), caisse: viewCaisse, moi: viewMoi};
 function render(keepScroll){
   const y = window.scrollY;
   document.getElementById("club-nom").textContent = D.meta.club_court || CFG.club || "HBPSM";
@@ -1913,7 +2035,7 @@ function render(keepScroll){
     ? '<p class="demo">Une version plus récente de ce fichier existe.'+(CFG.versions ? ' <a href="'+esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a>' : '')+'</p>'
     : '<p class="demo">Une nouvelle version de la page est en ligne : elle s\'affichera d\'elle-même d\'ici quelques minutes, sans rien perdre de vos réglages.</p>';
   PLAN = planning();
-  document.getElementById("app").innerHTML = newer + VIEWS[S.tab]();
+  document.getElementById("app").innerHTML = newer + santeBanner() + VIEWS[S.tab]();
   document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
   window.scrollTo(0, keepScroll ? y : 0);
 }
@@ -2119,12 +2241,13 @@ async function publishChoices(){
   if(!token){ PUB = "jeton"; render(true); return; }
   if(!CFG.depot || !phrase){ PUB = "erreur"; render(true); return; }
   // ce qui est déjà publié (un autre ordinateur a pu valider d'autres matchs), puis les validations d'ici
-  const ids = new Set(PLAN.map(r => String(r.m.id))), matchs = {};
+  // les matchs à venir, et les derniers joués (le bilan d'un match compare la feuille au choix de l'entraîneur)
+  const ids = new Set([...PLAN.map(r => String(r.m.id)), ...(D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).map(x => String(x.id))]), matchs = {};
   for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = c;
   for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
   PUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow()}, phrase);
+    const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow(), rdv: rdvNow()}, phrase);
     const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/choix.yml/dispatches", {
       method:"POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {choix: JSON.stringify(env)}}),
       headers:{"Authorization":"Bearer " + token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json"}});
@@ -2206,6 +2329,7 @@ async function check(){
     if(await fetchChoices()) render(true);   // l'entraîneur a validé une feuille
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(await fetchCN()) render(true);        // une proposition d'amende d'un joueur
+    if(await fetchSante()) render(true);     // une alerte de santé (site, feuilles, jetons)
     if(m.maj && m.maj !== GENERE){
       const env = await fetchVault();
       let box;
@@ -2260,7 +2384,8 @@ async function start(phrase){
   status();
   fetchChoices().then(changed => { if(changed) render(true); });
   fetchCaisse().then(changed => { if(changed) render(true); });
-  fetchCN().then(changed => { if(changed) render(true); if(cnOutbox().length) sendCN(); });   // une proposition restée en route : renvoyée
+  fetchCN().then(changed => { if(changed) render(true); if(cnOutbox().length) sendCN(); });
+  fetchSante().then(changed => { if(changed) render(true); });   // une proposition restée en route : renvoyée
   check();  // le manifeste dit aussi si la page elle-même a une version plus récente
 }
 document.addEventListener("click", ev => {

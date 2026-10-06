@@ -52,6 +52,11 @@ def check(envelope, secret):
             isinstance(k, str) and 0 < len(k) < 40 and isinstance(v, list) and len(v) <= MAX_INJURED
             and all(isinstance(x, str) and 0 < len(x) < 120 for x in v) for k, v in away.items()):
         raise vault.VaultError("Choix refusés : absences de forme inattendue.")
+    # rendez-vous fixés par l'entraîneur : {match: "HH:MM"} (la page « Ma semaine » de chaque joueur)
+    rdv = data.get("rdv", {})
+    if not isinstance(rdv, dict) or len(rdv) > MAX_MATCHES or not all(
+            isinstance(k, str) and 0 < len(k) < 40 and isinstance(v, str) and len(v) <= 5 for k, v in rdv.items()):
+        raise vault.VaultError("Choix refusés : rendez-vous de forme inattendue.")
     return data
 
 
