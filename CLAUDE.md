@@ -391,6 +391,20 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   maintien, en cours), place finale au-dessus, détail saison par saison dans un tiroir. Données : `parcours`
   dans config.yml (fourni par l'auteur, 2023-2024 à 2025-2026 recoupés avec les classements officiels) ; la
   saison en cours se complète d'après le classement de notre poule (`parcoursList`).
+- Calendrier, application, image, causerie (demandes de l'auteur, 06/10/2026) :
+  `pipeline/agenda.py` écrit `publie/matchs.ics` (public, relu par `check_public`, réécrit seulement si un
+  match change, DTSTAMP mis à part) : matchs du club, championnat et coupe, heure de Paris, « horaire à
+  confirmer » en journée entière (STATUS:TENTATIVE), score des matchs joués, sans les matchs contre un
+  forfait ; noms courts comme la page (`short_team`). Page : `subscribeMenu` (Google `?cid=webcal…`, webcal,
+  copier l'adresse ; `CFG.ics`). Application : `dashboard/manifest.webmanifest`, `sw.js` (réseau d'abord pour
+  la page, jamais la page en cache hors navigation : `waitNewPage` doit voir la nouvelle version), icônes
+  `dashboard/icons/` ; copiés dans `_site` par le workflow ; `installCard` dans Ma semaine (Android :
+  `beforeinstallprompt` ; iPhone : explication ; « hbpsm:installe-vu »). Image du bilan : `bilanFacts`,
+  `bilanImage` (canvas 1080 × 1350, prénoms, logos `data:` du résumé public), `shareBilan` (partage du
+  téléphone, sinon téléchargement). Mode causerie : `talkSlides` (le match, l'adversaire, à surveiller, notre
+  plan, notre équipe), `drawTalk` hors du rendu, clavier, glisser, plein écran. Rappel de 2e phase : santé,
+  code « rappel-phase2 » du 1er février au 30 avril, coupé par `objectif.phase2` ; bandeau réservé à
+  l'entraîneur et aux trésoriers (comme les jetons).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

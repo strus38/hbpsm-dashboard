@@ -64,6 +64,7 @@ echantillons_debug: true
 # Objectif de la première phase : rang visé dans la poule du club. Règlement AURA 2026-2027 :
 # 2 montées par secteur (poules 71 et 72), format de la phase 2 publié vers février 2027.
 # 3 = se qualifier pour une phase 2 réunissant les 3 premiers de chaque poule (choix de l'auteur).
+# Le tableau de bord le rappelle de février à avril (santé) ; « phase2: vue » une fois la formule prise en compte.
 objectif:
   rang: 3
 # Saisons passées au même niveau : point de départ des notes, effectifs et confrontations des

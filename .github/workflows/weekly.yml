@@ -89,7 +89,9 @@ jobs:
           git push || (git pull --rebase && git push)  # les choix de l'entraîneur ont pu être publiés entre-temps
 
       - name: Préparer la page pour GitHub Pages (la page seule, sans aucune donnée)
-        run: mkdir -p _site && cp publie/HBPSM-tableau-de-bord.html _site/index.html
+        run: |
+          mkdir -p _site/icons && cp publie/HBPSM-tableau-de-bord.html _site/index.html
+          cp dashboard/manifest.webmanifest dashboard/sw.js _site/ && cp dashboard/icons/*.png _site/icons/
 
       - uses: actions/upload-pages-artifact@v5
         with:

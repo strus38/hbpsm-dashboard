@@ -281,12 +281,12 @@ def test_publication_chiffree(sandbox, monkeypatch):
     demo(sandbox)
     publish.seal("2026-10-04")
     out = sandbox / "publie"
-    assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc",
-                                                    "hbpsm.enc", "manifeste.json", publish.SEANCE_NAME, publish.PUBLIC_NAME]
+    assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc", "hbpsm.enc", "manifeste.json",
+                                                    "matchs.ics", publish.SEANCE_NAME, publish.PUBLIC_NAME]
     for p in out.iterdir():
         text = p.read_text("utf-8")
         assert "Joueur 0" not in text and "Fictif" not in text, p.name  # aucun nom de joueur en clair
-        if p.name not in (publish.SEANCE_NAME, publish.PUBLIC_NAME):  # seuls les fichiers publics nomment les équipes
+        if p.name not in (publish.SEANCE_NAME, publish.PUBLIC_NAME, "matchs.ics"):  # seuls les fichiers publics nomment les équipes
             assert "quipe fictive" not in text, p.name
     board = json.loads((out / publish.PUBLIC_NAME).read_text("utf-8"))
     assert board["format"] == "hbpsm-public" and board["prochain"] and board["poules"]["71"]
@@ -432,6 +432,26 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("#why button").first.click()
         page.click("nav.tabs button[data-tab=semaine]")
         assert page.inner_text(".matchcard h1").split("\n")[1:] == ["VS", "HBPSM"]   # HBPSM à l'extérieur
+        # tous les matchs dans son agenda : Google (abonnement) et webcal (iPhone, Outlook)
+        page.evaluate("CFG.ics = 'https://exemple.test/publie/matchs.ics'; render(true)")
+        assert page.locator(".matchcard a[href='webcal://exemple.test/publie/matchs.ics']").count() == 1
+        assert "cid=webcal%3A%2F%2Fexemple.test" in page.get_attribute(".matchcard a[href*='calendar.google.com/calendar/r?cid=']", "href")
+        page.evaluate("CFG.ics = ''; render(true)")
+        assert page.locator(".matchcard summary:has-text('Tous les matchs')").count() == 0
+        # mode causerie : cinq écrans, au clavier, fermé par Échap
+        page.click("button[data-talk]")
+        title = "document.querySelector('#talk h2').textContent"
+        assert page.locator("#talk .tk-dots button").count() == 5 and page.evaluate(title) == "Le match"
+        page.keyboard.press("ArrowRight")
+        assert page.evaluate(title) == "L'adversaire"
+        page.click("#talk .tk-dots button >> nth=4")
+        assert page.evaluate(title) == "Notre équipe" and page.locator("#talk .court, #talk .tk-sub").count() >= 1
+        page.keyboard.press("Escape")
+        assert page.locator("#talk").count() == 0
+        # l'image du bilan, fabriquée dans la page ; l'installation, seulement en ligne (https)
+        image = page.evaluate("(async () => { const b = await bilanImage(); return b ? [b.type, b.size] : null; })()")
+        assert image is None or (image[0] == "image/png" and image[1] > 20000), image
+        assert page.evaluate("installCard()") == ""
         # feuille de 12 joueurs dont 2 gardiens pour chacun des 4 prochains matchs
         sheet = "(k => { const r = planning()[k]; return [r.sel.length, r.gks.length, r.missing, r.missingGK]; })"
         assert [page.evaluate(sheet + "(%d)" % k) for k in range(4)] == [[12, 2, 0, 0]] * 4
@@ -796,6 +816,54 @@ def test_workflows_lisibles():
         assert (d.get(True) or d.get("on")) and d.get("jobs"), f.name
 
 
+def test_calendrier_des_matchs(tmp_path):
+    """Le calendrier auquel chacun s'abonne : les matchs du club (championnat et coupe), à l'heure de Paris,
+    horaire à confirmer en journée entière, score des matchs joués, rien contre une équipe en forfait ;
+    lignes de 75 octets au plus ; réécrit seulement si un match change."""
+    from pipeline import agenda
+    config = dict(common.load_config(), forfaits=["P16M DIV2 CLUB FORFAIT 2"],
+                  competition="https://exemple/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/")
+    club = config["club"]["motifs"][0]
+    base = dict(poule="71", score_home=None, score_away=None, url="https://exemple/rencontre/")
+    fixtures = [dict(base, id="1", journee=1, date="2026-10-03T21:00", home=club, away="P16M DIV2 CLUB BRAVO 2", score_home=32, score_away=19),
+                dict(base, id="2", journee=2, date="2026-10-10T20:30", home="CLUB CHARLIE", away=club,
+                     salle=dict(nom="GYMNASE DES ESSAIS", rue="RUE DU TEST", code_postal="38000", ville="VILLE FICTIVE")),
+                dict(base, id="3", journee=3, date="2026-11-07", date_provisoire=True, home=club, away="CLUB DELTA"),
+                dict(base, id="4", journee=4, date="2026-11-14", date_provisoire=True, home="P16M DIV2 CLUB FORFAIT 2", away=club),
+                dict(base, id="5", poule="coupe", coupe="Coupe de France", tour="1ER TOUR", date="2026-10-17T18:00", home="CLUB ECHO", away=club),
+                dict(base, id="6", journee=1, date="2026-10-03T21:00", home="CLUB CHARLIE", away="CLUB DELTA")]
+    lines = agenda.calendar(fixtures, config, "https://exemple.github.io/tableau/")
+    events = "\n".join(lines).split("BEGIN:VEVENT")[1:]
+    assert len(events) == 4   # le forfait et le match des autres n'y sont pas
+    assert "SUMMARY:HBPSM 32-19 Bravo 2 · J1" in events[0] and "DTSTART;TZID=Europe/Paris:20261003T210000" in events[0]
+    assert "DTEND;TZID=Europe/Paris:20261003T223000" in events[0]
+    assert "LOCATION:Gymnase Des Essais\\, Rue Du Test\\, 38000 Ville Fictive" in events[1]
+    assert "SUMMARY:Echo – HBPSM · Coupe de France\\, 1er tour" in events[2]
+    assert "DTSTART;VALUE=DATE:20261107" in events[3] and "DTEND;VALUE=DATE:20261109" in events[3] and "STATUS:TENTATIVE" in events[3]
+    assert "(horaire à confirmer)" in events[3] and "2e division P16 AURA\\, poule 71\\, journée 3" in events[3]
+    path = tmp_path / "matchs.ics"
+    assert agenda.save(lines, path) and all(len(l.encode("utf-8")) <= 75 for l in path.read_bytes().decode("utf-8").split("\r\n"))
+    first = path.read_bytes()
+    assert not agenda.save(lines, path) and path.read_bytes() == first   # rien de changé : pas réécrit
+    fixtures[2]["date"], fixtures[2]["date_provisoire"] = "2026-11-07T20:00", False
+    assert agenda.save(agenda.calendar(fixtures, config), path) and b"20261107T200000" in path.read_bytes()
+
+
+def test_application_installable():
+    """La page sur GitHub Pages s'installe sur l'écran d'accueil : manifeste lisible, icônes présentes,
+    copiées avec la page par le workflow."""
+    import yaml
+    man = json.loads((ROOT_DIR / "dashboard" / "manifest.webmanifest").read_text("utf-8"))
+    assert man["display"] == "standalone" and man["start_url"] == "./"
+    assert all((ROOT_DIR / "dashboard" / i["src"]).exists() for i in man["icons"])
+    assert {i["sizes"] for i in man["icons"]} >= {"192x192", "512x512"} and any(i["purpose"] == "maskable" for i in man["icons"])
+    steps = yaml.safe_load((ROOT_DIR / ".github" / "workflows" / "weekly.yml").read_text("utf-8"))["jobs"]["collecte"]["steps"]
+    pages = next(s["run"] for s in steps if "GitHub Pages" in (s.get("name") or ""))
+    assert "manifest.webmanifest" in pages and "sw.js" in pages and "icons" in pages
+    template = (ROOT_DIR / "dashboard" / "template.html").read_text("utf-8")
+    assert 'rel="manifest"' in template and 'serviceWorker.register("sw.js")' in template
+
+
 def test_sante(sandbox, monkeypatch):
     """La santé du tableau de bord : poule non lue, feuilles qui tardent ou illisibles, jetons qui expirent ;
     un fichier public sans nom, réécrit seulement quand quelque chose change."""
@@ -810,6 +878,11 @@ def test_sante(sandbox, monkeypatch):
                      "jeton-des propositions": "info", "jeton-de publication": "alerte"}
     assert sante.checks(config, fixtures + [dict(fixtures[1], id="3", poule="72")],
                         [dict(id="1", players=dict(home=[1]))], {}, "2026-10-06", {}) == []
+    # de février à avril : la formule de la deuxième phase est à prendre en compte (rappel pour l'entraîneur)
+    late = [dict(fixtures[1], id="9", poule=p, date="2027-05-01T20:00") for p in ("71", "72")]
+    assert [a["code"] for a in sante.checks(config, late, [], {}, "2027-02-15", {})] == ["rappel-phase2"]
+    seen = dict(config, objectif=dict(config["objectif"], phase2="vue"))
+    assert sante.checks(seen, late, [], {}, "2027-02-15", {}) == []
     demo(sandbox)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     assert sante.main([]) == 0

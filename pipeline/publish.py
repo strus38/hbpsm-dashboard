@@ -17,6 +17,8 @@ Fichiers versionnés, dans publie/ :
                               repérage par numéros, axes, logos des clubs en petites images) :
                               l'écran « Tableau de bord » de HANDBALL-training le lit sans phrase ;
                               vérifié avant publication
+  matchs.ics                  calendrier des matchs du club (pipeline/agenda.py), auquel chacun
+                              s'abonne : équipes, dates, gymnases, scores ; vérifié avant publication
 La page part aussi sur GitHub Pages (workflow) : elle ne contient aucune donnée.
 """
 import base64
@@ -29,7 +31,7 @@ import pathlib
 import sys
 import time
 
-from . import collect, vault
+from . import agenda, collect, vault
 from .analyze import analyze
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
@@ -57,12 +59,18 @@ def page_config(config):
     raw = f"https://raw.githubusercontent.com/{slug}/{branch}/publie/" if slug else ""
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
                 choix=raw + "choix.enc" if raw else "", caisse=raw + "caisse.enc" if raw else "",
-                sante=raw + "sante.json" if raw else "",
+                sante=raw + "sante.json" if raw else "", ics=raw + agenda.NAME if raw else "",
                 depot=slug, branche=branch,
                 **cn_config(config),
                 iterations=vault.ITERATIONS,  # la page chiffre les choix de l'entraîneur comme le coffre
                 versions=f"https://github.com/{slug}/releases/latest" if slug else "",
                 app=app_version(), club=config["club"]["nom_affiche"], verif=VERIF)
+
+
+def pages_url(config):
+    """L'adresse de la page sur GitHub Pages : « propriétaire/dépôt » -> https://propriétaire.github.io/dépôt/."""
+    owner, _, repo = repo_slug(config).partition("/")
+    return f"https://{owner}.github.io/{repo}/" if owner and repo else ""
 
 
 def cn_config(config):
@@ -255,8 +263,10 @@ def seal(today=None):
     public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
     public_board = json.dumps(public_summary(data), ensure_ascii=False, indent=1)
     names = known_names(state, roster_text, history_state())
+    calendar = agenda.calendar(state["fixtures.json"] or [], config, pages_url(config))
     check_public(public_seance, names)  # avant d'écrire quoi que ce soit
     check_public(public_board, names)
+    check_public(" ".join(calendar), names)
     PUBLIE.mkdir(parents=True, exist_ok=True)
     # la page ne contient aucune donnée : elle peut être publique
     (PUBLIE / PAGE_NAME).write_text(render(None, cfg), "utf-8")
@@ -266,6 +276,7 @@ def seal(today=None):
         # les logos s'ajoutent après la relecture : des images, rangées sous des noms d'équipes déjà relus
         board = embed_logos(json.loads(public_board), data.get("logos") or {}, read_json(PUBLIE / PUBLIC_NAME, {}) or {})
         (PUBLIE / PUBLIC_NAME).write_text(json.dumps(board, ensure_ascii=False, indent=1), "utf-8")
+    agenda.save(calendar, PUBLIE / agenda.NAME)   # réécrit seulement si un match change
     if hist and (previous.get("historique") != hist_digest or not (PUBLIE / HISTORY_NAME).exists()):
         write_json(PUBLIE / HISTORY_NAME, vault.encrypt(hist, secret))
     if changed:

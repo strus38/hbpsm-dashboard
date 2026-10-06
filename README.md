@@ -18,6 +18,7 @@ joueur est chiffré avant d'y entrer (AES-256-GCM, clé dérivée d'une phrase s
 | `publie/manifeste.json` | date et empreinte de la dernière mise à jour | tout le monde |
 | `publie/seance-prochaine.hbt.json` | séance du prochain entraînement, sans nom de joueur | tout le monde |
 | `publie/tableau-public.json` | résumé d'équipe sans nom de joueur (prochain match, classements, chances, repérage par numéro) | tout le monde |
+| `publie/matchs.ics` | calendrier des matchs du club (équipes, dates, gymnases, scores), sans nom de joueur, auquel on s'abonne | tout le monde |
 
 Les deux fichiers publics en clair sont relus avant d'être écrits : si un nom de l'effectif ou
 d'une feuille de match (saison passée comprise) y apparaît, la publication est refusée.
@@ -351,7 +352,22 @@ gardé ses joueurs retrouve son propre bilan.
 - **Santé** : à chaque collecte, `pipeline/sante.py` vérifie que le site de la fédération est bien lu,
   que les feuilles du club arrivent et se lisent, et que les jetons n'approchent pas de leur échéance.
   En cas de souci, la page affiche un bandeau et une issue « Tableau de bord : alerte » s'ouvre (son
-  auteur est prévenu par mail) ; elle se ferme d'elle-même quand tout va bien.
+  auteur est prévenu par mail) ; elle se ferme d'elle-même quand tout va bien. De février à avril, elle
+  rappelle aussi de prendre en compte la formule de la deuxième phase (« phase2: vue » sous `objectif`
+  dans `config.yml` une fois fait) ; ce rappel ne s'affiche qu'à l'entraîneur et aux trésoriers.
+
+## Calendrier, application, image du bilan, causerie
+
+- **Tous les matchs dans son agenda** : le menu « 🔔 Tous les matchs » (Semaine, Ma semaine) abonne
+  Google Agenda, l'iPhone ou Outlook à `publie/matchs.ics` (`pipeline/agenda.py`). Les horaires « à
+  confirmer » et les gymnases s'y mettent à jour d'eux-mêmes ; les matchs joués y prennent leur score.
+- **Application sur l'écran d'accueil** : la page de GitHub Pages s'installe (manifeste, icônes et
+  service worker dans `dashboard/`, copiés par le workflow) ; Ma semaine propose l'installation sur
+  Android et l'explique sur iPhone. Installée, elle s'ouvre en plein écran et sans connexion.
+- **Image du bilan** : « Partager le bilan en image » fabrique dans l'appareil une image (score, logos,
+  buteurs, gardiens, discipline, chances) pour le groupe de l'équipe ; rien n'est publié.
+- **Mode causerie** : depuis la Semaine, cinq écrans à montrer au vestiaire (le match, l'adversaire,
+  à surveiller, notre plan, notre équipe) ; flèches, glisser ou pastilles pour avancer, Échap pour fermer.
 
 ## Caisse noire : propositions de tous
 

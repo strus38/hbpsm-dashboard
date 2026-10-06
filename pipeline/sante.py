@@ -75,6 +75,12 @@ def checks(config, fixtures, matches, report, today, tokens):
     unknown = (report or {}).get("actions_inconnues") or []
     if unknown:
         add("info", "libelles", f"Libellés inconnus sur les feuilles : {', '.join(sorted(map(str, unknown))[:5])}.")
+    # la deuxième phase (avril à juin) : sa formule paraît vers février-mars ; objectif et simulation à
+    # revoir (demande de l'auteur, 06/10/2026) ; « phase2: vue » sous « objectif » dans config.yml le fait taire
+    year = str(config.get("saison") or "2000-2001")[5:9]
+    if f"{year}-02-01" <= today <= f"{year}-04-30" and not (config.get("objectif") or {}).get("phase2"):
+        add("info", "rappel-phase2", "Deuxième phase (avril à juin) : la formule de la ligue AURA devrait être publiée ; "
+                                     "revoir l'objectif et la simulation (config.yml, objectif).")
     for label, days in tokens.items():
         if days == "refusé":
             add("alerte", f"jeton-{label}", f"Jeton {label} refusé par GitHub : il faut en créer un nouveau.")

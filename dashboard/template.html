@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HBPSM — préparation du prochain match</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0b2a52">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HBPSM">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -140,6 +147,43 @@ nav.tabs{position:sticky;top:0;background:var(--surface);border-bottom:1px solid
 nav.tabs button{flex:1;max-width:160px;border:0;background:none;padding:12px 2px 10px;font:600 1rem var(--display);letter-spacing:.02em;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
 nav.tabs button[aria-selected="true"]{color:var(--heading);border-bottom-color:var(--accent)}
 section[hidden]{display:none}
+/* mode causerie : un écran par sujet, en grand, sur le bleu marine du club */
+.talk{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:var(--court-deep,#0b2a52);color:#e8eff8;
+  --bg:#071a31;--surface:#0d2747;--ink:#e8eff8;--muted:#9db1c9;--rule:#1d3d63;--heading:#fff;--link:#8cc2f5;--accent-trait:var(--accent);
+  --bar-for:#5aa0e6;--track:#5aa0e6;--win:#4fb980;--loss:#ec7a66;--draw:#9aa3a7;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.talk .tk-top{display:flex;align-items:center;gap:10px;padding:10px 16px;font:600 .9rem var(--body);color:var(--muted)}
+.talk .tk-top > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.talk .tk-dots{display:flex;gap:6px}
+.talk .tk-dots button{width:10px;height:10px;padding:0;border-radius:50%;border:0;background:var(--rule);cursor:pointer}
+.talk .tk-dots button.on{background:var(--accent)}
+.talk .tk-x{border:0;background:none;color:#fff;font-size:1.4rem;cursor:pointer;padding:4px 8px}
+.talk .tk-slide{flex:1;overflow:auto;width:100%;max-width:980px;margin:0 auto;padding:8px 20px 20px;font-size:clamp(1rem,2.2vw,1.35rem)}
+.talk h2{display:block;margin:4px 0 14px;color:var(--accent);font:700 clamp(1.8rem,5vw,3.2rem)/1.05 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.talk h2::before{content:none}
+.talk .tk-vs{display:flex;align-items:center;justify-content:center;gap:clamp(12px,5vw,48px);margin:10px 0 18px}
+.talk .tk-team{display:flex;flex-direction:column;align-items:center;gap:8px;font:700 clamp(1.3rem,4vw,2.4rem) var(--display);text-align:center}
+.talk .tk-vs > span:not(.tk-team){font:700 clamp(1.4rem,4vw,2.6rem) var(--display);color:var(--accent)}
+.talk .tk-big{font:700 clamp(1.3rem,3.6vw,2.2rem) var(--display);text-align:center;margin:6px 0}
+.talk .tk-sub{color:var(--muted)}
+.talk .tk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:16px 0}
+.talk .tk-kpis div{background:var(--surface);border-radius:12px;padding:12px;text-align:center}
+.talk .tk-kpis b{display:block;font:700 clamp(1.8rem,5vw,3rem)/1 var(--display);color:#fff}
+.talk .tk-kpis span{font-size:.8em;color:var(--muted)}
+.talk .tk-watch{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.talk .tk-player{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;align-items:center;background:var(--surface);border-radius:12px;padding:12px 14px}
+.talk .tk-player .jersey{grid-row:span 2;width:64px;height:64px;font:700 2rem var(--display);display:grid;place-items:center;border-radius:12px;background:var(--accent);color:var(--on-accent)}
+.talk .tk-player.gk .jersey{background:#fff}
+.talk .tk-player span:last-child{color:var(--muted);font-size:.85em}
+.talk .tk-axis{background:var(--surface);border-radius:12px;padding:12px 16px;margin:0 0 10px}
+.talk .tk-axis b{display:block;font:700 clamp(1.2rem,3vw,1.8rem) var(--display);color:#fff}
+.talk .tk-note{color:var(--muted);font-size:.9em}
+.talk .court{max-width:520px;margin:0 auto}
+.talk .tk-nav{display:flex;justify-content:space-between;gap:10px;padding:10px 16px}
+.talk .tk-nav button{border:1px solid var(--rule);background:var(--surface);color:#fff;border-radius:999px;padding:10px 16px;font:600 .95rem var(--body);cursor:pointer;max-width:48%}
+.talk .tk-nav button:disabled{visibility:hidden}
+.install p{margin:0 0 8px}
+.mc-talk{margin:12px 0 0}
+.mc-talk .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.45)}
 /* matchs à gagner : une barre par match, haute de ce qu'il met en jeu */
 .stakes{display:grid;grid-template-columns:repeat(auto-fit,minmax(30px,1fr));gap:4px;align-items:end;margin-top:8px}
 .stakes .sk{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:0;border:0;background:none;color:var(--muted);font:500 .7rem/1.15 var(--body);cursor:pointer}
@@ -692,6 +736,12 @@ const gauge = (v, label) => { const c = 2 * Math.PI * 26, x = v == null ? 0 : Ma
 const adresse = s => [s.nom, s.rue, [s.code_postal, s.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 const mapsUrl = s => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(adresse(s));
 const MATCH_MIN = 90;   // durée inscrite dans l'agenda
+// tous les matchs du club dans son agenda (publie/matchs.ics) : un abonnement, mis à jour de lui-même quand
+// la fédération fixe un horaire ou un gymnase (demande de l'auteur, 06/10/2026)
+const webcal = () => CFG.ics.replace(/^https:/, "webcal:");
+const subscribeMenu = () => !CFG.ics ? "" : '<details class="agenda"><summary class="chipx" title="Tous les matchs dans mon agenda, mis à jour d\'eux-mêmes">🔔 Tous les matchs <span aria-hidden="true">＋</span></summary>'
+  + '<span class="agenda-menu"><a href="https://calendar.google.com/calendar/r?cid='+encodeURIComponent(webcal())+'" target="_blank" rel="noopener">Google Agenda</a>'
+  + '<a href="'+esc(webcal())+'">iPhone, Mac, Outlook</a><a href="#" data-copy-ics="1">Copier l\'adresse du calendrier</a></span></details>';
 function matchEvent(m){
   if(!m.date || m.date.length <= 10 || m.provisoire) return null;   // horaire pas encore fixé
   const [y, mo, d, h, mi] = m.date.match(/\d+/g).map(Number), two = n => String(n).padStart(2, "0");
@@ -1117,7 +1167,8 @@ function viewSemaine(){
         + '<a href="#" data-ics="'+esc(m.id)+'" download="match-'+esc(String(m.id).replace(/[^\w-]/g, ""))+'.ics">Agenda du téléphone, Outlook… (.ics)</a></span></details>'
       : '<span class="chipx" title="Horaire pas encore fixé par la fédération">'+quand+'</span>')
     + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener" title="Ouvrir dans Maps">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')
-    + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span></div></header>' + roNote();
+    + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span>'+subscribeMenu()+'</div>'
+    + '<p class="mc-talk noprint"><button class="btn ghost" data-talk="'+esc(m.id)+'">🎙️ Mode causerie</button></p></header>' + roNote();
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
   h = bilanBlock() + h;
   h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
@@ -1206,16 +1257,21 @@ function courtSVG(start, bench = {}){
 
 // le bilan du dernier match joué de la saison, dès que sa feuille est lue : buteurs, gardiens, discipline,
 // écart avec le choix de l'entraîneur, ce que le résultat a changé aux chances, les axes de la semaine
-function bilanBlock(now = new Date()){
+// le dernier match joué de la saison et ce que sa feuille en dit (bilan de la Semaine, image à partager)
+function bilanFacts(){
   const x = (D.derniers || []).filter(d => !d.saison || d.saison === D.meta.saison).slice(-1)[0];
-  if(!x) return "";
+  if(!x) return null;
   const rows = D.joueurs.map(p => ({p, j: (p.journal || []).find(j => j.id === x.id)})).filter(o => o.j);
-  const scorers = rows.filter(o => !isGK(o.p) && o.j.buts).sort((a, b) => b.j.buts - a.j.buts);
-  const gks = rows.filter(o => isGK(o.p) && (o.j.arrets || o.j.pris != null));
-  const sum = k => rows.reduce((a, o) => a + (o.j[k] || 0), 0), deux = sum("deux_min"), jaunes = sum("jaunes"), rouges = sum("rouges");
-  const day = (x.date || "").slice(0, 10), fresh = (now - new Date(day + "T12:00")) / 86400000 <= 4;
-  const ch = D.chances || [], before = ch.filter(c => String(c.date).slice(0, 10) < day).slice(-1)[0], cur = ch.slice(-1)[0];
-  const chosen = CHOIX && CHOIX.matchs && CHOIX.matchs[x.id], goal = objectif((D.saison || {}).cible);
+  const sum = k => rows.reduce((a, o) => a + (o.j[k] || 0), 0), day = (x.date || "").slice(0, 10), ch = D.chances || [];
+  return {x, rows, day, scorers: rows.filter(o => !isGK(o.p) && o.j.buts).sort((a, b) => b.j.buts - a.j.buts),
+    gks: rows.filter(o => isGK(o.p) && (o.j.arrets || o.j.pris != null)), deux: sum("deux_min"), jaunes: sum("jaunes"), rouges: sum("rouges"),
+    before: ch.filter(c => String(c.date).slice(0, 10) < day).slice(-1)[0], cur: ch.slice(-1)[0], goal: objectif((D.saison || {}).cible)};
+}
+function bilanBlock(now = new Date()){
+  const f = bilanFacts();
+  if(!f) return "";
+  const {x, rows, scorers, gks, deux, jaunes, rouges, day, before, cur, goal} = f, fresh = (now - new Date(day + "T12:00")) / 86400000 <= 4;
+  const chosen = CHOIX && CHOIX.matchs && CHOIX.matchs[x.id];
   let h = '<details class="panel bilan"'+(fresh ? " open" : "")+'><summary><b>Bilan · '+esc(roundShort(x))+' contre '+esc(teamShort(x.adversaire))+'</b> '
     + '<span class="form"><i class="'+x.res+'">'+x.res+'</i></span> '+x.bp+'-'+x.bc+'</summary>'
     + '<p>'+({V: "Victoire", D: "Défaite", N: "Match nul"}[x.res] || "")+' '+x.bp+'-'+x.bc+(x.domicile ? " à domicile" : " à l'extérieur")+', '+esc(fmtDate(day))+' ; '+rows.length+' joueurs sur la feuille.</p>';
@@ -1232,14 +1288,174 @@ function bilanBlock(now = new Date()){
   if(cur) h += '<p><b>Chances de '+esc(goal)+'</b> : '+(before && before.proba !== cur.proba ? before.proba+' % avant le match, '+cur.proba+' % maintenant' : cur.proba+' %')+'.</p>';
   const ax = (D.axes || []).slice(0, 3);
   if(ax.length) h += '<p><b>À travailler cette semaine</b> : '+ax.map(a => esc(a.titre)).join(" · ")+'.</p>';
-  return h + '</details>';
+  return h + '<div class="edit noprint"><button class="btn ghost" data-share-bilan="1">📤 Partager le bilan en image</button></div></details>';
 }
+// L'image du bilan, pour le groupe de l'équipe (demande de l'auteur, 06/10/2026) : fabriquée dans l'appareil,
+// rien n'est publié ; prénoms seulement ; logos pris dans le résumé public, où ils sont intégrés (le serveur
+// des logos ne permet pas de les dessiner) ; à défaut, les initiales
+let PUB_LOGOS = null;
+async function pubLogos(){
+  if(PUB_LOGOS) return PUB_LOGOS;
+  if(!CFG.src) return {};
+  try {
+    const r = await fetch(CFG.src.replace(/[^/]+$/, "tableau-public.json") + "?t=" + Date.now(), {cache: "no-store"});
+    PUB_LOGOS = (await r.json()).logos || {};
+  } catch (e) { return {}; }
+  return PUB_LOGOS;
+}
+const loadImg = src => new Promise(ok => { if(!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+async function bilanImage(){
+  const f = bilanFacts();
+  if(!f) return null;
+  const {x, scorers, gks, deux, jaunes, rouges, day, before, cur, goal} = f, W = 1080, H = 1350;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"), DSP = "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif", TXT = "'Barlow', Arial, sans-serif";
+  try { await Promise.all(["700 100px 'Barlow Condensed'", "600 40px 'Barlow'", "500 40px 'Barlow'"].map(s => document.fonts.load(s))); } catch (e) {}
+  const text = (t, x0, y0, font, color, align = "center") => { g.font = font; g.fillStyle = color; g.textAlign = align; g.fillText(t, x0, y0); };
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#0b2a52"); bg.addColorStop(1, "#16487f");
+  g.fillStyle = bg; g.fillRect(0, 0, W, H); g.fillStyle = "#ffc72c"; g.fillRect(0, 0, W, 14);
+  text((D.meta.club_court || "").toUpperCase()+" · SENIORS GARÇONS", W / 2, 88, "600 34px "+TXT, "#ffc72c");
+  text(roundOf(x)+" · "+fmtDate(day)+" · "+(x.domicile ? "à domicile" : "à l'extérieur"), W / 2, 136, "500 32px "+TXT, "#c9d8ea");
+  const logos = await pubLogos(), home = x.domicile ? D.meta.club : x.adversaire, away = x.domicile ? x.adversaire : D.meta.club;
+  for(const [t, cx] of [[home, 215], [away, 865]]){
+    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(cx, 310, 112, 0, Math.PI * 2); g.fill();
+    const im = await loadImg(logos[t]);
+    if(im){ g.save(); g.beginPath(); g.arc(cx, 310, 104, 0, Math.PI * 2); g.clip(); g.drawImage(im, cx - 80, 230, 160, 160); g.restore(); }
+    else text(initials(t), cx, 342, "700 92px "+DSP, "#0b2a52");
+    text(isUs(t) ? D.meta.club_court : teamShort(t), cx, 482, "700 50px "+DSP, "#ffffff");
+  }
+  text((x.domicile ? x.bp : x.bc)+" – "+(x.domicile ? x.bc : x.bp), W / 2, 352, "700 140px "+DSP, "#ffffff");
+  const [label, color] = {V: ["VICTOIRE", "#1c7a45"], D: ["DÉFAITE", "#b3261e"], N: ["MATCH NUL", "#7d8589"]}[x.res] || ["", "#7d8589"];
+  g.font = "700 38px "+DSP; const pw = g.measureText(label).width + 56;
+  g.fillStyle = color; g.beginPath(); g.moveTo(W / 2 - pw / 2 + 30, 392); g.arcTo(W / 2 + pw / 2, 392, W / 2 + pw / 2, 452, 30);
+  g.arcTo(W / 2 + pw / 2, 452, W / 2 - pw / 2, 452, 30); g.arcTo(W / 2 - pw / 2, 452, W / 2 - pw / 2, 392, 30); g.arcTo(W / 2 - pw / 2, 392, W / 2 + pw / 2, 392, 30); g.fill();
+  text(label, W / 2, 436, "700 38px "+DSP, "#ffffff");
+  let y = 580;
+  const head = t => { text(t.toUpperCase(), 90, y, "600 30px "+TXT, "#ffc72c", "left"); y += 52; };
+  if(scorers.length){
+    head("Buteurs");
+    scorers.slice(0, 8).forEach((o, i) => { const x0 = 90 + (i % 2) * 470, y0 = y + Math.floor(i / 2) * 52;
+      text(firstName(o.p), x0, y0, "500 40px "+TXT, "#ffffff", "left"); text(String(o.j.buts), x0 + 400, y0, "700 44px "+DSP, "#ffc72c", "right"); });
+    y += Math.ceil(Math.min(8, scorers.length) / 2) * 52 + 26;
+  }
+  const lines = (t, list) => { if(!list.length) return; head(t); for(const l of list){ text(l, 90, y, "500 40px "+TXT, "#ffffff", "left"); y += 52; } y += 26; };
+  lines("Gardiens", gks.slice(0, 2).map(o => firstName(o.p)+" · "+(o.j.arrets || 0)+" arrêt"+((o.j.arrets || 0) > 1 ? "s" : "")+(o.j.pct != null ? " ("+o.j.pct+" %)" : "")));
+  lines("Discipline", [(deux ? deux+" × 2 min" : "aucune exclusion")+(jaunes ? " · "+jaunes+" jaune"+(jaunes > 1 ? "s" : "") : "")+(rouges ? " · "+rouges+" rouge"+(rouges > 1 ? "s" : "") : "")]);
+  if(cur) lines("Chances de "+goal, [(before && before.proba !== cur.proba ? before.proba+" % → " : "")+cur.proba+" %"]);
+  text("Tableau de bord "+(D.meta.club_court || ""), W / 2, H - 44, "500 28px "+TXT, "#9db1c9");
+  return new Promise(ok => c.toBlob(ok, "image/png"));
+}
+async function shareBilan(){
+  const blob = await bilanImage(), f = bilanFacts();
+  if(!blob || !f) return;
+  const name = "bilan-"+(f.day || "match")+".png", file = new File([blob], name, {type: "image/png"});
+  if(navigator.canShare && navigator.canShare({files: [file]})){
+    try { await navigator.share({files: [file], title: "Bilan "+(D.meta.club_court || "")}); return; }
+    catch (e) { if(e && e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+// Mode causerie (demande de l'auteur, 06/10/2026) : le prochain match en quelques écrans à montrer au
+// vestiaire ; ← → ou glisser pour passer d'un écran à l'autre, Échap pour fermer ; rien n'y est modifiable
+let TALK = null, TOUCH_X = null;
+function talkSlides(r){
+  const m = r.m, e = D.equipes[m.adversaire] || {}, goal = objectif((D.saison || {}).cible);
+  const home = m.domicile ? D.meta.club : m.adversaire, away = m.domicile ? m.adversaire : D.meta.club;
+  const team = t => '<span class="tk-team">'+logo(t, "xl")+esc(isUs(t) ? D.meta.club_court : teamShort(t))+'</span>';
+  const rdv = rdvOf(m), out = [];
+  out.push(["Le match", '<div class="tk-vs">'+team(home)+'<span>VS</span>'+team(away)+'</div>'
+    + '<p class="tk-big">'+esc(roundOf(m))+' · '+esc(fmtDate(m.date, m.provisoire))+'</p>'
+    + '<p style="text-align:center">'+(m.salle ? '📍 '+esc(m.salle.nom)+(m.salle.ville ? ', '+esc(m.salle.ville) : '')+' · ' : '')+(m.domicile ? "à domicile" : "à l'extérieur")
+    + (rdv ? ' · rendez-vous à <b>'+esc(rdv.replace(":", "h"))+'</b>' : '')+'</p>'
+    + '<div class="tk-kpis"><div><b>'+pct(r.pAdj)+'</b><span>victoire estimée</span></div>'
+    + (m.coupe ? '<div><b>Coupe</b><span>hors classement</span></div>'
+      : '<div><b>'+(m.enjeu == null ? "–" : (m.enjeu > 0 ? "+" : "")+m.enjeu)+'</b><span>points de chance de '+esc(goal)+'</span></div>')
+    + (m.rang_adv ? '<div><b>'+ord(m.rang_adv)+'</b><span>rang de l\'adversaire</span></div>' : '')+'</div>']);
+  let adv = '<p class="tk-sub">'+esc(pouleLabel(e))+' · '+(e.j ? e.j+' match'+(e.j > 1 ? "s" : "")+' joué'+(e.j > 1 ? "s" : "")+' '+forme(e.forme) : "aucun match joué cette saison")+'</p>';
+  if(e.j) adv += '<div class="tk-kpis"><div><b>'+fr(e.bp_moy)+'</b><span>buts marqués par match</span></div><div><b>'+fr(e.bc_moy)+'</b><span>buts encaissés</span></div>'
+    + (e.mt1_bp != null ? '<div><b>'+fr(e.mt1_bp)+' - '+fr(e.mt1_bc)+'</b><span>1re mi-temps</span></div><div><b>'+fr(e.mt2_bp)+' - '+fr(e.mt2_bc)+'</b><span>2e mi-temps</span></div>' : '')
+    + (e.arrets_pct != null ? '<div><b>'+e.arrets_pct+' %</b><span>arrêts de leurs gardiens</span></div>' : '')
+    + '<div><b>'+fr(e.deux_min_moy)+'</b><span>exclusions par match</span></div></div>' + periods(e);
+  if(e.passe) adv += '<p>Saison '+esc(e.passe.saison)+(e.passe.niveau > 0 ? ' (une division au-dessus)' : '')+' : '+e.passe.v+'-'+e.passe.n+'-'+e.passe.d
+    + ', '+fr(e.passe.bp_moy)+' buts marqués et '+fr(e.passe.bc_moy)+' encaissés par match.</p>';
+  out.push(["L'adversaire", adv]);
+  const bt = (e.buteurs || []).slice(0, 4), gk = (e.gardiens || []).slice(0, 2), old = e.passe && !bt.length ? (e.passe.buteurs || []).slice(0, 3) : [];
+  const card = (num, nom, why, keeper) => '<div class="tk-player'+(keeper ? " gk" : "")+'"><span class="jersey">'+esc(num ?? "–")+'</span><b>'+esc(nom)+(keeper ? ' <small>gardien</small>' : '')+'</b><span>'+why+'</span></div>';
+  out.push(["À surveiller", bt.length || gk.length || old.length ? '<div class="tk-watch">'
+      + bt.map(b => card(b.num, b.nom, fr(b.moy)+' buts par match'+(b.reussite != null ? ' · '+b.reussite+' % au tir' : '')+(b.pen ? ' · '+b.pen+' sur 7 m' : ''))).join("")
+      + gk.map(g => card(g.num, g.nom, g.pct != null ? g.pct+" % d'arrêts" : g.arrets+' arrêts', true)).join("")
+      + old.map(b => card(b.num, b.nom, b.buts+' buts en '+esc(e.passe.saison)+(b.present === true ? ', toujours là' : ''))).join("")+'</div>'
+      + (old.length ? '<p class="tk-note">Pas encore de feuille de match d\'eux cette saison : leurs meilleurs buteurs de la saison passée.</p>' : '')
+    : '<p>Pas encore de feuille de match lue de cet adversaire.</p>']);
+  // notre plan : le conseil du match, la pondération conseillée contre cet adversaire, les axes de la semaine
+  const ax = (D.axes || []).slice(0, 3);
+  out.push(["Notre plan", '<div class="tk-axis"><b>'+esc(advice(r))+'</b></div>'
+    + (e.plan_raison && !isUs(m.adversaire) ? '<div class="tk-axis"><b>Pondération conseillée : '+esc(PLAN_NOM[e.plan] || "Équilibré")+'</b><span class="tk-note">'+esc(e.plan_raison)+'</span></div>' : '')
+    + (ax.length ? ax.map(a => '<div class="tk-axis"><b>'+esc(a.titre)+'</b><span class="tk-note">'+esc(a.constat)+'</span></div>').join("")
+      : '<p class="tk-note">Les axes de travail de la semaine apparaîtront après quelques matchs.</p>')]);
+  const st = r.ok && r.sel.some(p => poste(p)) ? startSeven(r) : null;
+  out.push(["Notre équipe", '<p class="tk-sub">'+esc(squadTitle(r))+'</p>'
+    + (st ? courtSVG(st, benchOf(r, st)) : '<p>'+r.sel.map(p => esc(firstName(p))).join(" · ")+'</p>')]);
+  return out;
+}
+function drawTalk(){
+  const old = document.getElementById("talk");
+  if(!TALK){ if(old) old.remove(); return; }
+  const r = (PLAN || []).find(x => String(x.m.id) === String(TALK.id)) || (PLAN || [])[0];
+  if(!r){ TALK = null; if(old) old.remove(); return; }
+  const slides = talkSlides(r), k = TALK.k = Math.max(0, Math.min(TALK.k, slides.length - 1));
+  const box = document.createElement("div");
+  box.innerHTML = '<div class="talk" id="talk" role="dialog" aria-modal="true" aria-label="Mode causerie"><div class="tk-top"><span>'+esc(D.meta.club_court)+' · '+esc(roundOf(r.m))+' · '+esc(teamShort(r.m.adversaire))+'</span>'
+    + '<span class="tk-dots">'+slides.map((s, i) => '<button data-talk-go="'+i+'" class="'+(i === k ? "on" : "")+'" aria-label="'+esc(s[0])+'"></button>').join("")+'</span>'
+    + '<button class="tk-x" data-talk-close="1" aria-label="Fermer">✕</button></div>'
+    + '<section class="tk-slide"><h2>'+esc(slides[k][0])+'</h2>'+slides[k][1]+'</section>'
+    + '<div class="tk-nav"><button data-talk-go="'+(k - 1)+'"'+(k ? '' : ' disabled')+'>‹ '+(k ? esc(slides[k - 1][0]) : '')+'</button>'
+    + '<button data-talk-go="'+(k + 1)+'"'+(k < slides.length - 1 ? '' : ' disabled')+'>'+(k < slides.length - 1 ? esc(slides[k + 1][0]) : '')+' ›</button></div></div>';
+  if(old) old.replaceWith(box.firstChild); else document.body.appendChild(box.firstChild);
+}
+function talkOpen(id){
+  TALK = {id, k: 0}; drawTalk();
+  try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
+}
+function talkClose(){
+  TALK = null; drawTalk();
+  try { if(document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+}
+document.addEventListener("keydown", ev => {
+  if(!TALK) return;
+  if(ev.key === "Escape") talkClose();
+  else if(["ArrowRight", "PageDown", " "].includes(ev.key)){ TALK.k++; drawTalk(); ev.preventDefault(); }
+  else if(["ArrowLeft", "PageUp"].includes(ev.key)){ TALK.k--; drawTalk(); ev.preventDefault(); }
+});
+document.addEventListener("touchstart", ev => { TOUCH_X = TALK && ev.target.closest && ev.target.closest("#talk") ? ev.touches[0].clientX : null; }, {passive: true});
+document.addEventListener("touchend", ev => {
+  if(!TALK || TOUCH_X == null) return;
+  const dx = ev.changedTouches[0].clientX - TOUCH_X; TOUCH_X = null;
+  if(Math.abs(dx) > 60){ TALK.k += dx < 0 ? 1 : -1; drawTalk(); }
+}, {passive: true});
+// l'application sur l'écran d'accueil (GitHub Pages) : en plein écran, et hors connexion ; Android propose
+// l'installation, l'iPhone la fait depuis le bouton Partager de Safari
+let INSTALL = null;
+const standalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
+function installCard(){
+  if(standalone() || location.protocol !== "https:" || stored("hbpsm:installe-vu")) return "";
+  if(INSTALL) return '<div class="panel install"><p>📲 <b>Installer l\'application</b> sur ce téléphone : elle s\'ouvrira en plein écran depuis l\'écran d\'accueil.</p>'
+    + '<div class="edit"><button class="btn" data-install="1">Installer</button><button class="link" data-install-non="1">Plus tard</button></div></div>';
+  if(isIOS()) return '<div class="panel install"><p>📲 <b>Sur l\'écran d\'accueil</b> : dans Safari, touchez <b>Partager</b>, puis « <b>Sur l\'écran d\'accueil</b> ». '
+    + 'L\'application demandera la phrase du club une fois.</p><div class="edit"><button class="link" data-install-non="1">Compris</button></div></div>';
+  return "";
+}
+window.addEventListener("beforeinstallprompt", ev => { ev.preventDefault(); INSTALL = ev; if(typeof D !== "undefined" && D && S.tab === "moi") render(true); });
+if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 // « Ma semaine » : ce qui concerne un joueur (choisi une fois sur l'appareil, comme pour proposer une amende)
 function viewMoi(){
   const me = stored(MOI) || "", P = PLAN, p = byCle(me);
   let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>'
     + '<div class="edit"><label class="small muted" for="cmoi">Vous êtes</label><select id="cmoi"><option value="">—</option>'
     + members().map(c => '<option value="'+esc(c)+'"'+(c === me ? " selected" : "")+'>'+esc(memberName(c))+'</option>').join("")+'</select></div>';
+  h += installCard();
   if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
   const status = r => {
     if(!p) return ["", ""];
@@ -1261,7 +1477,7 @@ function viewMoi(){
           + '<span class="agenda-menu"><a href="'+esc(googleAgenda(ev))+'" target="_blank" rel="noopener">Google Agenda</a>'
           + '<a href="#" data-ics="'+esc(m.id)+'" download="match-'+esc(String(m.id).replace(/[^\w-]/g, ""))+'.ics">Agenda du téléphone, Outlook… (.ics)</a></span></details>'
         : '<span class="chipx">'+quand+'</span>')
-      + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')+'</div></header>';
+      + (m.salle ? '<a class="chipx" href="'+esc(mapsUrl(m.salle))+'" target="_blank" rel="noopener">📍 '+lieu+' <span aria-hidden="true">↗</span></a>' : '<span class="chipx">📍 '+lieu+'</span>')+subscribeMenu()+'</div></header>';
     h += '<h2>Les prochains matchs</h2><div class="panel"><ul class="plain moi-list">'+P.map(r => { const [c, txt] = status(r);
       return '<li><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+' <span class="small muted">'+esc(fmtDate(r.m.date, r.m.provisoire))+'</span><br><span class="moi-statut '+c+'">'+txt+'</span></li>'; }).join("")+'</ul></div>';
   }
@@ -1741,7 +1957,7 @@ async function fetchSante(){
 }
 const santeBanner = () => {
   if(!SANTE || SANTE.etat === "ok") return "";
-  const list = (SANTE.alertes || []).filter(a => COACH || canWrite() || !String(a.code).startsWith("jeton"));
+  const list = (SANTE.alertes || []).filter(a => COACH || canWrite() || !/^(jeton|rappel)/.test(String(a.code)));
   return list.length ? '<p class="demo sante">⚠️ '+list.map(a => esc(a.message)).join(" ")+'</p>' : "";
 };
 const CN_TXT = {envoi: "Envoi de la proposition…", envoyee: "Proposition envoyée : visible par tous d'ici une à deux minutes.",
@@ -2224,6 +2440,12 @@ document.addEventListener("click", ev => {
   const t = ev.target.closest("button"); if(!t) return;
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
   else if(t.dataset.whyText){ showWhy(t.dataset.whyText); }
+  else if(t.dataset.talk){ talkOpen(t.dataset.talk); }
+  else if(t.dataset.talkGo !== undefined){ if(TALK){ TALK.k = +t.dataset.talkGo; drawTalk(); } }
+  else if(t.dataset.talkClose){ talkClose(); }
+  else if(t.dataset.shareBilan){ shareBilan(); }
+  else if(t.dataset.install && INSTALL){ INSTALL.prompt(); INSTALL.userChoice.finally(() => { INSTALL = null; render(true); }); }
+  else if(t.dataset.installNon){ try { localStorage.setItem("hbpsm:installe-vu", "1"); } catch (e) {} render(true); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
@@ -2538,6 +2760,14 @@ document.addEventListener("click", ev => {
 });
 // le fichier .ics se fabrique au clic (un lien data: est refusé par certains téléphones) ; un clic ailleurs ferme le menu
 document.addEventListener("click", ev => {
+  const cp = ev.target.closest && ev.target.closest("a[data-copy-ics]");
+  if(cp){
+    ev.preventDefault();
+    const done = () => showWhy("Adresse du calendrier copiée : dans votre agenda, « ajouter un agenda à partir d'une URL », puis collez-la. Les matchs s'y mettront à jour d'eux-mêmes.");
+    if(navigator.clipboard) navigator.clipboard.writeText(CFG.ics).then(done, () => showWhy("Adresse du calendrier : " + CFG.ics));
+    else showWhy("Adresse du calendrier : " + CFG.ics);
+    return;
+  }
   const a = ev.target.closest && ev.target.closest("a[data-ics]");
   if(a){
     const m = ((D && D.saison && D.saison.matchs) || []).find(x => String(x.id) === a.dataset.ics), e = m && matchEvent(m);
