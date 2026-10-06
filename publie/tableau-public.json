@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-06 13:02",
+ "genere": "2026-10-06 13:42",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -23,7 +23,7 @@
   "coupe": null,
   "tour": null,
   "p_victoire": 66,
-  "enjeu": 11,
+  "enjeu": 20,
   "cle": false,
   "rang_adv": 5
  },
@@ -313,11 +313,11 @@
  "objectif": {
   "statut": "en_cours",
   "poule": "71",
-  "cible": 3,
+  "cible": 2,
   "rang": 1,
   "pts": 3,
   "restants": 9,
-  "proba": 94,
+  "proba": 85,
   "proba_tout": 100,
   "rangs": [
    65.2,
@@ -338,7 +338,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": false,
     "p_victoire": 66,
-    "enjeu": 11,
+    "enjeu": 20,
     "cle": false,
     "rang_adv": 5
    },
@@ -364,7 +364,7 @@
     "adversaire": "HBC ST DONAT",
     "domicile": true,
     "p_victoire": 85,
-    "enjeu": 15,
+    "enjeu": 25,
     "cle": true,
     "rang_adv": 4
    },
@@ -377,7 +377,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
     "p_victoire": 61,
-    "enjeu": 10,
+    "enjeu": 21,
     "cle": false,
     "rang_adv": 3
    },
@@ -390,7 +390,7 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 78,
-    "enjeu": 13,
+    "enjeu": 26,
     "cle": true,
     "rang_adv": 2
    },
@@ -403,7 +403,7 @@
     "adversaire": "HBC PILAT-2",
     "domicile": false,
     "p_victoire": 73,
-    "enjeu": 11,
+    "enjeu": 18,
     "cle": false,
     "rang_adv": 6
    },
@@ -416,7 +416,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 82,
-    "enjeu": 15,
+    "enjeu": 25,
     "cle": true,
     "rang_adv": 5
    },
@@ -429,7 +429,7 @@
     "adversaire": "HBC ST DONAT",
     "domicile": false,
     "p_victoire": 71,
-    "enjeu": 11,
+    "enjeu": 20,
     "cle": false,
     "rang_adv": 4
    },
@@ -442,7 +442,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
     "p_victoire": 80,
-    "enjeu": 13,
+    "enjeu": 24,
     "cle": false,
     "rang_adv": 3
    },
@@ -455,7 +455,7 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
     "p_victoire": 60,
-    "enjeu": 10,
+    "enjeu": 20,
     "cle": false,
     "rang_adv": 2
    }
