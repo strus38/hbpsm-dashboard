@@ -1,12 +1,12 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-06T13:10:28.000Z",
+ "exporteLe": "2026-10-07T11:34:57.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-10-06",
+   "id": "tableau-de-bord-2026-10-07",
    "titre": "Préparer P16M DIV- SABLONS RHODIA SAINT MAURICE",
    "date": "2026-10-09",
    "equipe": "Seniors garçons",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-06T13:10:28.000Z",
-   "modifieLe": "2026-10-06T13:10:28.000Z"
+   "creeLe": "2026-10-07T11:34:57.000Z",
+   "modifieLe": "2026-10-07T11:34:57.000Z"
   }
  }
 }

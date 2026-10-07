@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-06 15:10",
+ "genere": "2026-10-07 13:34",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -320,12 +320,12 @@
   "proba": 85,
   "proba_tout": 100,
   "rangs": [
-   65.2,
-   20.0,
+   65.1,
+   20.1,
    8.8,
-   4.0,
-   1.6,
-   0.5
+   4.1,
+   1.5,
+   0.4
   ],
   "pts_max": 30,
   "matchs": [
@@ -359,8 +359,8 @@
     "journee": 3,
     "coupe": null,
     "tour": null,
-    "date": "2026-11-07",
-    "provisoire": true,
+    "date": "2026-11-07T21:00",
+    "provisoire": false,
     "adversaire": "HBC ST DONAT",
     "domicile": true,
     "p_victoire": 85,
@@ -377,7 +377,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
     "p_victoire": 61,
-    "enjeu": 21,
+    "enjeu": 20,
     "cle": false,
     "rang_adv": 3
    },
@@ -390,7 +390,7 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 78,
-    "enjeu": 26,
+    "enjeu": 27,
     "cle": true,
     "rang_adv": 2
    },
@@ -403,7 +403,7 @@
     "adversaire": "HBC PILAT-2",
     "domicile": false,
     "p_victoire": 73,
-    "enjeu": 18,
+    "enjeu": 17,
     "cle": false,
     "rang_adv": 6
    },
@@ -416,7 +416,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 82,
-    "enjeu": 25,
+    "enjeu": 26,
     "cle": true,
     "rang_adv": 5
    },
