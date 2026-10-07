@@ -6,6 +6,11 @@
 # du club ; il est vérifié et ajouté au registre publie/caisse.enc par pipeline/caisse.py. Une
 # saisie renvoyée n'est comptée qu'une fois. Le dépôt est public : rien n'est jamais déchiffré
 # dans ce journal, et l'entrée, visible dans le résumé du lancement, n'est que le coffre chiffré.
+#
+# Deux envois rapprochés (07/10/2026) : le second, mis en attente, repartait du commit de son
+# lancement, donc d'un registre sans le premier envoi, et butait sur un conflit au push (fichier
+# chiffré, impossible à fusionner). On part donc toujours du dernier état de la branche et, si le
+# push est refusé, on reprend ce dernier état et on y réapplique les saisies (sans doublon).
 name: Caisse noire
 
 on:
@@ -28,6 +33,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}   # le dernier état de la branche, pas le commit du lancement
 
       - uses: actions/setup-python@v7
         with:
@@ -36,24 +43,25 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Reprise d'un état tenu ailleurs (secret temporaire, effacé ensuite ; rien sinon)
+      - name: Ajouter au registre (toujours chiffré) et enregistrer dans le dépôt
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
+          # reprise d'un état tenu ailleurs : secret temporaire, effacé ensuite ; rien sinon
           HBPSM_CAISSE_IMPORT: ${{ secrets.HBPSM_CAISSE_IMPORT }}
-        run: python -m pipeline.caisse import
-
-      - name: Vérifier et ajouter les saisies au registre (toujours chiffré)
-        if: ${{ inputs.ops != '' }}
-        env:
-          HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_CAISSE: ${{ inputs.ops }}
-        run: python -m pipeline.caisse
-
-      - name: Enregistrer dans le dépôt
+          BRANCHE: ${{ github.ref_name }}
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add publie/caisse.enc
-          git diff --cached --quiet && exit 0
-          git commit -m "Caisse noire"
-          git push || (git pull --rebase && git push)
+          for essai in 1 2 3 4 5; do
+            git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
+            python -m pipeline.caisse import
+            if [ -n "$HBPSM_CAISSE" ]; then python -m pipeline.caisse; fi
+            git add publie/caisse.enc
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Caisse noire"
+            git push -q origin "HEAD:$BRANCHE" && exit 0
+            echo "Registre modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
+            sleep $((essai * 5))
+          done
+          exit 1

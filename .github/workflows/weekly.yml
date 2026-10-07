@@ -38,6 +38,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}   # une collecte mise en attente part du dernier état, pas du commit du lancement
 
       - uses: actions/setup-python@v7
         with:

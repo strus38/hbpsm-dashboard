@@ -5,6 +5,10 @@
 # vérifié et ajouté au journal propositions.enc par propositions.py. Le dépôt est public : rien n'est
 # jamais déchiffré dans ce journal, et l'entrée, visible dans le résumé du lancement, n'est que le
 # coffre chiffré. Les trésoriers valident ou refusent dans le tableau de bord.
+#
+# Deux propositions rapprochées : la seconde, mise en attente, repartait du commit de son lancement
+# (journal sans la première) et butait sur un conflit au push. On part donc du dernier état de la
+# branche et, si le push est refusé, on y réapplique la proposition (sans doublon).
 name: Proposition d'amende
 
 on:
@@ -27,6 +31,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}   # le dernier état de la branche, pas le commit du lancement
 
       - uses: actions/setup-python@v7
         with:
@@ -35,17 +41,22 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Vérifier et ajouter la proposition (toujours chiffrée)
+      - name: Vérifier et ajouter la proposition (toujours chiffrée), enregistrer dans le dépôt
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_PROP: ${{ inputs.prop }}
-        run: python propositions.py
-
-      - name: Enregistrer dans le dépôt
+          BRANCHE: ${{ github.ref_name }}
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add propositions.enc
-          git diff --cached --quiet && exit 0
-          git commit -m "Proposition d'amende"
-          git push || (git pull --rebase && git push)
+          for essai in 1 2 3 4 5; do
+            git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
+            python propositions.py
+            git add propositions.enc
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Proposition d'amende"
+            git push -q origin "HEAD:$BRANCHE" && exit 0
+            echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
+            sleep $((essai * 5))
+          done
+          exit 1

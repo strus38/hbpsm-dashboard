@@ -446,6 +446,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   plan, notre équipe), `drawTalk` hors du rendu, clavier, glisser, plein écran. Rappel de 2e phase : santé,
   code « rappel-phase2 » du 1er février au 30 avril, coupé par `objectif.phase2` ; bandeau réservé à
   l'entraîneur et aux trésoriers (comme les jetons).
+- Envois rapprochés (échec de « Caisse noire » le 07/10/2026 : deux envois à 4 s d'écart, le second, mis
+  en attente, repartait du commit de son lancement et butait sur un conflit au push d'un fichier chiffré) :
+  `caisse.yml`, `choix.yml`, `cn/…/proposer.yml` partent du dernier état de la branche (`ref: github.ref`)
+  et, si le push est refusé, reprennent ce dernier état et y réappliquent l'entrée (5 essais ; sans doublon
+  pour les journaux, l'envoi le plus récent gagne pour les choix). La collecte part aussi du dernier état.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

@@ -5,6 +5,9 @@
 # la phrase du club ; il est vérifié (pipeline/choix.py) puis écrit dans publie/choix.enc.
 # Le dépôt est public : rien n'est jamais déchiffré dans ce journal, et l'entrée, visible dans
 # le résumé du lancement, n'est que le coffre chiffré.
+#
+# Comme pour la caisse noire : on part du dernier état de la branche (pas du commit du lancement)
+# et, si le push est refusé, on récrit le fichier sur le dernier état ; l'envoi le plus récent gagne.
 name: Choix de l'entraîneur
 
 on:
@@ -27,6 +30,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}   # le dernier état de la branche, pas le commit du lancement
 
       - uses: actions/setup-python@v7
         with:
@@ -35,17 +40,22 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Vérifier et écrire les choix (toujours chiffrés)
+      - name: Vérifier et écrire les choix (toujours chiffrés), enregistrer dans le dépôt
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_CHOIX: ${{ inputs.choix }}
-        run: python -m pipeline.choix
-
-      - name: Enregistrer dans le dépôt
+          BRANCHE: ${{ github.ref_name }}
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add publie/choix.enc
-          git diff --cached --quiet && exit 0
-          git commit -m "Choix de l'entraîneur"
-          git push || (git pull --rebase && git push)
+          for essai in 1 2 3 4 5; do
+            git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
+            python -m pipeline.choix
+            git add publie/choix.enc
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Choix de l'entraîneur"
+            git push -q origin "HEAD:$BRANCHE" && exit 0
+            echo "Dépôt modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
+            sleep $((essai * 5))
+          done
+          exit 1
