@@ -200,7 +200,10 @@ bas de la planification, l'efface.
 
 L'onglet « Caisse noire » reprend le règlement du groupe (`pipeline/caisse.py`), point par
 point. Il montre ce qu'il y a dans la caisse, le podium des amendes, les comptes de chacun et
-les derniers mouvements.
+les derniers mouvements. Les comptes se lisent d'un coup d'œil : le total encaissé sur le total
+dû, une barre par joueur (vert payé, rouge reste à payer), la cotisation en pastille (payée ou à
+régler), les joueurs « À régler » (du plus gros reste au plus petit) puis « À jour » ; sur
+téléphone, le nom, la barre et le reste seulement.
 
 - Les trésoriers (et l'entraîneur), qui ont le jeton de publication, mettent une amende en
   trois touches (qui, quoi, combien), valident ou refusent les propositions, encaissent les

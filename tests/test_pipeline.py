@@ -725,6 +725,11 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         monkeypatch.setenv("HBPSM_CAISSE", sent[-1]["body"]["inputs"]["ops"])
         assert caisse.main() == 0
         assert page.evaluate("fetchCaisse().then(() => { render(true); return [outbox().length, ledger().fines.length]; })") == [0, 2]
+        # les comptes : payé et reste d'un coup d'œil (total, barre, cotisation en pastille, « À régler » puis « À jour »)
+        comptes = page.text_content(".comptes")
+        assert "Encaissé 5 € sur 9 €" in comptes and "À régler" in comptes and "5 € payés sur 9 € · 1 amende" in comptes
+        assert "4 € à payer" in comptes and "🎟️ payée" in comptes and "À jour" not in comptes
+        assert page.evaluate("[...document.querySelectorAll('.comptes .cbar .p')].map(e => e.style.width)") == ["55.6%", "55.6%"]
         # penalties manqués : 1 € à partir du 2e échec du match, 2 € dès un hors cadre
         pens = page.evaluate("""(() => { const p = {id: "m_penalty:x:check", motif: "penalties contre Club", date: "2026-10-10", match: "x"};
           const out = [[1, 0], [2, 0], [2, 1], [1, 1]].map(([a, h]) => { PENS[p.id] = {"R:A": {a, h}};
@@ -812,6 +817,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # téléphone : la dénonciation se partage directement (menu de partage du téléphone)
         ro.set_viewport_size({"width": 360, "height": 780})
         ro.evaluate("navigator.share = async d => { window.__partage = d; }; render(true)")
+        # les comptes tiennent à 360 px : nom, barre et reste, sans la ligne de détail
+        assert ro.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        assert ro.locator(".comptes .cbar").first.is_visible() and not ro.locator(".comptes .cdet").first.is_visible()
         ro.locator("[data-cshare]").click()
         ro.wait_for_function("() => window.__partage", timeout=3000)
         assert "Dénonciation pour la caisse noire, par Coach" in ro.evaluate("window.__partage.text")

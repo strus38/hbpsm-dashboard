@@ -449,9 +449,17 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .stepper{display:inline-flex;align-items:center;gap:10px}.stepper .btn{margin-top:0;padding:6px 14px;font-size:1.1rem}
 .cnote{width:100%;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:9px 10px;margin-top:8px}
 .picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
-.compte{border-top:1px solid var(--rule)}.compte:first-child{border-top:0}
-.compte summary{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 0}
-.compte .reste{font-weight:700;color:var(--muted)}.compte .reste.du{color:var(--loss)}
+.compte{border-top:1px solid var(--rule)}.cgroupe + .compte{border-top:0}
+.compte summary{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 104px;gap:12px;align-items:center;padding:9px 0}
+.compte .reste{font-weight:700;color:var(--muted);text-align:right;white-space:nowrap}.compte .reste.du{color:var(--loss)}.compte .reste.ok{color:var(--win)}
+.cbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--rule);min-width:6px}.cbar i{display:block;height:100%}
+.cbar .p{background:var(--win)}.cbar .d{background:var(--loss)}
+.ctotal{margin:0 0 6px}.ctotal .cbar{height:10px}.ctotal-l{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:.88rem;color:var(--muted);margin-bottom:6px}
+.ctotal-l .ok{color:var(--win)}.ctotal-l .du{color:var(--loss)}
+.cgroupe{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:14px 0 2px}
+.cdet{display:block;margin-top:3px}
+.ccot{font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
+.ccot.ok{color:var(--win);background:color-mix(in srgb,var(--win) 12%,transparent)}.ccot.no{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
 .lignes li{padding:4px 0;border-top:1px dashed var(--rule)}
 .feed li{padding:6px 0;border-top:1px solid var(--rule)}.feed li:first-child{border-top:0}
 .reglement summary{cursor:pointer}.reglement li{padding:4px 0}
@@ -515,6 +523,7 @@ body:not(.lecture) .lecture-only{display:none!important}
   .plan.single .h{font-size:.74rem}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .prop{grid-template-columns:28px 1fr}.prop-btn{grid-column:2}
+  .compte summary{grid-template-columns:minmax(0,1fr) 56px 84px;gap:8px}.compte .cdet{display:none}.ccot{display:table;margin:3px 0 0}
   .podium .marche b{font-size:.85rem}
   th.opt,td.opt{display:none}
   td.team{min-width:0;white-space:normal}
@@ -2291,22 +2300,43 @@ function pickerBlock(){
     + (!w && canShare() ? '<button class="btn ghost" data-cshare="1"'+(go && PICK.regle ? '' : ' disabled')+'>📤 Partager</button>' : '')+'</div>';
   return h + '</div>';
 }
+// payé et reste à payer d'un coup d'œil (demande de l'auteur, 08/10/2026) : le total encaissé, une barre par joueur
+// (vert payé, rouge reste, à l'échelle du plus gros compte), la cotisation en pastille, « À régler » puis « À jour »
 function balancesBlock(L){
-  const w = canWrite();
-  const all = Object.entries(L.bal).sort((a, b) => (b[1].du - b[1].paye) - (a[1].du - a[1].paye) || memberName(a[0]).localeCompare(memberName(b[0])));
-  const rows = all.filter(([, b]) => b.n || b.du > b.paye), clean = all.filter(([, b]) => !b.n && b.du <= b.paye);
-  const angels = clean.length ? '<p class="small anges">😇 Sans amende : '+clean.map(([c]) => esc(memberName(c))).join(", ")+'</p>' : '';
-  return '<h2>Les comptes</h2><div class="panel comptes">'+(rows.length ? "" : '<p class="small muted">Aucune amende pour l\'instant.</p>')+rows.map(([c, b]) => {
-    const reste = b.du - b.paye, mine = L.fines.filter(f => f.joueur === c).sort((x, y) => (y.date || "").localeCompare(x.date || ""));
-    const paid = L.pays.filter(p => p.joueur === c);
-    return '<details class="compte"><summary><b>'+esc(memberName(c))+'</b><span class="small muted">'+b.n+' amende'+(b.n > 1 ? "s" : "")+(b.tournees ? " · 🍻 "+b.tournees : "")+(b.cotise ? " · 🎟️ cotisation" : "")+'</span>'
-      + '<span class="reste'+(reste > 0 ? " du" : "")+'">'+(reste > 0 ? euros(reste)+" à payer" : b.du ? "à jour" : "–")+'</span></summary>'
+  const w = canWrite(), left = b => Math.max(0, Math.round((b.du - b.paye) * 100) / 100);
+  const byName = (a, b) => memberName(a[0]).localeCompare(memberName(b[0])), all = Object.entries(L.bal);
+  const owe = all.filter(([, b]) => left(b) > 0).sort((a, b) => left(b[1]) - left(a[1]) || byName(a, b));
+  const done = all.filter(([, b]) => b.n && !left(b)).sort(byName), clean = all.filter(([, b]) => !b.n && !left(b)).sort(byName);
+  const paid = all.reduce((a, [, b]) => a + b.paye, 0), rest = owe.reduce((a, [, b]) => a + left(b), 0);
+  const scale = Math.max(1, ...[...owe, ...done].map(([, b]) => b.paye + left(b)));
+  const pct = (x, of) => of ? Math.round(1000 * x / of) / 10 : 0;
+  const bar = (p, r, width) => '<span class="cbar"'+(width != null ? ' style="width:'+width+'%"' : '')+'>'
+    + (p ? '<i class="p" style="width:'+pct(p, p + r)+'%"></i>' : '')+(r ? '<i class="d" style="width:'+pct(r, p + r)+'%"></i>' : '')+'</span>';
+  const payes = x => euros(x) + (x >= 2 ? " payés" : " payé");
+  const total = paid + rest ? '<div class="ctotal"><div class="ctotal-l"><span>Encaissé <b class="ok">'+euros(paid)+'</b> sur '+euros(paid + rest)+'</span>'
+    + '<span>Reste <b class="du">'+euros(rest)+'</b>'+(owe.length ? ' · '+owe.length+' joueur'+(owe.length > 1 ? "s" : "") : '')+'</span></div>'+bar(paid, rest)+'</div>' : '';
+  const owing = participants(L).filter(c => !(L.bal[c] || {}).cotise);
+  const angels = (clean.length ? '<p class="small anges">😇 Sans amende : '+clean.map(([c]) => esc(memberName(c))).join(", ")+'</p>' : '')
+    + (owing.length ? '<p class="small anges">🎟️ Cotisation à régler : '+owing.map(c => esc(memberName(c))).join(", ")+'</p>' : '');
+  const row = ([c, b]) => {
+    const reste = left(b), mine = L.fines.filter(f => f.joueur === c).sort((x, y) => (y.date || "").localeCompare(x.date || ""));
+    const paidList = L.pays.filter(p => p.joueur === c);
+    const amendes = b.n+' amende'+(b.n > 1 ? "s" : "")+(b.tournees ? " · 🍻 "+b.tournees : "");
+    return '<details class="compte"><summary><span><b>'+esc(memberName(c))+'</b>'
+      + (L.out.has(c) ? '' : b.cotise ? '<span class="ccot ok">🎟️ payée</span>' : '<span class="ccot no">🎟️ à régler</span>')+'</span>'
+      + '<span>'+bar(b.paye, reste, pct(b.paye + reste, scale))+'<span class="small muted cdet">'
+      + (reste ? payes(b.paye)+' sur '+euros(b.paye + reste) : b.paye ? payes(b.paye) : "rien à payer")+' · '+amendes+'</span></span>'
+      + '<span class="reste'+(reste ? " du" : " ok")+'">'+(reste ? euros(reste)+" à payer" : "✓ à jour")+'</span></summary>'
       + (mine.length ? '<ul class="plain lignes">'+mine.map(f => { const r = RULE(f.regle);
           return '<li>'+r.emoji+' <b>'+esc(r.titre)+'</b> <span class="small muted">'+esc(fmtDate(f.date))+(f.n > 1 ? " · ×"+f.n : "")+(f.note ? " · "+esc(f.note) : "")+(f.par ? " · par "+esc(memberName(f.par)) : "")+(f.envoi ? " · envoi en cours" : "")+'</span>'
             + ' <span class="montant">'+(r.nature ? "🍻" : euros(f.montant))+'</span>'+(w ? ' <button class="link" data-cannule="'+esc(f.id)+'">annuler</button>' : '')+'</li>'; }).join("")+'</ul>' : '<p class="small muted">Aucune amende. 😇</p>')
-      + (paid.length ? '<p class="small">Payé : '+paid.map(p => euros(p.montant)+" le "+esc(fmtDate((p.le || "").slice(0, 10)))).join(", ")+'</p>' : '')
-      + (w && reste > 0 ? '<div class="edit"><input id="cpay-'+esc(c)+'" inputmode="decimal" size="5" value="'+String(Math.round(reste * 100) / 100).replace(".", ",")+'"> € <button class="btn" data-cpay="'+esc(c)+'">Encaisser</button></div>' : '')
-      + '</details>'; }).join("")+angels+'</div>';
+      + (paidList.length ? '<p class="small">Payé : '+paidList.map(p => euros(p.montant)+" le "+esc(fmtDate((p.le || "").slice(0, 10)))).join(", ")+'</p>' : '')
+      + (w && reste > 0 ? '<div class="edit"><input id="cpay-'+esc(c)+'" inputmode="decimal" size="5" value="'+String(reste).replace(".", ",")+'"> € <button class="btn" data-cpay="'+esc(c)+'">Encaisser</button></div>' : '')
+      + '</details>'; };
+  return '<h2>Les comptes</h2><div class="panel comptes">'+total
+    + (owe.length || done.length ? '' : '<p class="small muted">Aucune amende pour l\'instant.</p>')
+    + (owe.length ? '<p class="cgroupe">À régler</p>'+owe.map(row).join("") : '')
+    + (done.length ? '<p class="cgroupe">À jour</p>'+done.map(row).join("") : '')+angels+'</div>';
 }
 function feedBlock(L){
   const ops = L.ops.filter(o => o.t !== "annule").slice(-12).reverse();

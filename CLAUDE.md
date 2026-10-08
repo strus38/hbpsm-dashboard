@@ -174,6 +174,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   proposée ; un joueur de l'effectif l'est au 08/10/2026, choix de l'auteur) ou « ne participe pas » d'un trésorier
   (refus de la cotisation, `L.sortis`, « réintégrer » l'annule) ; `L.out` : ni amende, ni bon point, ni penalty, ni
   dénonciation (`participants`). Pas vérifié côté workflow : seuls les détenteurs du jeton y écrivent.
+  Les comptes (demande de l'auteur, 08/10/2026) : `balancesBlock` montre le total encaissé sur le total dû, une
+  barre par joueur (payé / reste, à l'échelle du plus gros compte), la cotisation en pastille, « À régler » (reste
+  décroissant) puis « À jour », puis « Sans amende » et « Cotisation à régler ». Pas de détail payé / à payer par
+  amende (choix de l'auteur) : les paiements ne visent pas une amende précise.
   Téléphone : bouton « 📤 Partager » à côté de la dénonciation (menu de partage du téléphone, `navigator.share`,
   `canShare`), sous 560 px et si le navigateur le permet ; sinon le copier-coller.
   Anniversaires (demande de l'auteur, 05/10/2026) : 6e colonne `naissance` de l'effectif (MM-JJ, jamais
