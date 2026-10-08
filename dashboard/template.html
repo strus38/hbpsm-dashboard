@@ -2002,8 +2002,10 @@ function viewAdv(){
       + '<span class="score">'+(g.pct!=null?g.pct+' %':'–')+'</span></li>').join("")+'</ul>';
   return h + '</div>' + (us ? "" : versus(e)) + pastBlock(e) + (us ? "" : common(adv));
 }
-// Nous contre eux (demande de l'auteur, 08/10/2026) : nos moyennes à côté des leurs, l'avantage en gras, et nos buts
-// par tranche de 10 minutes à côté des leurs, à la même échelle, avec la tranche à surveiller et celle à exploiter
+// Projection du match (demande de l'auteur, 08/10/2026) : nos moyennes à côté des leurs, l'avantage en vert, et nos buts
+// par tranche de 10 minutes à côté des leurs, à la même échelle, avec la tranche à surveiller et celle à exploiter.
+// Chaque équipe sur ses propres matchs, contre des adversaires différents : une projection, jamais un face-à-face
+// (on ne les a pas forcément joués ; les vrais résultats entre nous sont dans « Repères communs »).
 function versus(e){
   const u = D.equipes[D.meta.club];
   if(!u || !u.j || !e.j) return "";
@@ -2014,18 +2016,26 @@ function versus(e){
     ["Écart en 2e mi-temps", gap(u.mt2_bp, u.mt2_bc), gap(e.mt2_bp, e.mt2_bc), 1, "", true],
     ["Exclusions de 2 min", u.deux_min_moy, e.deux_min_moy, -1], ["Cartons jaunes", u.jaunes_moy, e.jaunes_moy, -1]].filter(r => r[1] != null && r[2] != null);
   const show = (v, unit, signed) => (signed && v > 0 ? "+" : "") + fr(v) + (unit || "");
-  let h = '<h2>Nous contre eux</h2><div class="panel"><div class="scroll"><table class="vs"><thead><tr><th></th><th>'+esc(D.meta.club_court)+'</th><th>'+esc(teamShort(e.equipe))+'</th></tr></thead><tbody>'
+  const direct = (u.matches || []).filter(m => m.adv === e.equipe).map(m => m.res+" "+m.bp+"-"+m.bc+(m.dom ? " à domicile" : " à l'extérieur"));
+  const n = k => k+" match"+(k > 1 ? "s" : "");
+  let h = '<h2>Projection : nos chiffres face aux leurs</h2><div class="panel">'
+    + '<p class="note">Pas un résultat entre nos deux équipes : chacune avec ses moyennes de la saison, sur ses propres matchs de championnat ('
+    + n(u.j)+' pour nous, '+n(e.j)+' pour eux), contre des adversaires différents. Côte à côte, elles donnent une idée de ce que pourrait être le match, pas une certitude.'
+    + (direct.length ? ' Déjà joué contre eux cette saison : <b>'+esc(direct.join(", "))+'</b>.' : ' Nous ne les avons pas encore joués cette saison.')+'</p>'
+    + '<div class="scroll"><table class="vs"><thead><tr><th></th><th>'+esc(D.meta.club_court)+'<br><small class="muted">sur nos '+n(u.j)+'</small></th>'
+    + '<th>'+esc(teamShort(e.equipe))+'<br><small class="muted">sur leurs '+n(e.j)+'</small></th></tr></thead><tbody>'
     + rows.map(([lab, a, b, sens, unit, signed]) => { const w = Math.sign((a - b) * sens);
       return '<tr><td>'+lab+'</td><td'+(w > 0 ? ' class="mieux"' : '')+'>'+show(a, unit, signed)+'</td><td'+(w < 0 ? ' class="mieux"' : '')+'>'+show(b, unit, signed)+'</td></tr>'; }).join("")
     + '<tr><td>Forme</td><td>'+forme(u.forme)+'</td><td>'+forme(e.forme)+'</td></tr></tbody></table></div>'
-    + '<p class="small muted">Moyennes par match de championnat ; en vert, l\'avantage.</p>';
+    + '<p class="small muted">Moyennes par match de championnat, chacun sur ses propres matchs ; en vert, la meilleure des deux.</p>';
   if(u.periodes_bp && e.periodes_bp){
     const top = Math.max(1, ...u.periodes_bp, ...u.periodes_bc, ...e.periodes_bp, ...e.periodes_bc), lab = ["0-10", "10-20", "20-30", "30-40", "40-50", "50-60"];
     const risk = u.periodes_bc.map((v, i) => v + e.periodes_bp[i]), chance = u.periodes_bp.map((v, i) => v + e.periodes_bc[i]);
     const at = l => l.indexOf(Math.max(...l)), r = at(risk), c = at(chance);
-    h += '<div class="vs-periods"><div>'+periods(u, D.meta.club_court+" : buts par tranche de 10 min", top)+'</div><div>'+periods(e, "Eux : buts par tranche de 10 min", top)+'</div></div>'
-      + '<p class="small">À surveiller : <b>'+lab[r]+' min</b> (ils y marquent '+fr(e.periodes_bp[r])+' buts par match, nous y en encaissons '+fr(u.periodes_bc[r])+'). '
-      + 'À exploiter : <b>'+lab[c]+' min</b> (nous y marquons '+fr(u.periodes_bp[c])+', ils y encaissent '+fr(e.periodes_bc[c])+').</p>';
+    h += '<div class="vs-periods"><div>'+periods(u, D.meta.club_court+" : buts par tranche de 10 min (nos matchs)", top)+'</div><div>'+periods(e, "Eux : buts par tranche de 10 min (leurs matchs)", top)+'</div></div>'
+      + '<p class="small">Ce que la projection laisse prévoir. À surveiller : <b>'+lab[r]+' min</b> (dans leurs matchs, ils y marquent '+fr(e.periodes_bp[r])
+      + ' buts en moyenne ; dans les nôtres, nous y en encaissons '+fr(u.periodes_bc[r])+'). À exploiter : <b>'+lab[c]+' min</b> (nous y marquons '
+      + fr(u.periodes_bp[c])+' dans nos matchs, ils y encaissent '+fr(e.periodes_bc[c])+' dans les leurs).</p>';
   }
   return h + '</div>';
 }

@@ -654,7 +654,10 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert len(buts) > 3 and buts == sorted(buts, reverse=True) and "buts" in page.inner_text("#j-champ + .pcs .pc-key")
         page.select_option("#jtri", "note")
         page.click("nav.tabs button[data-tab=adv]")
-        assert "Nous contre eux" in page.inner_text("main") and page.locator(".vs td.mieux").count() > 0
+        # une projection, pas un face-à-face : chacun sur ses propres matchs
+        main = page.inner_text("main")
+        assert "Projection : nos chiffres face aux leurs" in main and "Pas un résultat entre nos deux équipes" in main
+        assert page.locator(".vs td.mieux").count() > 0
         page.click("nav.tabs button[data-tab=saison]")
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18

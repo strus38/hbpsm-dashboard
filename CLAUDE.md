@@ -474,8 +474,9 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   (`TRIS`, `triKey`, `pcKey`), ligne courte sur téléphone (CSS). Saison : `courseBlock` (`trajectoire` =
   `analyze.trajectory` : rang, points, `marge` sur le premier dehors ou le dernier dedans, `dedans` ; `chances` en
   courbe), `notreEquipe` (moyennes, `periods`, domicile / extérieur depuis `equipes[club].matches`, part des 3 meilleurs
-  buteurs), résultats et à venir de notre poule limités à nos matchs (`TOUTE`, bouton). Adversaires : `versus` (nous
-  contre eux, tranches à surveiller et à exploiter), « buts / match ». Bilan : `courseChart` (`derniers[].courbe` =
+  buteurs), résultats et à venir de notre poule limités à nos matchs (`TOUTE`, bouton). Adversaires : `versus` (projection,
+  jamais présentée comme un face-à-face : chacun sur ses propres matchs, demande de l'auteur ; tranches à surveiller et à
+  exploiter), « buts / match ». Bilan : `courseChart` (`derniers[].courbe` =
   `analyze.score_curve`, écart but après but depuis le déroulé). Semaine sur grand écran : `.solo` sans terrain,
   `.sem-bas` (matchs suivants et saison côte à côte). Planification : légende et calcul en tiroirs. Caisse : « Mon
   compte » (`monCompte`) en tête, formulaire en tiroir sur téléphone (`#cpicker`).
