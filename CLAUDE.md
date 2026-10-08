@@ -464,6 +464,21 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `caisse.yml`, `choix.yml`, `cn/…/proposer.yml` partent du dernier état de la branche (`ref: github.ref`)
   et, si le push est refusé, reprennent ce dernier état et y réappliquent l'entrée (5 essais ; sans doublon
   pour les journaux, l'envoi le plus récent gagne pour les choix). La collecte part aussi du dernier état.
+- Navigation et statistiques (demande de l'auteur, 08/10/2026, tout en un) : sur téléphone, 4 onglets selon le mode
+  (`PRIMARY` : entraîneur planif, semaine, convoc, joueurs ; joueur moi, semaine, saison, caisse), les autres sous
+  « Plus » (`plusMenu`, classe `sec`, ordre `--o`). Ouverture : planification pour l'entraîneur, « Ma semaine » pour un
+  joueur dont « hbpsm:moi » est rangé ; un onglet dans l'adresse l'emporte (`TAB_IDS`, `TAB_ALIAS`, `HASH_TAB` :
+  `#caisse`, `#entraineur&convoc`…), puis le retour après mise à jour. L'adresse n'est jamais réécrite au changement
+  d'onglet (la page doit rouvrir sur la planification). Raccourcis des longs onglets : `sec(id, libellé)` sur les h2,
+  `withJumps` (3 au moins). Tiroirs gardés d'un rendu à l'autre : `keep()` / `KEEP` (`data-keep`). Joueurs : tri `JTRI`
+  (`TRIS`, `triKey`, `pcKey`), ligne courte sur téléphone (CSS). Saison : `courseBlock` (`trajectoire` =
+  `analyze.trajectory` : rang, points, `marge` sur le premier dehors ou le dernier dedans, `dedans` ; `chances` en
+  courbe), `notreEquipe` (moyennes, `periods`, domicile / extérieur depuis `equipes[club].matches`, part des 3 meilleurs
+  buteurs), résultats et à venir de notre poule limités à nos matchs (`TOUTE`, bouton). Adversaires : `versus` (nous
+  contre eux, tranches à surveiller et à exploiter), « buts / match ». Bilan : `courseChart` (`derniers[].courbe` =
+  `analyze.score_curve`, écart but après but depuis le déroulé). Semaine sur grand écran : `.solo` sans terrain,
+  `.sem-bas` (matchs suivants et saison côte à côte). Planification : légende et calcul en tiroirs. Caisse : « Mon
+  compte » (`monCompte`) en tête, formulaire en tiroir sur téléphone (`#cpicker`).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

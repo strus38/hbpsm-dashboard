@@ -69,9 +69,9 @@ La page suit la semaine de l'entraîneur :
 | Planification | les 4 prochains matchs : disponibilités (disponible, incertain, absent) et choix saisis par l'entraîneur, 12 joueurs dont 2 gardiens proposés par match, rotation guidée, force alignée et risque recalculés à chaque clic |
 | Semaine | le prochain match : rang de l'adversaire, victoire estimée avec l'équipe retenue, enjeu pour la saison, recommandation de prise de risque, les 12 retenus, le sept possible |
 | Convocation | après l'entraînement du vendredi : les 12, la date, le gymnase (lu sur ffhandball.fr), l'heure du rendez-vous, un message à copier pour le groupe et une version imprimable |
-| Joueurs | fiches graphiques : note, buts ou arrêts par match, réussite au tir ou pourcentage d'arrêts face à la référence, sanctions, sélections à venir |
-| Adversaires | toutes les équipes des deux poules, HBPSM compris : buts, mi-temps, discipline, gardiens, joueurs à surveiller (avec leurs chiffres de la saison passée s'ils étaient déjà là), repères communs, et les joueurs de la saison passée, ceux revus cette saison en tête |
-| Saison | chances de finir premier, matchs à gagner (une barre par match : ce qu'il met en jeu ; le détail au toucher), axes de travail, séance à importer, classements, parcours de l'équipe depuis 2015 (division et place de chaque saison, `parcours` dans `config.yml`) |
+| Joueurs | fiches graphiques : note, buts ou arrêts par match, réussite au tir ou pourcentage d'arrêts face à la référence, sanctions, sélections à venir ; triées par note, buts, réussite, matchs ou sanctions |
+| Adversaires | toutes les équipes des deux poules, HBPSM compris : buts (par match), mi-temps, discipline, gardiens, joueurs à surveiller (avec leurs chiffres de la saison passée s'ils étaient déjà là), « Nous contre eux » (nos moyennes à côté des leurs, nos buts par tranche de 10 minutes à côté des leurs, la tranche à surveiller et celle à exploiter), repères communs, et les joueurs de la saison passée, ceux revus cette saison en tête |
+| Saison | chances de finir premier, la course (rang après chaque journée et marge sur la place visée, chances au fil des mises à jour), matchs à gagner (une barre par match : ce qu'il met en jeu ; le détail au toucher), notre équipe (moyennes, buts par tranche de 10 minutes, domicile et extérieur, part des 3 meilleurs buteurs), axes de travail, séance à importer, classements (nos matchs d'abord, toute la poule d'un bouton), parcours de l'équipe depuis 2015 (division et place de chaque saison, `parcours` dans `config.yml`) |
 
 La proposition retient les 2 meilleurs gardiens et les 10 meilleurs joueurs de champ disponibles
 (notes pondérées selon l'adversaire), en respectant les choix de l'entraîneur et les postes clefs
@@ -135,7 +135,17 @@ Sur téléphone, la page prend l'allure d'une application : onglets en bas avec 
 courts, tableaux sans les colonnes secondaires, planification un match à la fois (choisi par
 les pastilles du haut) avec la colonne des noms fixe et de grandes cases. Le survol n'existant
 pas au doigt, « Toucher une case : explique » affiche la raison d'une case au lieu de la
-modifier.
+modifier. En bas, quatre onglets selon qui regarde (l'entraîneur : Planification, Semaine,
+Convocation, Joueurs ; un joueur : Ma semaine, Semaine, Saison, Caisse), les autres sous « Plus ».
+Les fiches des joueurs tiennent sur une ligne tant qu'on ne les ouvre pas ; la légende et le
+calcul de la planification se replient ; le formulaire de la caisse s'ouvre d'un bouton.
+
+Navigation. La page s'ouvre sur la planification pour l'entraîneur, sur « Ma semaine » pour un joueur
+qui a dit qui il est sur cet appareil. Un lien vers un onglet l'ouvre directement : l'adresse de la
+page suivie de `#caisse`, `#saison`, `#moi`, `#semaine`, `#joueurs`, `#adversaires`, `#planification`
+ou `#convocation` (avec l'entraîneur : `#entraineur&convocation`). Les longs onglets (Joueurs, Saison,
+Caisse noire) commencent par une rangée de raccourcis vers leurs parties. Le bilan du dernier match
+montre l'écart au score minute par minute (plus grosse avance, plus gros retard).
 
 Les équipes sont montrées avec le logo de leur club, pris sur le site de la fédération (ses
 initiales s'il n'y en a pas). L'onglet Semaine s'ouvre sur une carte du match : les deux

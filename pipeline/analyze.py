@@ -1047,7 +1047,40 @@ def last_matches(current, past, roster, n=3):
             who[key] = dict(buts=pl.get("goals") or 0, arrets=pl.get("saves") or 0)
         out.append(dict(id=str(m.get("id")), date=m.get("date"), adversaire=opp, domicile=side == "home",
                         bp=gf, bc=ga, res=outcome(gf, ga), journee=m.get("journee"), coupe=m.get("coupe"),
-                        tour=m.get("tour"), saison=m.get("saison"), joueurs=who))
+                        tour=m.get("tour"), saison=m.get("saison"), joueurs=who, courbe=score_curve(m, side)))
+    return out
+
+
+def score_curve(m, side):
+    """L'écart au score, but après but, vu du club (demande de l'auteur, 08/10/2026 : la course du match dans
+    le bilan) : [[minute, écart], …] depuis 0-0 ; None sans déroulé."""
+    goals = [e for e in m.get("events") or [] if e.get("type") in ("goal", "pen_goal") and e.get("score")]
+    if not goals:
+        return None
+    us = 0 if side == "home" else 1
+    return [[0, 0]] + [[round((e.get("t") or 0) / 60, 1), e["score"][us] - e["score"][1 - us]] for e in goals]
+
+
+def trajectory(matches, teams, club, target, gone=frozenset()):
+    """Le rang et les points du club après chaque journée de sa poule, et sa marge sur la place visée :
+    d'avance sur le premier hors de l'objectif quand il y est, de retard sur le dernier qualifié sinon
+    (demande de l'auteur, 08/10/2026 : la course en courbe)."""
+    def num(j):
+        try:
+            return int(j)
+        except (TypeError, ValueError):
+            return None
+    played = [m for m in matches if num(m.get("journee")) is not None]
+    out = []
+    for j in sorted({num(m["journee"]) for m in played}):
+        rows = [r for r in standings([m for m in played if num(m["journee"]) <= j], teams) if norm(r["equipe"]) not in gone]
+        rang = next((i for i, r in enumerate(rows, 1) if r["equipe"] == club), None)
+        if rang is None:
+            continue
+        pts = rows[rang - 1]["pts"]
+        other = rows[target] if rang <= target and len(rows) > target else rows[min(target, len(rows)) - 1]
+        out.append(dict(journee=j, rang=rang, sur=len(rows), pts=pts, marge=pts - other["pts"],
+                        dedans=rang <= target))
     return out
 
 
@@ -1516,6 +1549,7 @@ def analyze(today=None, roster=None):
                                              gap, priors.get(m["adversaire"]), m["domicile"], goals=goals)
                 m["buts_pour"], m["ecart"] = goals.get("pour"), goals.get("ecart")
     chances = record_chances(saison, len(with_sheet))
+    trajet = trajectory(by_poule.get(str(club_poule), []), teams.get(str(club_poule), ()), club_name, target, gone) if club_name else []
     plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
                              all_history)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
@@ -1544,7 +1578,7 @@ def analyze(today=None, roster=None):
         coupes=cup_results(every_match, every_fixture, config),
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
-        chances=chances,
+        chances=chances, trajectoire=trajet,
         derniers=last_matches(with_sheet, [c for c in club_matches_of((seasons[-1].get("matches") or []) if seasons else [], config)
                                            if c[0].get("players", {}).get(c[1])], roster),
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),

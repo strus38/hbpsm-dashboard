@@ -229,6 +229,24 @@ def test_course_au_classement(sandbox):
         assert m["si_victoire"] >= m["sinon"] and m["enjeu"] == m["si_victoire"] - m["sinon"]
 
 
+def test_trajectoire_et_courbe_du_match():
+    """La course : rang du club après chaque journée et marge sur la place visée (d'avance sur le premier
+    dehors, de retard sur le dernier dedans) ; l'écart au score, but après but, vu du club."""
+    def m(j, h, a, sh, sa):
+        return dict(journee=j, date=f"2026-09-{10 + j:02d}", home=dict(name=h, score=sh), away=dict(name=a, score=sa))
+    ms = [m(1, "Club A", "Club B", 21, 20), m(1, "Club C", "Club D", 25, 10), m(2, "Club A", "Club C", 30, 20), m(2, "Club B", "Club D", 18, 17)]
+    teams = {"Club A", "Club B", "Club C", "Club D"}
+    assert an.trajectory(ms, teams, "Club A", 2) == [dict(journee=1, rang=2, sur=4, pts=3, marge=2, dedans=True),
+                                                    dict(journee=2, rang=1, sur=4, pts=6, marge=2, dedans=True)]
+    assert [(t["rang"], t["marge"], t["dedans"]) for t in an.trajectory(ms, teams, "Club B", 2)] == [(3, -2, False), (3, 0, False)]
+    assert an.trajectory(ms, teams, "Club D", 2, gone=frozenset({"CLUB D"})) == []   # forfait général : hors course
+    ev = [dict(t=60, side="home", type="goal", score=[1, 0]), dict(t=125, side="away", type="miss"),
+          dict(t=300, side="away", type="pen_goal", score=[1, 1]), dict(t=1800, side="away", type="goal", score=[1, 2])]
+    assert an.score_curve(dict(events=ev), "away") == [[0, 0], [1.0, -1], [5.0, 0], [30.0, 1]]
+    assert an.score_curve(dict(events=ev), "home") == [[0, 0], [1.0, 1], [5.0, 0], [30.0, -1]]
+    assert an.score_curve(dict(events=[]), "home") is None
+
+
 def test_seance_a_importer(sandbox):
     """Le fichier respecte le format d'échange .hbt.json de l'application d'entraînement."""
     demo(sandbox)
@@ -564,6 +582,13 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("button.pm").nth(1).click()
         assert page.evaluate("S.pm") == 1 and "on" in page.get_attribute("button.pm >> nth=1", "class")
         assert page.evaluate("getComputedStyle(document.querySelector('nav.tabs')).position") == "fixed"
+        # quatre onglets selon le mode (ici l'entraîneur), les autres sous « Plus »
+        assert page.locator("nav.tabs button[data-tab=adv]").is_hidden() and page.locator("nav.tabs [data-plus]").is_visible()
+        page.click("nav.tabs [data-plus]")
+        assert sorted(page.evaluate("[...document.querySelectorAll('#plus-menu button[data-tab]')].map(b => b.dataset.tab)")) == ["adv", "caisse", "moi", "saison"]
+        page.click("#plus-menu button[data-tab=adv]")
+        assert page.evaluate("S.tab") == "adv" and page.locator("#plus-menu").is_hidden() and "on" in page.get_attribute("nav.tabs [data-plus]", "class")
+        page.click("nav.tabs button[data-tab=planif]")
         page.set_viewport_size({"width": 1100, "height": 900})
         page.wait_for_function("document.querySelectorAll('.plan .h.foot').length > 1", timeout=3000)
         assert not page.locator("#theme-btn").is_visible()
@@ -614,6 +639,23 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           place: parcoursList().find(e => e.en_cours).phases[0].place, statut: D.saison.statut}))()""")
         assert saison["points"] == saison["parcours"] > 0 and saison["encours"] and saison["place"], saison
         assert saison["statut"] == "en_cours" and saison["barres"] == saison["ligue"] > 0, saison
+        # la course (rang après chaque journée), notre équipe, des raccourcis ; nos matchs d'abord dans la poule
+        course = page.evaluate("""(() => ({points: document.querySelectorAll('.line-chart.traj circle').length, journees: D.trajectoire.length,
+          equipe: !!document.getElementById('j-equipe'), raccourcis: document.querySelectorAll('nav.jump button').length,
+          nos: document.getElementById('j-resultats').nextElementSibling.nextElementSibling.querySelectorAll('.res').length}))()""")
+        assert course["points"] == course["journees"] > 0 and course["equipe"] and course["raccourcis"] >= 5, course
+        page.click("[data-toute]")
+        toute = page.evaluate("document.getElementById('j-resultats').nextElementSibling.nextElementSibling.querySelectorAll('.res').length")
+        assert toute == page.evaluate("D.resultats.filter(r => r.poule === String(D.saison.poule)).length") > course["nos"]
+        page.click("[data-toute]")
+        page.click("nav.tabs button[data-tab=joueurs]")
+        page.select_option("#jtri", "buts")
+        buts = page.evaluate("[...document.querySelectorAll('#j-champ + .pcs details')].map(d => D.joueurs.find(p => p.cle === d.dataset.cle).buts)")
+        assert len(buts) > 3 and buts == sorted(buts, reverse=True) and "buts" in page.inner_text("#j-champ + .pcs .pc-key")
+        page.select_option("#jtri", "note")
+        page.click("nav.tabs button[data-tab=adv]")
+        assert "Nous contre eux" in page.inner_text("main") and page.locator(".vs td.mieux").count() > 0
+        page.click("nav.tabs button[data-tab=saison]")
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18
         demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte
@@ -750,7 +792,16 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.on("pageerror", lambda e: errors.append(str(e)))
         ro.goto(page_file.as_uri())
         ro.wait_for_selector("header.top h1")
+        # un joueur qui a dit qui il est sur cet appareil : la page s'ouvre sur « Ma semaine »
+        assert ro.evaluate("S.tab") == "moi" and ro.get_attribute("nav.tabs button[data-tab=moi]", "aria-selected") == "true"
+        ro.click("nav.tabs button[data-tab=planif]")
         assert ro.inner_text("#club-mode") == "consultation" and ro.locator(".lecture-only").first.is_visible()
+        # un lien vers un onglet l'ouvre directement
+        lk = ctx.new_page()
+        lk.goto(page_file.as_uri() + "#saison")
+        lk.wait_for_selector("header.top h1")
+        assert lk.evaluate("S.tab") == "saison" and lk.evaluate("COACH") is False
+        lk.close()
         assert not ro.locator("#regle").is_visible() and not ro.locator("[data-export]").is_visible()
         before = ro.evaluate("JSON.stringify([S.pin, S.dm])")
         ro.locator("button.cell.in").first.click()
