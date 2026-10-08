@@ -6,6 +6,8 @@ sert pour proposer et justifier chaque amende. Les trésoriers (et l'entraîneur
 jeton de publication, saisissent les amendes et les paiements ; chaque saisie part chiffrée au
 workflow « Caisse noire » (caisse.yml), que ce module applique au registre publie/caisse.enc.
 Une amende proposée d'après une feuille n'existe qu'une fois validée par un trésorier.
+Seuls les joueurs à jour de leur cotisation mettent ou dénoncent une amende (demande de l'auteur,
+08/10/2026) ; un joueur « hors caisse » (rôle de l'effectif) n'y cotise pas et n'y a pas d'amende.
 
 Usage (dans le workflow) : HBPSM_CLE=… HBPSM_CAISSE='{coffre}' python -m pipeline.caisse
 """
@@ -24,7 +26,8 @@ COACH = "STAFF:COACH"   # l'entraîneur, membre de la caisse sans être sur l'ef
 # unité, rappel du texte. « auto » : proposée d'après les feuilles de match.
 REGLEMENT = [
     dict(code="cotisation", partie="Saison", titre="Frais de participation", montant=5, unite="saison", emoji="🎟️",
-         texte="Cotisation de 5 € pour la saison, réglée le premier mois (septembre).", auto=True),
+         texte="Cotisation de 5 € pour la saison, réglée le premier mois (septembre). Seuls les joueurs à jour de "
+         "leur cotisation mettent ou dénoncent une amende.", auto=True),
     dict(code="bon_point", partie="Saison", titre="Bon point !", montant=1, unite="mois sans amende", emoji="😇",
          texte="Les bons élèves qui finissent le mois sans amende versent une amende participative de 1 €.", auto=True),
     dict(code="retard_paiement", partie="Saison", titre="Échéance des paiements", montant=1, unite="entraînement de retard",

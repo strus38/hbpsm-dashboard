@@ -362,7 +362,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert "Planification" in page.inner_text("h1") and "Joueur 0" in page.inner_text("main")
         # Semaine : le bilan du dernier match joué en tête ; « Ma semaine » : ce qui concerne un joueur
         page.click("nav.tabs button[data-tab=semaine]")
-        assert page.locator(".bilan").count() == 1 and "Buteurs" in page.inner_text(".bilan")
+        assert page.locator(".bilan").count() == 1
+        page.evaluate("document.querySelector('.bilan').open = true")   # ouvert 4 jours après le match : le test ne dépend pas du jour
+        assert "Buteurs" in page.inner_text(".bilan")
         page.click("nav.tabs button[data-tab=moi]")
         assert "Choisissez qui vous êtes" in page.inner_text("main")
         page.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle); render(true)")
@@ -705,14 +707,24 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("[data-cpick-r=m_oubli]").click()
         page.locator("[data-cn='1']").click()
         page.fill("#cnote", "veste du club")
-        page.locator("[data-cgo]").click()
+        # seuls les joueurs à jour de leur cotisation mettent une amende : d'abord qui il est, puis sa cotisation
+        assert page.locator("[data-cgo]").is_disabled() and "qui vous êtes" in page.inner_text(".picker .cstop")
+        coach = page.evaluate("D.caisse.coach")
+        page.select_option("#cme", coach)
+        assert page.locator("[data-cgo]").is_disabled() and "cotisation" in page.inner_text(".picker .cstop")
+        page.locator(f"[data-ccot$='{coach}']").click()   # « Payé » : on peut toujours la régler
         wait_sent(5)
+        assert page.locator(".picker .cstop").count() == 0
+        page.locator("[data-cgo]").click()
+        wait_sent(6)
         assert sent[-1]["url"].endswith("/actions/workflows/caisse.yml/dispatches")
         ops = caisse.check(json.loads(sent[-1]["body"]["inputs"]["ops"]), PHRASE)
-        assert [(o["t"], o["regle"], o["n"], o["montant"], o["note"]) for o in ops] == [("amende", "m_oubli", 2, 4, "veste du club")]
+        assert [(o["t"], o.get("regle"), o.get("n"), o["montant"]) for o in ops] == [("amende", "cotisation", 1, 5), ("paiement", None, None, 5),
+                                                                                     ("amende", "m_oubli", 2, 4)]
+        assert ops[-1]["note"] == "veste du club" and ops[-1]["par"] == coach
         monkeypatch.setenv("HBPSM_CAISSE", sent[-1]["body"]["inputs"]["ops"])
         assert caisse.main() == 0
-        assert page.evaluate("fetchCaisse().then(() => { render(true); return [outbox().length, ledger().fines.length]; })") == [0, 1]
+        assert page.evaluate("fetchCaisse().then(() => { render(true); return [outbox().length, ledger().fines.length]; })") == [0, 2]
         # penalties manqués : 1 € à partir du 2e échec du match, 2 € dès un hors cadre
         pens = page.evaluate("""(() => { const p = {id: "m_penalty:x:check", motif: "penalties contre Club", date: "2026-10-10", match: "x"};
           const out = [[1, 0], [2, 0], [2, 1], [1, 1]].map(([a, h]) => { PENS[p.id] = {"R:A": {a, h}};
@@ -766,24 +778,52 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           const html = birthdayBlock(new Date(2026, 9, 5)); D.caisse.anniversaires = keep; return html; })()""")
         assert "aujourd" in bday and "demain" in bday and "dans 15 jours" in bday and "Coach" in bday
         ro.wait_for_function("() => CAISSE !== null", timeout=10000)
-        assert ro.evaluate("ledger().fines.length") == 1 and ro.locator("[data-cval]").count() == 0
+        assert ro.evaluate("ledger().fines.length") == 2 and ro.locator("[data-cval]").count() == 0
         ro.locator("[data-cpick-j]").first.click()
         ro.locator("[data-cpick-r=m_oubli]").click()
         assert ro.locator("[data-cgo]").count() == 0 and ro.locator("[data-cdenonce]").count() == 1
+        # seul un joueur à jour de sa cotisation dénonce : il dit qui il est ; l'entraîneur (payée) oui, sans elle non
+        ro.select_option("#cmoi", "")
+        assert ro.locator("[data-cdenonce]").is_disabled() and "qui vous êtes" in ro.inner_text(".picker .cstop")
+        ro.select_option("#cmoi", coach)
+        assert ro.locator("[data-cdenonce]").is_enabled() and ro.locator(".picker .cstop").count() == 0
+        ro.evaluate("window.__caisse = CAISSE; CAISSE = {ops: CAISSE.ops.filter(o => o.regle !== 'cotisation')}; render(true)")
+        assert ro.locator("[data-cdenonce]").is_disabled() and "réglez vos" in ro.inner_text(".picker .cstop")
+        ro.evaluate("CAISSE = window.__caisse; render(true)")
+        assert ro.locator("[data-cdenonce]").is_enabled()
+        # hors caisse (effectif, ou « ne participe pas » d'un trésorier, qui se retire) : ni amende, ni dénonciation ;
+        # la proposition d'un joueur pas à jour de sa cotisation est irrecevable
+        hors = ro.evaluate("""(() => { const c = D.caisse.coach, keep = [D.caisse.hors, CAISSE, CN], r = {};
+          D.caisse.hors = [c];
+          const L = ledger();
+          r.effectif = !participants(L).includes(c) && blocage(c, L, false).includes("ne participe pas");
+          const sortie = {id: "r:cotisation:x:R:T1", t: "refus", auto: "cotisation:x:R:T1", par: "", le: "2026-10-08", note: ""};
+          CAISSE = {ops: [...(CAISSE.ops || []), sortie]};
+          r.sorti = ledger().out.has("R:T1") && ledger().sortis["R:T1"] === sortie.id;
+          CAISSE.ops.push({id: "a:t", t: "annule", cible: sortie.id, par: "", le: "2026-10-08", note: ""});
+          r.reintegre = !ledger().out.has("R:T1");
+          D.caisse.hors = ["R:T2"];
+          CN = {ops: [{id: "prop:t1", t: "proposition", joueur: c, regle: "m_oubli", n: 1, montant: 2, par: "R:T1", le: "2026-10-08"},
+                      {id: "prop:t2", t: "proposition", joueur: "R:T2", regle: "m_oubli", n: 1, montant: 2, par: c, le: "2026-10-08"}]};
+          const P = caisseProposals(ledger());
+          r.irrecevable = (P.find(p => p.id === "prop:t1") || {}).irrecevable === true && !P.some(p => p.id === "prop:t2");
+          [D.caisse.hors, CAISSE, CN] = keep; return r; })()""")
+        assert hors == dict(effectif=True, sorti=True, reintegre=True, irrecevable=True)
         # téléphone : la dénonciation se partage directement (menu de partage du téléphone)
         ro.set_viewport_size({"width": 360, "height": 780})
         ro.evaluate("navigator.share = async d => { window.__partage = d; }; render(true)")
         ro.locator("[data-cshare]").click()
         ro.wait_for_function("() => window.__partage", timeout=3000)
-        assert "Dénonciation" in ro.evaluate("window.__partage.text")
+        assert "Dénonciation pour la caisse noire, par Coach" in ro.evaluate("window.__partage.text")
         ro.set_viewport_size({"width": 1100, "height": 900})
         ro.wait_for_function("() => !document.querySelector('[data-cshare]')", timeout=3000)
         # avec le jeton des propositions (dans les données chiffrées), il propose l'amende directement :
         # elle part au dépôt à part, tout le monde la voit, seul un trésorier la valide
         ro.evaluate("""D.caisse.jeton_cn = "jeton-cn-test"; CFG.cn = CFG.caisse.replace("caisse.enc", "propositions.enc");
           CFG.cn_depot = "exemple/cn"; CFG.cn_workflow = "proposer.yml"; render(true)""")
+        ro.select_option("#cmoi", "")
         assert ro.locator("[data-cpropose]").is_disabled()   # d'abord : qui propose ?
-        ro.select_option("#cmoi", index=1)
+        ro.select_option("#cmoi", coach)
         before = len(sent)
         ro.locator("[data-cpropose]").click()
         wait_sent(before + 1)
@@ -1482,9 +1522,14 @@ def test_anniversaires(sandbox):
     assert an.birthday("2006-09-20") == "09-20" and an.birthday("20/09") == "09-20" and an.birthday("09-20") == "09-20"
     assert an.birthday("") is None and an.birthday("31/13") is None
     (sandbox / "roster.csv").write_text("nom,poste,disponible,role,age,naissance\nIsidore Exemple,GB,,,,03-14\n"
-                                        "Jean Modele,ARG,,,,\nZéphyrin,,,coach,,12-25\n", "utf-8")
+                                        "Jean Modele,ARG,,hors caisse,,\nZéphyrin,,,coach,,12-25\n", "utf-8")
     roster = an.load_roster()
     assert sorted(v["nom"] for v in roster.values()) == ["Isidore Exemple", "Jean Modele"]   # l'entraîneur n'est pas un joueur
+    # hors caisse : un joueur qui ne participe pas à la caisse noire (pas de cotisation à lui demander)
+    assert [roster[common.name_key(n)]["hors_caisse"] for n in ("Isidore Exemple", "Jean Modele")] == [False, True]
+    caisse_page = an.analyze("2026-10-04", roster=roster)["caisse"]
+    assert caisse_page["hors"] == ["R:" + common.name_key("Jean Modele")]
+    assert {p["joueur"] for p in caisse_page["propositions"] if p["regle"] == "cotisation"} == {"R:" + common.name_key("Isidore Exemple"), caisse.COACH}
     assert an.birthdays(caisse.COACH) == [dict(cle="R:" + common.name_key("Isidore Exemple"), jour="03-14"),
                                           dict(cle=caisse.COACH, jour="12-25")]
 

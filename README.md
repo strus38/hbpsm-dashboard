@@ -36,7 +36,8 @@ une phrase courte se devine par essais successifs.
    si souhaité, `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom,POSTE,disponibilité » :
    poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
    longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde ; puis
-   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire, la tranche d'âge en 5e (5 ans
+   « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire (« hors caisse » pour un joueur
+   qui n'y participe pas), la tranche d'âge en 5e (5 ans
    à partir de 18 ans : « 18-22 », « 23-27 »… ; jamais l'année de naissance),
    l'anniversaire « MM-JJ » en 6e et, pour un joueur qui ne reste pas toute la saison, le dernier
    mois « AAAA-MM » ou jour « AAAA-MM-JJ » où il est disponible en 7e).
@@ -208,6 +209,11 @@ les derniers mouvements.
   renvoyée n'est comptée qu'une fois. Tout le monde la voit en une minute ou deux.
 - Les autres consultent. Ils peuvent préparer une dénonciation, copiée pour le groupe
   (une fausse dénonciation coûte 1 €, comme le dit le règlement).
+- Seuls les joueurs à jour de leur cotisation mettent (trésoriers, entraîneur) ou dénoncent une
+  amende (proposition, dénonciation copiée ou partagée) ; ceux qui ne l'ont pas encore réglée
+  peuvent toujours le faire. Chacun dit d'abord qui il est (« Vous êtes ») ; sinon, ou sans
+  cotisation, les boutons restent grisés et la page dit pourquoi. Une proposition d'un joueur pas à
+  jour est marquée irrecevable : le trésorier ne peut que la refuser.
 - Propositions, à valider par un trésorier, chacune avec son point du règlement : d'après les
   feuilles de match, la 2e exclusion de 2 minutes, les 3 × 2 minutes, l'expulsion directe, une
   réussite au tir sous 40 %, le dernier but du match, la victoire de +20 (tournée du coach) ;
@@ -217,8 +223,11 @@ les derniers mouvements.
   choix) ; le trésorier indique les manqués et les hors cadre, la page compte l'amende comme le
   règlement (1 € à partir du 2e échec du match, 2 € tout de suite pour un hors cadre).
 - Cotisations : une carte où le trésorier marque qui a payé (la cotisation et son paiement sont
-  enregistrés ensemble) ou qui ne cotise pas ; elle disparaît quand tout le monde est fixé. La
-  cotisation compte dans la caisse, pas comme une amende (ni podium, ni compte des amendes).
+  enregistrés ensemble) ou qui ne participe pas à la caisse (« réintégrer » l'annule) ; elle
+  disparaît quand tout le monde est fixé. La cotisation compte dans la caisse, pas comme une
+  amende (ni podium, ni compte des amendes).
+- Hors caisse (« ne participe pas », ou « hors caisse » dans l'effectif) : ni cotisation, ni
+  amende, ni bon point, ni penalty à vérifier, ni dénonciation.
 
 Pour qu'un trésorier puisse saisir, donnez-lui le jeton de publication (celui de la feuille
 validée) : il le colle une fois via « Je suis trésorier ». Les trésoriers sont marqués dans
@@ -384,8 +393,9 @@ gardé ses joueurs retrouve son propre bilan.
 
 ## Caisse noire : propositions de tous
 
-N'importe quel joueur qui a la phrase du club propose une amende depuis l'onglet Caisse noire : il dit
-qui il est, choisit le joueur et la règle, puis touche « Proposer l'amende ». La proposition part,
+N'importe quel joueur qui a la phrase du club et qui est à jour de sa cotisation propose une amende
+depuis l'onglet Caisse noire : il dit qui il est, choisit le joueur et la règle, puis touche « Proposer
+l'amende ». La proposition part,
 chiffrée, au dépôt public à part `strus38/hbpsm-cn` (code tenu dans `cn/`), avec un jeton limité à
 ce seul dépôt : la collecte le range dans les données chiffrées, personne n'a rien à coller. Tout le
 monde la voit d'ici une à deux minutes ; seuls les trésoriers la valident ou la refusent. Même extrait

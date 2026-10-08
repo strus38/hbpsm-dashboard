@@ -118,7 +118,7 @@ def restore():
 def roster():
     """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE », de « ,non »
     (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs), de « ,trésorier »
-    (tient la caisse noire), de sa tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
+    (tient la caisse noire) ou « ,hors caisse » (n'y participe pas), de sa tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
     (âge atteint dans l'année où la saison commence ; jamais l'année de naissance), du jour de son anniversaire « ,MM-JJ »
     (sans l'année) et, s'il ne reste pas toute la saison, du dernier mois ou jour où il est disponible
     « ,AAAA-MM » ou « ,AAAA-MM-JJ », et de l'avis de l'auteur, 1 à 5 étoiles « ,4 » (jamais affiché). Une

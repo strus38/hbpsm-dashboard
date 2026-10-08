@@ -165,6 +165,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   le journal (`fetchCN`, `CFG.cn`) ; les propositions rejoignent « À valider » (`cnProposals`) ; seuls les
   trésoriers valident (« v:<id> ») ou refusent (« r:<id> ») dans le registre. Code du dépôt à part tenu et
   testé dans `cn/` (son `vault.py` = celui du pipeline) ; secret `HBPSM_CLE` dans les deux dépôts.
+  Cotisation d'abord (demande de l'auteur, 08/10/2026) : seuls les joueurs à jour de leur cotisation mettent
+  (trésoriers, entraîneur : `whoAmI`, « Vous êtes » du mode trésorier) ou dénoncent (proposition, copie, partage :
+  « Vous êtes » du formulaire) une amende ; les autres peuvent toujours la régler (« Payé »). `blocage(c, L, w)` dit
+  pourquoi, `auteurOK` garde chaque action (mettre, valider, penalties, proposer, copier, partager) ; payer,
+  encaisser, refuser, annuler restent libres. Proposition de tous d'un joueur pas à jour : `irrecevable` (seulement
+  « Refuser »). Hors caisse : rôle « hors caisse » de l'effectif (`hors_caisse`, `caisse.hors`, pas de cotisation
+  proposée ; un joueur de l'effectif l'est au 08/10/2026, choix de l'auteur) ou « ne participe pas » d'un trésorier
+  (refus de la cotisation, `L.sortis`, « réintégrer » l'annule) ; `L.out` : ni amende, ni bon point, ni penalty, ni
+  dénonciation (`participants`). Pas vérifié côté workflow : seuls les détenteurs du jeton y écrivent.
   Téléphone : bouton « 📤 Partager » à côté de la dénonciation (menu de partage du téléphone, `navigator.share`,
   `canShare`), sous 560 px et si le navigateur le permet ; sinon le copier-coller.
   Anniversaires (demande de l'auteur, 05/10/2026) : 6e colonne `naissance` de l'effectif (MM-JJ, jamais

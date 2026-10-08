@@ -584,6 +584,8 @@ def load_roster():
                                                         disponible=state not in ("NON", "0", "FALSE", "N"),
                                                         depannage=state in ("DEPANNAGE", "RESERVE"),
                                                         tresorier="TRESORIER" in norm(row.get("role") or ""),
+                                                        # ne participe pas à la caisse noire (ni cotisation, ni amende)
+                                                        hors_caisse="HORS CAISSE" in norm(row.get("role") or ""),
                                                         age=age_class(row.get("age")),
                                                         jusqu_au=until(row.get("jusqu_au")),
                                                         avis=opinion(row.get("avis")))
@@ -1551,7 +1553,10 @@ def analyze(today=None, roster=None):
                     # le jeton des propositions (limité au dépôt hbpsm-cn) : seulement dans les données chiffrées
                     jeton_cn=os.environ.get("HBPSM_JETON_CN") or None,
                     tresoriers=[p["cle"] for p in players if p.get("tresorier")],
-                    propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")]
+                    # hors caisse (rôle de l'effectif) : pas de cotisation ; la page ne leur met ni ne leur fait proposer d'amende
+                    hors=sorted("R:" + k for k, r in roster.items() if r.get("hors_caisse")),
+                    propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")
+                                                                       and not (roster.get(p["cle"][2:]) or {}).get("hors_caisse")]
                                                   + [caisse.COACH], config.get("saison") or "")),
         a_venir=sorted((dict(poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
                              provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"),
