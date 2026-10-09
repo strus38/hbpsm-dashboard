@@ -1239,12 +1239,14 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
                                            choix=base + "choix.enc", caisse=base + "caisse.enc", depot="exemple/depot", branche="main",
                                            cn=base + "propositions.enc", cn_depot="exemple/cn", cn_branche="main", cn_workflow="proposer.yml",
                                            presences=base + "presences.enc", iterations=2000, club="HBPSM", verif=600)), "utf-8")
-    sent, errors = [], []
+    sent, errors, refuse = [], [], []
 
     def github(route):
         cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST"}
         if route.request.method == "OPTIONS":
             return route.fulfill(status=204, headers=cors)
+        if refuse:   # comme un réseau d'entreprise qui bloque les envois vers GitHub
+            return route.fulfill(status=refuse[0], headers=cors, body="{}")
         sent.append(dict(url=route.request.url, body=json.loads(route.request.post_data)))
         route.fulfill(status=204, headers=cors)
 
@@ -1350,10 +1352,29 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         wait_sent(a, n + 1)
         assert [(o["t"], o["etat"], o["evs"]) for o in apply(a)] == [("dispo", "present", [ev])]
         a.click("[data-rep-abs='M-9901']")
+        assert a.locator("[data-rep-envoi]").is_disabled() and "Choisissez d'abord un motif" in a.inner_text("#pf-hint")
         a.click("[data-motif=autre]")
-        assert a.locator("[data-rep-envoi]").is_disabled()
+        assert a.locator("[data-rep-envoi]").is_disabled() and "écrivez votre justification" in a.inner_text("#pf-hint")
         a.fill("#pf-texte", "mariage de mon frère")
-        assert a.locator("[data-rep-envoi]").is_enabled()
+        assert a.locator("[data-rep-envoi]").is_enabled() and a.inner_text("#pf-hint") == ""
+        # une justification écrite sans motif : « Autre »
+        a.evaluate("PF.motif = ''; render(true)")
+        a.fill("#pf-texte", "mariage de mon frère")
+        assert a.evaluate("PF.motif") == "autre" and a.locator("[data-rep-envoi]").is_enabled() and "on" in a.get_attribute("[data-motif=autre]", "class")
+        # GitHub refuse l'envoi (réseau d'entreprise) : dit clairement, rien n'est perdu, renvoyé ensuite
+        refuse.append(404)
+        n = len(sent)
+        a.click("[data-rep-envoi]")
+        a.wait_for_selector(".note.envoi-ko")
+        assert "code 404" in a.inner_text(".note.envoi-ko") and len(sent) == n and a.evaluate("cnOutbox().length") == 1
+        assert a.evaluate("statusOf(stored(MOI), {id: 'M-9901', day: addDays(ymd(new Date()), 10)}).etat") == "absent"   # gardé ici
+        refuse.clear()
+        a.click(".note.envoi-ko [data-cnsend]")
+        wait_sent(a, n + 1)
+        apply(a)
+        a.click("[data-rep-abs='M-9901']")
+        a.click("[data-motif=autre]")
+        a.fill("#pf-texte", "mariage de mon frère")
         n = len(sent)
         a.click("[data-rep-envoi]")
         wait_sent(a, n + 1)

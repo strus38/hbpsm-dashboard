@@ -524,7 +524,11 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   « ne plus le signaler » l'écarte sur cet appareil (« hbpsm:ignores »). Journal des présences relu au retour au
   premier plan (20 s au moins entre deux). Code juste sous l'identité (`meBlock` = `meLine` + `codeLine`, Ma semaine
   et Présences). Les choix d'avant le code : le premier appareil qui rouvre la page reçoit le code du joueur
-  (`ensureClaim`). Le
+  (`ensureClaim`). Absence (retour de l'auteur, 09/10/2026, capture « 404 » sur « Envoyer mon absence » sans motif) :
+  `.btn:disabled` grisé (aucun style avant : un bouton inactif avait l'air cliquable), `#pf-hint` dit pourquoi, une
+  justification écrite sans motif choisit « Autre » ; erreur d'envoi détaillée (`CN_CODE`, `cnMsg` : 401/403/404 =
+  refus de GitHub, souvent un réseau d'entreprise qui bloque api.github.com ; essayer en 4G ; gardé et renvoyé),
+  `sendLine` aussi sous l'identité (`meBlock`). Le
   sélecteur « Vous êtes » libre de la caisse a disparu (trésoriers : `#cme`, passe aussi par `setMe`).
   Réponses (`declare`, op `dispo` : `evs` = « E-AAAA-MM-JJ » séance, « M-<rencontre> » match, 60 au plus ; `etat`
   present / absent ; `motif` malade, blesse, vacances, autre ; `texte`, obligatoire pour « autre », choix de lecture
