@@ -236,6 +236,7 @@ section[hidden]{display:none}
 .btn:hover{background:var(--structure-800)}
 .btn{display:inline-block;background:var(--structure-700);color:#fff;text-decoration:none;font-weight:600;padding:10px 14px;border:0;border-radius:8px;margin-top:10px;cursor:pointer}
 .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.btn:disabled,.link:disabled{opacity:.45;cursor:not-allowed}.btn:disabled:hover{background:var(--structure-700)}.btn.ghost:disabled:hover{background:var(--surface)}
 .facts{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.88rem;margin:10px 0}
 .facts dt{color:var(--muted)} .facts dd{margin:0;text-align:right;font-weight:600}
 .gate{max-width:420px;margin:12vh auto 0}
@@ -462,7 +463,7 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
 .code-val{font:700 1.1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:var(--us-bg);color:var(--heading)}
 .code-in{font:600 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;width:15ch;max-width:100%;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
-.code-perso{margin:6px 0 12px}.moi-qui{margin-bottom:6px}
+.code-perso{margin:6px 0 12px}.note.envoi-ko{border-left-color:var(--loss);color:var(--ink)}.moi-qui{margin-bottom:6px}
 .rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
 .rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
 .rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
@@ -651,7 +652,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "08fb4f967cb0", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "05f96bfe7643", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -2427,6 +2428,13 @@ const santeBanner = () => {
 // le même envoi pour les propositions d'amendes, les réponses de présence, « Vous êtes » et les votes
 const CN_TXT = {envoi: "Envoi…", envoyee: "Envoyé : en ligne d'ici une à deux minutes.",
   erreur: "Envoi impossible pour l'instant (connexion ?) : c'est gardé sur cet appareil, réessayez.", lent: "La mise en ligne tarde : ce sera en ligne au prochain passage."};
+let CN_CODE = 0;   // la réponse de GitHub au dernier envoi raté (0 : pas de réponse)
+const cnMsg = () => CN_PUB !== "erreur" ? CN_TXT[CN_PUB] || ""
+  : !cnToken() ? "Envoi impossible : le jeton d'envoi manque dans les données ; prévenez l'entraîneur. C'est gardé sur cet appareil."
+  : [401, 403, 404].includes(CN_CODE) ? "GitHub a refusé l'envoi (code " + CN_CODE + "). Sur un réseau d'entreprise, les envois vers GitHub sont souvent bloqués : "
+    + "essayez depuis votre téléphone (4G). Rien n'est perdu : c'est gardé sur cet appareil et repartira à la prochaine ouverture. Si cela se répète partout, prévenez l'entraîneur."
+  : CN_CODE ? "GitHub a répondu " + CN_CODE + " : réessayez dans un moment ; c'est gardé sur cet appareil."
+  : "Envoi impossible : GitHub ne répond pas (connexion, ou réseau qui le bloque) ; c'est gardé sur cet appareil et repartira à la prochaine ouverture.";
 const outbox = () => { try { return JSON.parse(stored(OUTBOX) || "[]"); } catch (e) { return []; } };
 const setOutbox = list => { try { localStorage.setItem(OUTBOX, JSON.stringify(list)); } catch (e) {} };
 const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -2533,8 +2541,8 @@ async function sendCN(){
     const r = await fetch("https://api.github.com/repos/" + CFG.cn_depot + "/actions/workflows/" + (CFG.cn_workflow || "proposer.yml") + "/dispatches", {
       method: "POST", body: JSON.stringify({ref: CFG.cn_branche || "main", inputs: {prop: JSON.stringify(env)}}),
       headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
-    CN_PUB = r.status === 204 ? "envoyee" : "erreur";
-  } catch (e) { CN_PUB = "erreur"; }
+    CN_PUB = r.status === 204 ? "envoyee" : "erreur"; CN_CODE = r.status;
+  } catch (e) { CN_PUB = "erreur"; CN_CODE = 0; }
   render(true);
   if(CN_PUB === "envoyee") watchCN();
 }
@@ -2589,7 +2597,7 @@ function caisseStatus(){
   if(!w) return '<p class="note">'+(canPropose()
       ? 'Vous avez vu une infraction ? Si vous êtes à jour de votre cotisation, proposez l\'amende plus bas : tout le monde la voit d\'ici une à deux minutes, et seul un trésorier la valide ou la refuse (une fausse dénonciation coûte 1 €). '
       : 'Consultation. Seuls les trésoriers saisissent les amendes. Vous en avez vu une ? Si vous êtes à jour de votre cotisation, préparez la dénonciation plus bas et envoyez-la au groupe (une fausse dénonciation coûte 1 €). ')
-    + (CN_PUB && CN_TXT[CN_PUB] ? '<b>'+esc(CN_TXT[CN_PUB])+'</b> ' : '')
+    + (CN_PUB && cnMsg() ? '<b>'+esc(cnMsg())+'</b> ' : '')
     + (cnOutbox().length && CN_PUB !== "envoi" ? '<button class="link" data-cnsend="1">Renvoyer</button> ' : '')
     + ""
     + '<button class="link" data-cjeton-show="1">Je suis trésorier</button></p>'
@@ -3128,12 +3136,12 @@ const conflictNote = me => { const o = me && String(me).startsWith("R:") ? other
     + ' comme '+esc(memberName(me))+' sans '+(myCodeFor(me) ? 'votre' : 'le')+' code personnel</span> <span class="small muted">(vu '
     + o.map(x => 'le '+esc(quand(x))+' <button class="link" data-ignore-app="'+esc(x.app)+'">ne plus le signaler</button>').join(", ")+')</span>'
     + '<br><span class="small muted">Si c\'est vous (autre navigateur, application installée…), donnez-y votre code ; sinon, parlez-en à l\'équipe.</span>'; };
-const meBlock = () => meLine() + codeLine();   // l'identité, puis le code personnel juste dessous
+const meBlock = () => meLine() + codeLine() + sendLine();   // l'identité, puis le code personnel juste dessous
 const meLine = () => { const me = stored(MOI);
   return '<p class="small moi-qui">'+(me ? 'Vous êtes <b>'+esc(memberName(me))+'</b>' : 'Vous n\'avez pas dit qui vous êtes.')
     + ' <button class="link" data-qui-open="1">'+(me ? "changer" : "le dire")+'</button>'+conflictNote(me)+'</p>'; };
 const sendLine = () => { const n = cnOutbox().filter(o => PRES_T.includes(o.t)).length;
-  if(CN_PUB && CN_TXT[CN_PUB]) return '<p class="note">'+esc(CN_TXT[CN_PUB])+(n && CN_PUB !== "envoi" ? ' <button class="link" data-cnsend="1">Renvoyer</button>' : '')+'</p>';
+  if(CN_PUB && cnMsg()) return '<p class="note'+(CN_PUB === "erreur" ? " envoi-ko" : "")+'">'+esc(cnMsg())+(n && CN_PUB !== "envoi" ? ' <button class="link" data-cnsend="1">Renvoyer</button>' : '')+'</p>';
   return n ? '<p class="note">'+n+' envoi'+(n > 1 ? "s" : "")+' pas encore en ligne. <button class="link" data-cnsend="1">Renvoyer</button></p>' : ""; };
 
 // les réponses : présent d'un geste ; absent avec son motif (« autre » : un mot obligatoire), pour un jour ou une période
@@ -3146,10 +3154,12 @@ function declare(evs, etat, motif, texte){
   DECL = null; PF = {ev: null, motif: "", texte: "", du: "", au: ""};
   render(true); sendCN();
 }
+const motifHint = () => motifOK() ? "" : !PF.motif ? "Choisissez d'abord un motif (ou écrivez votre justification : ce sera « Autre »)." : "« Autre » : écrivez votre justification.";
 const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">(seul l\'entraîneur le voit)</span></p><div class="cchips">'
   + Object.entries(MOTIFS).map(([k, v]) => '<button class="cchip'+(PF.motif === k ? " on" : "")+'" data-motif="'+k+'">'+v+'</button>').join("")+'</div>'
-  + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif === "autre" ? "Votre justification (obligatoire)" : "Un mot pour l'entraîneur (facultatif)")+'" value="'+esc(PF.texte)+'">'
-  + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer mon absence</button><button class="link" data-rep-annule="1">Annuler</button></div>';
+  + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif && PF.motif !== "autre" ? "Un mot pour l'entraîneur (facultatif)" : "Votre justification")+'" value="'+esc(PF.texte)+'">'
+  + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer mon absence</button><button class="link" data-rep-annule="1">Annuler</button></div>'
+  + '<p class="small cstop" id="pf-hint">'+esc(motifHint())+'</p>';
 function answerRow(e, me){
   const what = e.type === "e" ? "🏃 Entraînement" : (e.m.coupe ? "🏆 " : "🤾 ")+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire))+(e.m.domicile ? " · dom." : " · ext.");
   const when = esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire));
@@ -3336,7 +3346,7 @@ function viewPresences(){
   const me = stored(MOI) || "", today = ymd(new Date()), coming = events(today, addDays(today, 27)), votes = ballots();
   const season = events(presStart(), presEnd());   // tout le calendrier : chacun répond à l'avance
   let h = '<header class="top"><p class="when">Réponse au plus tard '+(PRESC().delai_jours ?? 4)+' jours avant, '+limiteTxt()
-    + ' ; sans réponse, absent sans justification</p><h1>Présences</h1></header>' + sendLine();
+    + ' ; sans réponse, absent sans justification</p><h1>Présences</h1></header>' + (COACH ? sendLine() : "");
   const hdm = votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, COACH ? "" : me)).join("") : "";
   if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
       + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
@@ -3564,7 +3574,10 @@ document.addEventListener("click", ev => { if(!ev.target.closest("#plus-menu, [d
 document.addEventListener("input", ev => {   // le formulaire de la caisse garde ce qu'on tape d'un rendu à l'autre
   if(ev.target.id === "cnote") PICK.note = ev.target.value;
   else if(ev.target.id === "cmontant") PICK.montant = ev.target.value;
-  else if(ev.target.id === "pf-texte"){ PF.texte = ev.target.value; const b = document.querySelector("[data-rep-envoi]"); if(b) b.disabled = !motifOK(); }
+  else if(ev.target.id === "pf-texte"){ PF.texte = ev.target.value;
+    if(!PF.motif && PF.texte.trim()){ PF.motif = "autre"; const c = document.querySelector("[data-motif=autre]"); if(c) c.classList.add("on"); }   // une justification sans motif : « Autre »
+    const b = document.querySelector("[data-rep-envoi]"), hint = document.getElementById("pf-hint");
+    if(b) b.disabled = !motifOK(); if(hint) hint.textContent = motifHint(); }
 });
 document.addEventListener("toggle", ev => {
   const d = ev.target; if(!d.dataset) return;
