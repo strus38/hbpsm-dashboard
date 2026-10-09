@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, publish, sante, vault
+from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, pronostic, publish, sante, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 import pathlib
@@ -43,7 +43,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante):
+    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante, pronostic):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
@@ -229,6 +229,54 @@ def test_course_au_classement(sandbox):
         assert m["si_victoire"] >= m["sinon"] and m["enjeu"] == m["si_victoire"] - m["sinon"]
 
 
+
+def test_pronostics_gardes_puis_compares(sandbox, monkeypatch):
+    """Le pronostic de chaque match du club est gardé jusqu'au coup d'envoi, puis confronté à la feuille ;
+    les saisons lues apprennent au modèle l'avantage du terrain et le poids des présents."""
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    p = d["pronostics"]
+    cal = p["modele"]
+    assert 1 < cal["dom"] < 1.2 and 0.85 < cal["ext"] < 1 and 0 <= cal["beta"] <= 1 and cal["gamma"] >= 0
+    assert p["equipe"]["base"] > 0 and all(q["taux"] >= 0 for q in d["joueurs"])
+    assert all(q.get("sr") is not None for q in d["joueurs"] if q["gardien"] and q["m"])
+    club = [m for m in d["saison"]["matchs"] if not m.get("coupe")]
+    nxt = club[0]
+    assert [x["id"] for x in p["matchs"]] == [m["id"] for m in d["saison"]["matchs"]]
+    first = p["matchs"][0]
+    assert first["fige"] == "2026-10-04T00:00" and first["apres"] is None and p["suivi"]["n"] == 0
+    assert (first["pour"], first["ecart"], first["p"]) == (nxt["buts_pour"], nxt["ecart"], nxt["p_victoire"])
+    assert first["contre"] == round(nxt["buts_pour"] - nxt["ecart"], 1) and first["nous"]["bp_moy"] is not None
+    assert first["surveiller"] in range(6) and first["exploiter"] in range(6)
+    # coup d'envoi passé, match pas encore lu : le pronostic d'avant reste, les suivants se mettent à jour
+    later = an.analyze("2026-10-11")["pronostics"]["matchs"]
+    assert later[0]["fige"] == "2026-10-04T00:00" and later[1]["fige"] == "2026-10-11T00:00"
+    # l'entraîneur avait retenu une feuille pour ce match (publiée, chiffrée)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    kept = [q["cle"] for q in d["joueurs"] if q["gardien"]][:2] + [q["cle"] for q in d["joueurs"] if not q["gardien"]][:10]
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(
+        dict(format="hbpsm-choix", v=1, matchs={nxt["id"]: dict(joueurs=kept, le="2026-10-09")}), PHRASE, iterations=2000))
+    # le match est joué, la feuille lue : la réalité en face du pronostic, et ce que les présents expliquent
+    demo(sandbox, played_days=4)
+    d2 = an.analyze("2026-10-12")
+    x = next(x for x in d2["pronostics"]["matchs"] if x["id"] == nxt["id"])
+    real = json.loads((sandbox / "data" / "matches" / f"{nxt['id']}.json").read_text("utf-8"))
+    side, other = ("home", "away") if real["home"]["name"] == demo_data.CLUB else ("away", "home")
+    a = x["apres"]
+    assert x["fige"] == "2026-10-04T00:00" and a["feuille"]
+    assert (a["bp"], a["bc"], a["ecart"]) == (real[side]["score"], real[other]["score"], real[side]["score"] - real[other]["score"])
+    assert a["mt"] == [real[side]["ht"], real[other]["ht"]] and sum(a["periodes"][0]) == a["bp"]
+    assert a["deux_min"][0] == sum(q["two_min"] for q in real["players"][side])
+    assert 50 < a["presents"]["nous"]["part"] < 150 and 50 < a["presents"]["eux"]["part"] < 150
+    assert a["corrige"]["ecart"] == round(a["corrige"]["pour"] - a["corrige"]["contre"], 1)
+    assert a["retenue"]["part"] > 0
+    s = d2["pronostics"]["suivi"]
+    assert s["n"] == 1 and s["erreur"] == abs(round(a["ecart"] - x["ecart"], 1)) and s["n_presents"] == 1
+    # une fois la feuille lue, la comparaison ne bouge plus
+    assert an.analyze("2026-10-13")["pronostics"]["matchs"][0]["apres"] == a
+    # l'état de la collecte les garde
+    assert "pronostics.json" in publish.STATE_FILES
+
 def test_trajectoire_et_courbe_du_match():
     """La course : rang du club après chaque journée et marge sur la place visée (d'avance sur le premier
     dehors, de retard sur le dernier dedans) ; l'écart au score, but après but, vu du club."""
@@ -383,6 +431,29 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.locator(".bilan").count() == 1
         page.evaluate("document.querySelector('.bilan').open = true")   # ouvert 4 jours après le match : le test ne dépend pas du jour
         assert "Buteurs" in page.inner_text(".bilan")
+        # pronostics : celui du prochain match dans la Projection ; après le match, la comparaison (bilan de la
+        # Semaine, Adversaires, Saison) ; l'écart attendu de chaque feuille d'après les présents (appris)
+        assert page.evaluate("D.pronostics.modele.beta") > 0 and page.evaluate("PLAN.every(r => r.goalsAdj != null)")
+        page.evaluate("""(() => { const x = D.derniers.slice(-1)[0];
+          D.pronostics.matchs.unshift(Object.assign({}, D.pronostics.matchs[0], {id: x.id, adversaire: x.adversaire, domicile: x.domicile,
+            date: x.date, journee: x.journee, coupe: null, fige: "2026-10-02T07:00", surveiller: 4, exploiter: 0,
+            apres: {v: 1, bp: x.bp, bc: x.bc, ecart: x.bp - x.bc, res: x.res, feuille: true, mt: [12, 10],
+              periodes: [[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]], deux_min: [2, 3], jaunes: [1, 2], rouges: [0, 0], arrets: [35, 28],
+              presents: {nous: {part: 92, gardien: 2.4, joueurs: 12, absents: [{cle: D.joueurs[0].cle, taux: 5.1}]},
+                         eux: {part: 104, gardien: -1.2, joueurs: 13, absents: [{nom: "Buteur Invente", taux: 4.2}]}},
+              retenue: {part: 95, gardien: 0, pour: 27, contre: 25, ecart: 2}, corrige: {pour: 26.5, contre: 24.8, ecart: 1.7}}}));
+          D.pronostics.suivi = {n: 1, vainqueur: 1, sur: 1, erreur: 2.3, biais: 2.3, n_presents: 1, erreur_avant: 2.3, erreur_presents: 1.1};
+          render(true); document.querySelector('.bilan').open = true; document.querySelector('.prono-bilan').open = true; })()""")
+        assert "Pronostic et réalité" in page.inner_text(".bilan") and "manquaient" in page.inner_text(".prono-bilan")
+        page.click("nav.tabs button[data-tab=saison]")
+        assert "Nos pronostics et la réalité" in page.inner_text("main") and "vainqueur trouvé 1 fois sur 1" in page.inner_text("main")
+        page.click("nav.tabs button[data-tab=adv]")
+        adv = page.evaluate("D.derniers.slice(-1)[0].adversaire")
+        page.select_option("#adv", adv)
+        assert "Lecture" in page.inner_text("main") and "Buteur Invente" in page.inner_text("main")
+        page.select_option("#adv", page.evaluate("D.saison.matchs[0].adversaire"))
+        assert "Gardé tel quel" in page.inner_text("main")
+        page.click("nav.tabs button[data-tab=semaine]")
         page.click("nav.tabs button[data-tab=moi]")
         assert "Choisissez qui vous êtes" in page.inner_text("main")
         page.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle); render(true)")

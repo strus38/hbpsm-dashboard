@@ -386,10 +386,38 @@ gardé ses joueurs retrouve son propre bilan.
 
 - **Buts évités par un gardien** : ses arrêts, moins ce qu'aurait arrêté le gardien moyen des poules sur les
   mêmes tirs cadrés (dès 60 tirs) ; sur sa fiche, et pour la paire proposée dans la Semaine.
-- **Écart attendu** de chaque match, en buts, à côté de la victoire estimée, et ajusté à l'équipe retenue :
-  une feuille moins forte marque d'autant moins.
+- **Écart attendu** de chaque match, en buts, à côté de la victoire estimée, et ajusté à l'équipe retenue
+  d'après ce que les feuilles ont appris des présents (voir « Pronostics et réalité »).
 - **Coût d'une exclusion de 2 minutes**, mesuré sur nos feuilles : l'écart de buts des deux minutes qui
   suivent, comparé au rythme du match (environ −0,4 but) ; dans « À travailler », sur les fiches et en causerie.
+
+## Pronostics et réalité
+
+Le pronostic de chaque match du club (celui de la Projection, onglet Adversaires : nos moyennes face aux
+leurs, score attendu, victoire estimée, tranches à surveiller et à exploiter) est gardé tel qu'il était à
+la dernière collecte avant le coup d'envoi (`pipeline/pronostic.py`, `data/pronostics.json` repris de
+`etat.enc`). Le match joué, la feuille dit ce qu'il en a été : score, mi-temps, discipline, gardiens, buts
+dans les deux tranches, qui jouait de chaque côté et ce que les présents expliquent de l'écart au pronostic
+(« avec ces présents, le modèle aurait dit… »), et, si l'entraîneur l'avait publiée, l'écart attendu de
+l'équipe retenue. Comparaison dans l'onglet Adversaires, le bilan de la Semaine et l'onglet Saison, qui
+tient aussi le compte (vainqueur trouvé, erreur moyenne sur l'écart, biais à partir de 3 matchs).
+
+À chaque collecte, toutes les saisons lues (un millier de matchs, plusieurs centaines de feuilles) apprennent
+au modèle, chaque match étant prévu avec ce qu'on savait avant lui :
+
+- **le terrain** : buts attendus à domicile et à l'extérieur, au lieu des ±4 % posés au départ (environ
+  +6 % et −2,5 % au 09/10/2026) ; ils servent à la simulation de la saison et aux matchs de coupe ;
+- **les buteurs absents** : la force de frappe d'une feuille, ce sont les buts par match de ses six meilleurs
+  buteurs de champ (les six joueurs de champ sur le terrain : une feuille plus longue ne marque pas plus). Une
+  équipe dont la force de frappe alignée vaut une part p de l'habitude marque environ 1 + β (p − 1) fois ses
+  buts attendus ; β ≈ 0,33 : les autres compensent une bonne part ;
+- **les gardiens** : chaque point d'arrêts de plus que le gardien habituel de l'équipe retire environ γ % des
+  buts de l'adversaire (γ ≈ 1,3).
+
+β et γ partent d'une valeur a priori (0,5 et 1,4) et suivent les feuilles. La page s'en sert pour l'écart
+attendu de la feuille proposée : écart du modèle + β (p − 1) × nos buts attendus + γ × (arrêts des gardiens
+alignés − arrêts habituels) × leurs buts attendus. La victoire estimée et le risque restent ceux de la force
+alignée (les notes).
 
 ## Calendrier, application, image du bilan, causerie
 

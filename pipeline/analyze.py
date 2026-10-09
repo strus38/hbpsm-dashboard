@@ -15,9 +15,9 @@ import re
 import statistics
 from collections import Counter, defaultdict
 
-from .common import (DATA, ROOT, is_club, load_config, load_matches, match_name, name_key,
+from .common import (DATA, PUBLIE, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team, write_json)
-from . import caisse
+from . import caisse, pronostic, vault
 from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
@@ -483,12 +483,14 @@ def history_profiles(seasons, profiles, matches, config, above=(), rosters=None)
     return priors
 
 
-def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=4000, seed=38160, goals=None):
+def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=4000, seed=38160, goals=None,
+               terrain=None):
     """Chances de gagner un match de coupe contre une équipe d'une autre poule, ou d'une autre
     division (level : 1 = celle du dessus). Sa force se lit sur ses matchs, rapportés à ce qu'on
     marque dans sa poule, puis se décale de l'écart de division ; elle part de la moyenne de sa
     division, ou de sa saison passée d'autant plus que l'effectif est resté. Un nul se joue aux
-    tirs au but : une chance sur deux."""
+    tirs au but : une chance sur deux. terrain : buts attendus à domicile, à l'extérieur (appris)."""
+    dom, ext = terrain or (pronostic.DOM, pronostic.EXT)
     if not forces or club not in forces or not avg:
         return None
     j = prof.get("j") or 0
@@ -507,13 +509,13 @@ def cup_chance(forces, avg, club, prof, level, gap, prior=None, home=True, sims=
     att_t, dfn_t = out
     att_u, dfn_u = forces[club]
     if goals is not None:   # buts attendus, forces centrales : l'écart attendu du match de coupe
-        mu0 = avg * att_u * dfn_t * (1.04 if home else 0.96)
-        goals.update(pour=round(mu0, 1), ecart=round(mu0 - avg * att_t * dfn_u * (0.96 if home else 1.04), 1))
+        mu0 = avg * att_u * dfn_t * (dom if home else ext)
+        goals.update(pour=round(mu0, 1), ecart=round(mu0 - avg * att_t * dfn_u * (ext if home else dom), 1))
     rng, won = random.Random(seed), 0.0
     for _ in range(sims):
         fu, ft = math.exp(rng.gauss(0, UNSURE)), math.exp(rng.gauss(0, 1.5 * UNSURE))
-        mu = avg * att_u * fu * dfn_t / ft * (1.04 if home else 0.96)
-        mt = avg * att_t * ft * dfn_u / fu * (0.96 if home else 1.04)
+        mu = avg * att_u * fu * dfn_t / ft * (dom if home else ext)
+        mt = avg * att_t * ft * dfn_u / fu * (ext if home else dom)
         gu, gt = max(0, round(rng.gauss(mu, mu ** 0.5))), max(0, round(rng.gauss(mt, mt ** 0.5)))
         won += 1 if gu > gt else 0.5 if gu == gt else 0
     return round(100 * won / sims)
@@ -1114,7 +1116,8 @@ def pairs(with_sheet):
 UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
 
 
-def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None):
+def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None,
+            terrain=None):
     """Course au classement : chances d'atteindre le rang visé et enjeu de chaque match.
 
     Chaque match restant est simulé à partir des moyennes de buts marqués et
@@ -1122,8 +1125,10 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
     Ces forces restent incertaines : chaque saison simulée les tire autour de leur
     valeur, d'autant plus large qu'il y a peu de matchs joués (UNSURE).
     L'enjeu d'un match = chances d'atteindre l'objectif en cas de victoire,
-    moins ces chances sinon.
+    moins ces chances sinon. terrain : buts attendus à domicile, à l'extérieur, mesurés sur toutes les
+    saisons lues (pronostic.calibrate).
     """
+    dom_f, ext_f = terrain or (pronostic.DOM, pronostic.EXT)
     played = [m for m in matches if str(m.get("poule")) == str(poule)]
     table = {r["equipe"]: r for r in standings(played, known)}
     done = {(m["home"]["name"], m["away"]["name"]) for m in played}
@@ -1175,8 +1180,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
             dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
 
     def play(f):
-        mh = avg * att[f["home"]] * dfn[f["away"]] * 1.04
-        ma = avg * att[f["away"]] * dfn[f["home"]] * 0.96
+        mh = avg * att[f["home"]] * dfn[f["away"]] * dom_f
+        ma = avg * att[f["away"]] * dfn[f["home"]] * ext_f
         return (max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5))))
 
     already = [(m["home"]["name"], m["away"]["name"], m["home"]["score"], m["away"]["score"]) for m in played]
@@ -1222,8 +1227,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         dom = f["home"] == club
         adv = f["away"] if dom else f["home"]
         # buts attendus (forces centrales) : l'écart attendu, en buts (demande de l'auteur, 06/10/2026)
-        mu = avg * att0[club] * dfn0[adv] * (1.04 if dom else 0.96)
-        mt = avg * att0[adv] * dfn0[club] * (0.96 if dom else 1.04)
+        mu = avg * att0[club] * dfn0[adv] * (dom_f if dom else ext_f)
+        mt = avg * att0[adv] * dfn0[club] * (ext_f if dom else dom_f)
         si_v = 100 * s["v_ok"] / s["v"] if s["v"] else None
         si_o = 100 * s["o_ok"] / s["o"] if s["o"] else None
         enjeu = round(si_v) - round(si_o) if si_v is not None and si_o is not None else None
@@ -1369,6 +1374,18 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
         m["p_plan"], m["cle"] = frozen["p"], frozen["cle"]
     write_json(DATA / PLANIF, dict(cle=key, notes=notes, matchs=probs, depuis=prev.get("depuis") if same else paris_now().strftime("%Y-%m-%d %H:%M")))
     return (prev.get("depuis") if same else None) or paris_now().strftime("%Y-%m-%d %H:%M")
+
+
+def published_choices():
+    """Les feuilles retenues par l'entraîneur (publie/choix.enc), quand la phrase du club est là :
+    {match: {joueurs, le}}. Le pronostic d'un match joué les confronte à la feuille."""
+    path, secret = PUBLIE / "choix.enc", os.environ.get("HBPSM_CLE") or ""
+    if not path.exists() or not secret:
+        return {}
+    try:
+        return (vault.decrypt(read_json(path), secret) or {}).get("matchs") or {}
+    except (vault.VaultError, ValueError, KeyError, TypeError):
+        return {}
 
 
 CHANCES = "chances.json"  # l'évolution des chances d'atteindre l'objectif (data/, repris de etat.enc)
@@ -1534,8 +1551,12 @@ def analyze(today=None, roster=None):
     n_fdme = sum(1 for m in matches if (m.get("players") or {}).get("home"))
     club_poule = profiles[club_name]["poule"] if club_name else None
     target = int((config.get("objectif") or {}).get("rang", 1))
+    # ce que toutes les saisons lues apprennent au modèle : avantage du terrain, poids des présents
+    cal = pronostic.calibrate([x.get("matches") or [] for x in history] + [every_match + outside])
+    terrain = (cal["dom"], cal["ext"])
     saison = (outlook(matches, fixtures, club_name, club_poule, target,
-                      known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors)
+                      known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors,
+                      terrain=terrain)
               if club_name else None)
     if saison and saison.get("matchs") is not None:  # les matchs de coupe à venir, à leur date
         saison["matchs"] = sorted(saison["matchs"] + cup_ahead(every_fixture, config, today, saison["matchs"]),
@@ -1546,13 +1567,22 @@ def analyze(today=None, roster=None):
                 goals = {}
                 m["p_victoire"] = cup_chance(saison.get("forces"), saison.get("moyenne"), club_name,
                                              profiles.get(m["adversaire"]) or {}, levels.get(m["adversaire"], 0),
-                                             gap, priors.get(m["adversaire"]), m["domicile"], goals=goals)
+                                             gap, priors.get(m["adversaire"]), m["domicile"], goals=goals,
+                                             terrain=terrain)
                 m["buts_pour"], m["ecart"] = goals.get("pour"), goals.get("ecart")
     chances = record_chances(saison, len(with_sheet))
     trajet = trajectory(by_poule.get(str(club_poule), []), teams.get(str(club_poule), ()), club_name, target, gone) if club_name else []
     plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
                              all_history)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
+    # les pronostics gardés avant chaque match, et ce que la feuille en a dit (onglets Adversaires, Saison)
+    stamp = paris_now().strftime("%Y-%m-%dT%H:%M")
+    year = [m for x in history if latest and x.get("saison") == latest for m in x.get("matches") or []]
+    w_past = HIST * fade(len(with_sheet))
+    pronos, suivi = pronostic.record(saison, profiles, club_name, every_match + outside, year, cal, config, roster, players,
+                                     stamp if stamp[:10] == today else today + "T00:00", config.get("saison"), w_past,
+                                     published_choices()) if club_name else ([], dict(n=0))
+    equipe = pronostic.lineup_inputs(players, club_name, every_match, year, config, roster, w_past) if club_name else None
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
                   saison=config.get("saison"), club=club_name,
@@ -1599,6 +1629,7 @@ def analyze(today=None, roster=None):
                        key=lambda r: r["date"] or "9999")[:40],
         equipes=profiles, joueurs=players, duos=pairs(with_sheet), plans=PLANS,
         saison=saison, axes=axes,
+        pronostics=dict(matchs=pronos, suivi=suivi, modele=cal, equipe=equipe),
     )
 
 

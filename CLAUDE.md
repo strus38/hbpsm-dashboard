@@ -480,6 +480,26 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `analyze.score_curve`, écart but après but depuis le déroulé). Semaine sur grand écran : `.solo` sans terrain,
   `.sem-bas` (matchs suivants et saison côte à côte). Planification : légende et calcul en tiroirs. Caisse : « Mon
   compte » (`monCompte`) en tête, formulaire en tiroir sur téléphone (`#cpicker`).
+- Pronostics gardés et apprentissage (demande de l'auteur, 09/10/2026 : garder la Projection, voir la prédiction
+  face à la réalité après le match, et s'en servir pour mieux estimer selon les résultats et les présents) :
+  `pipeline/pronostic.py`. `record` garde le pronostic de chaque match du club à venir (`snapshot` : moyennes
+  des deux équipes, score attendu `pour`/`contre`/`ecart`, `p`, tranches `surveiller`/`exploiter`) et le réécrit
+  à chaque collecte jusqu'au coup d'envoi (`kickoff` ; horaire provisoire : le début du jour) ; `data/pronostics.json`
+  (`STATE_FILES`, repris de etat.enc). Match joué : `reality` (score, mi-temps, tranches, discipline, arrêts, et
+  `presents` des deux côtés d'après leurs feuilles d'avant le match, saison passée à HIST × fade), `corrige`
+  (pronostic avec ces présents), `retenue` (feuille publiée de l'entraîneur, `published_choices` déchiffre
+  choix.enc) ; figé une fois la feuille lue (`V` pour tout refaire). `calibrate` sur toutes les saisons lues +
+  celle-ci, chaque match prévu avec ce qu'on savait avant lui : `dom`/`ext` (terrain, ramenés vers 1,04/0,96 par
+  200 matchs fictifs ; passés à `outlook` et `cup_chance`, `terrain=`), β (force de frappe : taux de buts des
+  six meilleurs joueurs de champ alignés, `frappe`, face aux autres feuilles de l'équipe ; « tous les joueurs »
+  donnait une présence gonflée par les feuilles longues et les nouveaux venus) et γ (% d'arrêts des gardiens
+  alignés moins celui de l'équipe), régression ramenée vers l'a priori (0,5 ± 0,25 ; 1,4 ± 0,5). Au 09/10/2026 :
+  1 180 matchs, 383 feuilles, dom 1,063, ext 0,975, β 0,33 ± 0,08, γ 1,32 ± 0,29, vainqueur trouvé 76 %, écart
+  à 5,2 buts près. Page : `D.pronostics` (matchs, suivi, modele, equipe) ; `taux`, `sr`, `part_gb` sur les
+  joueurs ; `lineupAdj` donne `goalsAdj` et `costGoals` de la planification (la victoire estimée et le risque
+  restent ceux de la force alignée, choix de l'auteur sur les notes) ; `pronoLive` dans la Projection,
+  `pronoCompare` / `pronoPast` (Adversaires), bilan de la Semaine, `pronoSaison` (onglet Saison : matchs joués
+  et prochain seulement, biais annoncé à partir de 3 matchs).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

@@ -196,6 +196,13 @@ section[hidden]{display:none}
 .legend-stk i{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--track);vertical-align:-1px;margin-left:4px}
 .legend-stk i.key{background:var(--accent-trait);margin-left:0}
 .stk-detail,.pc-detail{margin-top:10px}
+.prono{border-left:3px solid var(--accent-trait);padding:2px 0 2px 10px;margin:4px 0 12px}
+.prono p{margin:.3em 0}
+.prono-row{border-top:1px solid var(--rule);padding:6px 0}
+.prono-row:first-of-type{border-top:0}
+.prono-row>summary,.prono-bilan>summary,.prono-model>summary{cursor:pointer}
+.prono-row>summary .muted{font-size:.86rem}
+.prono-model{margin-top:10px}.prono-model>summary{color:var(--link);font-size:.86rem}
 .stk-detail summary,.pc-detail summary{cursor:pointer;color:var(--link);font-size:.86rem}
 .stk-row{display:grid;grid-template-areas:"t m r n";grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) 90px auto;gap:4px 10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule);font-size:.86rem}
 .stk-row .t{grid-area:t;min-width:0}.stk-row .m{grid-area:m}.stk-row .n{grid-area:n;text-align:right}
@@ -1133,14 +1140,17 @@ function planning(){
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
-    const best = (gk, n) => D.joueurs.filter(p => isGK(p) === gk).map(p => val(p, m)).sort((a, b) => b - a).slice(0, n);
-    const typeVal = [...best(true, nGK), ...best(false, size - nGK)].reduce((a, b) => a + b, 0) || 1;
+    const best = (gk, n) => D.joueurs.filter(p => isGK(p) === gk).sort((a, b) => val(b, m) - val(a, m)).slice(0, n);
+    const typeTeam = [...best(true, nGK), ...best(false, size - nGK)];
+    const typeVal = typeTeam.reduce((a, p) => a + val(p, m), 0) || 1;
     const force = Math.min(1, sel.reduce((a, p) => a + val(p, m), 0) / typeVal);
     const base = m.p_victoire;
     const pAdj = base == null ? null : Math.max(3, Math.min(97, Math.round(base - (1 - force) * 60)));
-    // en buts : une équipe moins forte marque d'autant moins (écart attendu du modèle, buts attendus du club)
-    const costGoals = m.ecart == null || m.buts_pour == null ? null : (1 - force) * m.buts_pour;
-    const goalsAdj = costGoals == null ? null : m.ecart - costGoals;
+    // en buts : ce que les présents changent au score, appris sur les feuilles (lineupAdj) ; à défaut, une
+    // équipe moins forte marque d'autant moins (écart attendu du modèle, buts attendus du club)
+    const adj = lineupAdj(sel, m);
+    const costGoals = adj != null ? lineupAdj(typeTeam, m) - adj : m.ecart == null || m.buts_pour == null ? null : (1 - force) * m.buts_pour;
+    const goalsAdj = adj != null ? m.ecart + adj : costGoals == null ? null : m.ecart - costGoals;
     const impact = base == null || m.enjeu == null ? null : Math.max(0, (base - pAdj) / 100 * m.enjeu);
     const ok = sel.length === size && gks.length === nGK;
     const postes = coverage(field), postesOk = postes.every(c => c.n >= c.min);
@@ -1208,6 +1218,24 @@ const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+re
 // à la meilleure équipe (tout le monde présent) = baisse de la victoire estimée × enjeu du match
 const RISK_SEUILS = "faible : moins d'1 point de chance ; modéré : de 1 à 3 ; élevé : plus de 3";
 // parler en buts (demande de l'auteur, 06/10/2026) : « +3 », « −2,5 »
+// Ce que les présents changent au score (demande de l'auteur, 09/10/2026), appris sur toutes les feuilles lues
+// (pipeline/pronostic.py) : nos buts suivent la force de frappe alignée, les taux de buts de nos six meilleurs
+// buteurs de champ sur la feuille face à ceux d'une feuille habituelle (β : les autres compensent en partie), les
+// leurs le % d'arrêts de nos gardiens alignés face à notre gardien habituel (γ). En buts, par rapport à l'écart
+// attendu du modèle, qui suppose une feuille habituelle ; null sans ces données.
+function lineupAdj(sel, m){
+  const P = D.pronostics || {}, q = P.equipe, c = P.modele;
+  if(!q || !c || !q.base || m.buts_pour == null || m.ecart == null) return null;
+  const pour = m.buts_pour, contre = m.buts_pour - m.ecart;
+  const pi = sel.filter(p => !isGK(p)).map(p => p.taux ?? q.moyen).sort((a, b) => b - a).slice(0, q.six || 6).reduce((a, b) => a + b, 0) / q.base;
+  const gks = sel.filter(p => isGK(p) && p.sr != null);
+  let dsr = 0;
+  if(q.tr != null && gks.length){
+    const w = gks.map(p => p.part_gb || 0), ws = w.some(x => x > 0) ? w : gks.map(() => 1);
+    dsr = gks.reduce((a, p, i) => a + ws[i] * p.sr, 0) / ws.reduce((a, b) => a + b, 0) - q.tr;
+  }
+  return c.beta * (pi - 1) * pour + c.gamma * dsr * contre;
+}
 const butsTxt = (v, digits = 0) => (v > 0 ? "+" : v < 0 ? "−" : "") + fr(Math.abs(v).toFixed(digits)).replace(/,0$/, "");
 const butsMot = v => Math.abs(v) >= 2 ? "buts" : "but";
 // gardiens : buts évités par rapport au gardien moyen des poules lues, cette saison et la passée cumulées (la
@@ -1396,6 +1424,8 @@ function bilanBlock(now = new Date()){
     + '<span class="form"><i class="'+x.res+'">'+x.res+'</i></span> '+x.bp+'-'+x.bc+'</summary>'
     + '<p>'+({V: "Victoire", D: "Défaite", N: "Match nul"}[x.res] || "")+' '+x.bp+'-'+x.bc+(x.domicile ? " à domicile" : " à l'extérieur")+', '+esc(fmtDate(day))+' ; '+rows.length+' joueurs sur la feuille.</p>';
   h += courseChart(x.courbe);
+  const px = PRONOS().find(p => String(p.id) === String(x.id) && p.apres);
+  if(px) h += '<details class="prono-bilan"><summary><b>Pronostic et réalité</b> : '+pronoShort(px)+'</summary>'+pronoCompare(px)+'</details>';
   if(scorers.length) h += '<p><b>Buteurs</b> : '+scorers.map(o => esc(firstName(o.p))+' '+o.j.buts).join(", ")+'.</p>';
   if(gks.length) h += '<p><b>Gardiens</b> : '+gks.map(o => esc(firstName(o.p))+' '+(o.j.arrets || 0)+' arrêt'+((o.j.arrets || 0) > 1 ? "s" : "")+(o.j.pct != null ? ' ('+o.j.pct+' %)' : '')).join(", ")+'.</p>';
   h += '<p><b>Discipline</b> : '+(deux ? deux+' × 2 min' : 'aucune exclusion')+(jaunes ? ' · '+carton("j", jaunes) : '')+(rouges ? ' · '+carton("r", rouges) : '')+'.</p>';
@@ -1721,6 +1751,7 @@ function viewPlanif(){
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
   h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
+    + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
     + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
     + 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.</p></details>';
@@ -2000,7 +2031,7 @@ function viewAdv(){
       + g.arrets+' arrêts'+(g.pris!=null?', '+g.pris+' buts pris'+(g.estime?' (estimé)':''):'')+' en '+g.m+' match'+(g.m>1?"s":"")+'</span>'
       + avant(e, g.avant, a => (a.pct != null ? a.pct+" % d'arrêts" : a.arrets+' arrêts')+' en '+a.m+' match'+(a.m>1?"s":""))+'</span>'
       + '<span class="score">'+(g.pct!=null?g.pct+' %':'–')+'</span></li>').join("")+'</ul>';
-  return h + '</div>' + (us ? "" : versus(e)) + pastBlock(e) + (us ? "" : common(adv));
+  return h + '</div>' + (us ? "" : versus(e) + pronoPast(e)) + pastBlock(e) + (us ? "" : common(adv));
 }
 // Projection du match (demande de l'auteur, 08/10/2026) : nos moyennes à côté des leurs, l'avantage en vert, et nos buts
 // par tranche de 10 minutes à côté des leurs, à la même échelle, avec la tranche à surveiller et celle à exploiter.
@@ -2008,7 +2039,7 @@ function viewAdv(){
 // (on ne les a pas forcément joués ; les vrais résultats entre nous sont dans « Repères communs »).
 function versus(e){
   const u = D.equipes[D.meta.club];
-  if(!u || !u.j || !e.j) return "";
+  if(!u || !u.j || !e.j){ const l = pronoLive(e); return l ? '<h2>Pronostic</h2><div class="panel">'+l+'</div>' : ""; }
   const gap = (a, b) => a == null || b == null ? null : Math.round(10 * (a - b)) / 10;
   const rows = [["Buts marqués", u.bp_moy, e.bp_moy, 1], ["Buts encaissés", u.bc_moy, e.bc_moy, -1],
     ["Arrêts des gardiens", u.arrets_pct, e.arrets_pct, 1, " %"],
@@ -2022,6 +2053,7 @@ function versus(e){
     + '<p class="note">Pas un résultat entre nos deux équipes : chacune avec ses moyennes de la saison, sur ses propres matchs de championnat ('
     + n(u.j)+' pour nous, '+n(e.j)+' pour eux), contre des adversaires différents. Côte à côte, elles donnent une idée de ce que pourrait être le match, pas une certitude.'
     + (direct.length ? ' Déjà joué contre eux cette saison : <b>'+esc(direct.join(", "))+'</b>.' : ' Nous ne les avons pas encore joués cette saison.')+'</p>'
+    + pronoLive(e)
     + '<div class="scroll"><table class="vs"><thead><tr><th></th><th>'+esc(D.meta.club_court)+'<br><small class="muted">sur nos '+n(u.j)+'</small></th>'
     + '<th>'+esc(teamShort(e.equipe))+'<br><small class="muted">sur leurs '+n(e.j)+'</small></th></tr></thead><tbody>'
     + rows.map(([lab, a, b, sens, unit, signed]) => { const w = Math.sign((a - b) * sens);
@@ -2036,6 +2068,105 @@ function versus(e){
       + '<p class="small">Ce que la projection laisse prévoir. À surveiller : <b>'+lab[r]+' min</b> (dans leurs matchs, ils y marquent '+fr(e.periodes_bp[r])
       + ' buts en moyenne ; dans les nôtres, nous y en encaissons '+fr(u.periodes_bc[r])+'). À exploiter : <b>'+lab[c]+' min</b> (nous y marquons '
       + fr(u.periodes_bp[c])+' dans nos matchs, ils y encaissent '+fr(e.periodes_bc[c])+' dans les leurs).</p>';
+  }
+  return h + '</div>';
+}
+
+// ---------------------------------------------------------------- pronostics gardés, puis confrontés à la feuille
+// Demande de l'auteur (09/10/2026) : le pronostic de chaque match du club est gardé tel qu'il était à la dernière
+// collecte avant le coup d'envoi (pipeline/pronostic.py), puis comparé à la feuille : score, mi-temps, discipline,
+// gardiens, tranches à surveiller et à exploiter, et ce que les présents de chaque côté expliquent de l'écart.
+const PRONOS = () => (D.pronostics || {}).matchs || [];
+const TRANCHES = ["0-10", "10-20", "20-30", "30-40", "40-50", "50-60"];
+const r1 = v => Math.round(10 * v) / 10;
+const arretPts = v => (v > 0 ? "+" : v < 0 ? "−" : "") + fr(Math.abs(r1(v))) + " point" + (Math.abs(v) >= 2 ? "s" : "");
+const scoreOf = (a, b) => (a == null ? "–" : Math.round(a)) + " – " + (b == null ? "–" : Math.round(b));
+const pronoHit = x => !x.apres || x.ecart == null || !x.apres.ecart || !Math.round(x.ecart) ? null : (x.apres.ecart > 0) === (x.ecart > 0);
+const pronoMark = x => !x.apres ? "⏳" : ({true: "✅", false: "❌"})[pronoHit(x)] || "➖";
+const pronoShort = (x, mark = true) => 'prévu '+scoreOf(x.pour, x.contre)+(x.apres ? ', réel '+x.apres.bp+' – '+x.apres.bc+(mark ? ' '+pronoMark(x) : '') : '');
+// l'écart réel face à l'écart prévu, en mots
+const pronoGap = err => Math.abs(err) < 0.5 ? "écart trouvé" : fr(Math.abs(Math.round(err)))+" "+butsMot(err)+" "+(err > 0 ? "de mieux" : "de moins")+" que prévu";
+// le pronostic du prochain match contre cette équipe, tel qu'il sera gardé
+function pronoLive(e){
+  const m = ((D.saison || {}).matchs || []).find(x => x.adversaire === e.equipe);
+  if(!m || m.buts_pour == null || m.ecart == null) return "";
+  const r = (PLAN || []).find(x => x.m.id === m.id), kept = ["choix", "publiee", "attente"].includes(r && r.etat);
+  return '<div class="prono"><p><b>Pronostic</b> · '+esc(roundOf(m))+' · '+esc(fmtDate(m.date, m.provisoire))+' : '
+    + esc(D.meta.club_court)+' <b class="num">'+scoreOf(m.buts_pour, m.buts_pour - m.ecart)+'</b> '+esc(teamShort(e.equipe))
+    + ' (écart '+butsTxt(m.ecart)+(m.p_victoire != null ? ', victoire estimée '+m.p_victoire+' %' : '')+')'
+    + (r && r.goalsAdj != null && Math.abs(r.goalsAdj - m.ecart) >= 0.5 ? ' ; avec '+(kept ? "l'équipe retenue" : "l'équipe proposée")+', écart '+butsTxt(r.goalsAdj) : '')+'.</p>'
+    + '<p class="small muted">Gardé tel quel à la dernière collecte avant le coup d\'envoi, puis comparé à la feuille : ici, dans le bilan de la Semaine et dans l\'onglet Saison.</p></div>';
+}
+// un pronostic gardé et ce que la feuille en a dit
+function pronoCompare(x){
+  const a = x.apres, u = x.nous || {}, e = x.eux || {};
+  const head = '<b>Pronostic</b> du '+esc(fmtDate(x.fige))+' : '+scoreOf(x.pour, x.contre)
+    + (x.ecart != null ? ' (écart '+butsTxt(x.ecart)+(x.p != null ? ', victoire estimée '+x.p+' %' : '')+')' : '');
+  if(!a) return '<p class="small">'+head+'. La comparaison viendra avec le score.</p>';
+  const hit = pronoHit(x), err = x.ecart == null ? null : a.ecart - x.ecart;
+  const gap = err == null ? '' : pronoGap(err);
+  let h = '<p>'+head+'. <b>Réalité</b> : '+a.bp+' – '+a.bc+' <span class="form"><i class="'+a.res+'">'+a.res+'</i></span> (écart '+butsTxt(a.ecart)+'). '
+    + (hit == null ? gap.charAt(0).toUpperCase() + gap.slice(1) : (hit ? '✅ Bon vainqueur' : '❌ Vainqueur manqué')+(gap ? ' ; '+gap : ''))+'.</p>';
+  const diff = (o, k) => o[k+"_bp"] == null || o[k+"_bc"] == null ? null : o[k+"_bp"] - o[k+"_bc"];
+  const mtU = diff(u, "mt1"), mtE = diff(e, "mt1");
+  const rows = [["Nos buts", x.pour, a.bp], ["Leurs buts", x.contre, a.bc],
+    ["Écart à la mi-temps", mtU == null || mtE == null ? null : (mtU - mtE) / 2, a.mt ? a.mt[0] - a.mt[1] : null, true],
+    ["Nos exclusions de 2 min", u.deux_min_moy, (a.deux_min || [])[0]], ["Leurs exclusions de 2 min", e.deux_min_moy, (a.deux_min || [])[1]],
+    ["Nos cartons jaunes", u.jaunes_moy, (a.jaunes || [])[0]], ["Leurs cartons jaunes", e.jaunes_moy, (a.jaunes || [])[1]],
+    ["Arrêts de nos gardiens", u.arrets_pct, (a.arrets || [])[0], false, " %"], ["Arrêts de leurs gardiens", e.arrets_pct, (a.arrets || [])[1], false, " %"]]
+    .filter(r => r[1] != null && r[2] != null);
+  h += '<div class="scroll"><table class="vs"><thead><tr><th></th><th>Attendu</th><th>Ce match</th></tr></thead><tbody>'
+    + rows.map(([lab, exp, real, sg, unit]) => '<tr><td>'+lab+'</td><td>'+(sg ? butsTxt(exp, 1) : fr(r1(exp)))+(unit || '')+'</td><td>'+(sg ? butsTxt(real) : real)+(unit || '')+'</td></tr>').join("")
+    + '</tbody></table></div><p class="small muted">Attendu : le score du pronostic ; mi-temps, discipline et gardiens d\'après les moyennes de chaque équipe avant le match.</p>';
+  if(a.periodes && x.surveiller != null && u.periodes_bc && e.periodes_bp && u.periodes_bp && e.periodes_bc){
+    const w = x.surveiller, c = x.exploiter;
+    h += '<p class="small">À surveiller, <b>'+TRANCHES[w]+' min</b> : environ '+fr(r1((e.periodes_bp[w] + u.periodes_bc[w]) / 2))+' buts attendus pour eux, '+a.periodes[1][w]+' marqué'+(a.periodes[1][w] > 1 ? "s" : "")
+      + '. À exploiter, <b>'+TRANCHES[c]+' min</b> : environ '+fr(r1((u.periodes_bp[c] + e.periodes_bc[c]) / 2))+' pour nous, '+a.periodes[0][c]+' marqué'+(a.periodes[0][c] > 1 ? "s" : "")+'.</p>';
+  }
+  const pr = a.presents || {};
+  if(pr.nous || pr.eux){
+    const miss = (l, name) => { const n = (l || []).map(name).filter(Boolean); return n.length ? ' (manquaient '+n.join(", ")+')' : ''; };
+    const nous = pr.nous ? 'nous, force de frappe à '+pr.nous.part+' % de l\'habitude'+miss(pr.nous.absents, z => { const q = byCle(z.cle); return q && esc(firstName(q))+' '+fr(z.taux)+'/match'; })
+      + (Math.abs(pr.nous.gardien) >= 0.5 ? ', nos gardiens '+arretPts(pr.nous.gardien)+' d\'arrêts sur l\'habitude' : '') : '';
+    const eux = pr.eux ? 'eux, à '+pr.eux.part+' % de la leur'+miss(pr.eux.absents, z => z.nom && esc(z.nom)+' '+fr(z.taux)+'/match')
+      + (Math.abs(pr.eux.gardien) >= 0.5 ? ', leurs gardiens '+arretPts(pr.eux.gardien)+' d\'arrêts sur l\'habitude' : '') : '';
+    h += '<p class="small"><b>Présents</b> : '+[nous, eux].filter(Boolean).join(" ; ")+'.</p>';
+  }
+  if(a.retenue) h += '<p class="small"><b>Équipe retenue par l\'entraîneur</b> : force de frappe à '+a.retenue.part+' % de l\'habitude, écart attendu '+butsTxt(a.retenue.ecart, 1)+'.</p>';
+  if(a.corrige && err != null){
+    const expl = a.corrige.ecart - x.ecart, rest = a.ecart - a.corrige.ecart;
+    h += '<p class="small"><b>Lecture</b> : avec les présents des deux côtés, le modèle aurait dit '+scoreOf(a.corrige.pour, a.corrige.contre)+' (écart '+butsTxt(a.corrige.ecart, 1)+'). '
+      + 'Les présents expliquent '+butsTxt(expl, 1)+' '+butsMot(expl)+' de l\'écart au pronostic ; le reste, '+butsTxt(rest, 1)+', tient au match lui-même.</p>';
+  }
+  return h;
+}
+function pronoPast(e){
+  const l = PRONOS().filter(x => x.adversaire === e.equipe && x.apres);
+  return l.length ? '<h2>Pronostic et réalité</h2>' + l.map(x => '<div class="panel"><h3>'+esc(roundOf(x))+' · '+esc(fmtDate((x.date || "").slice(0, 10)))
+    + ' · '+(x.domicile ? "à domicile" : "à l'extérieur")+'</h3>'+pronoCompare(x)+'</div>').join("") : "";
+}
+// onglet Saison : tous les pronostics gardés, leur bilan, et ce que les résultats et les présents apprennent au modèle
+function pronoSaison(){
+  // les matchs joués (ou en attente du score) et le prochain : les suivants changent encore à chaque collecte
+  const P = D.pronostics || {}, s = P.suivi || {}, c = P.modele, t = new Date(), now = new Date(t - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const next = PRONOS().find(x => !x.apres && (x.date || "9999") >= now);
+  const l = PRONOS().filter(x => x.apres || x === next || (x.date || "9999") < now).reverse();
+  if(!l.length && !c) return "";
+  let h = sec("pronos", "Pronostics")+'Nos pronostics et la réalité</h2><div class="panel">';
+  if(s.n) h += '<p>Sur '+s.n+' match'+(s.n > 1 ? "s" : "")+' : vainqueur trouvé <b>'+s.vainqueur+' fois sur '+s.sur+'</b>, écart à <b>'+fr(s.erreur)+' buts</b> près en moyenne'
+    + (s.n >= 3 && Math.abs(s.biais) >= 1 ? ' ; le modèle '+(s.biais > 0 ? "nous sous-estime" : "nous surestime")+' d\'environ '+fr(Math.abs(s.biais))+' buts' : '')+'.'
+    + (s.n_presents && s.erreur_presents != null ? ' Une fois connus les présents des deux côtés : '+fr(s.erreur_presents)+' buts (contre '+fr(s.erreur_avant)+' sur ces mêmes matchs).' : '')+'</p>';
+  else h += '<p>Chaque pronostic est gardé à la dernière collecte avant le match, puis comparé à la feuille : le premier bilan viendra après le prochain match.</p>';
+  h += l.map(x => '<details class="prono-row"'+keep("prono-"+x.id, false)+'><summary>'+pronoMark(x)+' <b>'+esc(roundOf(x))+'</b> · '+esc(teamShort(x.adversaire))
+    + ' <span class="muted">· '+esc(x.apres || x === next ? pronoShort(x, false) : "en attente du score")+'</span></summary>'+pronoCompare(x)+'</details>').join("");
+  if(c){
+    const pc = v => (v >= 1 ? "+" : "−") + fr(Math.abs(r1(100 * (v - 1))));
+    h += '<details class="prono-model"'+keep("prono-modele", false)+'><summary>Ce que les résultats et les présents apprennent au modèle</summary>'
+      + '<p class="small">Chaque match des saisons lues ('+c.n_matchs+') prévu avec ce qu\'on savait avant lui : vainqueur trouvé '+(c.backtest || {}).vainqueur+' % du temps, écart à '+fr((c.backtest || {}).erreur)+' buts près en moyenne.</p>'
+      + '<p class="small"><b>Terrain</b> : une équipe marque '+pc(c.dom)+' % de buts par rapport à ses moyennes à domicile, '+pc(c.ext)+' % à l\'extérieur (+4 et −4 % au départ). Sert à la simulation de la saison et aux matchs de coupe.</p>'
+      + '<p class="small"><b>Buteurs absents</b> ('+c.n_feuilles+' feuilles) : la force de frappe d\'une feuille, ce sont les buts par match de ses six meilleurs buteurs de champ. À 80 % de celle d\'une feuille habituelle, une équipe marque environ '+fr(r1(20 * c.beta))+' % de buts en moins : les autres compensent une bonne part.</p>'
+      + '<p class="small"><b>Gardiens</b> : chaque point d\'arrêts de plus que le gardien habituel retire environ '+fr(r1(c.gamma))+' % des buts de l\'adversaire.</p>'
+      + '<p class="small muted">Ces deux derniers servent à l\'écart attendu de la feuille proposée (Semaine, Planification) et à la lecture de chaque match ci-dessus. Tout se recalcule à chaque collecte, à mesure que les feuilles s\'ajoutent.</p></details>';
   }
   return h + '</div>';
 }
@@ -2176,7 +2307,7 @@ function viewSaison(){
       h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées comme le règlement : confrontations directes, puis différence de buts. Règlement AURA : 2 montées par secteur (poules 71 et 72), au terme d\'une deuxième phase dont la formule sera publiée vers février.</p>';
     }
   }
-  h += notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
+  h += pronoSaison() + notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
   if(!D.axes || !D.axes.length) h += '<p>'+(D.meta.club_matchs < 2 ? "Les axes de travail apparaîtront après quelques matchs : il faut de quoi comparer le club aux autres équipes." : "Aucun écart marqué par rapport aux autres équipes pour l\'instant.")+'</p>';
   else h += D.axes.map(a => '<div class="axis"><b>'+esc(a.titre)+'</b><span class="tag">'+esc(a.libelle)+'</span><br><span class="small muted">'+esc(a.constat)+'</span></div>').join("");
   h += D.meta.demo ? '<p class="small muted" style="margin-top:10px">Sur le site publié, un bouton télécharge ici la séance à importer dans l\'application de préparation des entraînements.</p>'
