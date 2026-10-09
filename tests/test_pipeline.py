@@ -1381,7 +1381,7 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         ops = apply(a)
         assert [(o["etat"], o["motif"], o["texte"], o["evs"]) for o in ops] == [("absent", "autre", "mariage de mon frère", ["M-9901"])]
         assert a.evaluate(f"statusOf({json.dumps(k1)}, {{id: '{ev}', day: '{ev[2:]}'}}).etat") == "present"
-        assert "✓ présent" in a.inner_text("main") and "✕ absent" in a.inner_text("main")
+        assert "✓ présent" in a.inner_text("main") and "✕ absent" in a.inner_text("main") and "« mariage de mon frère »" in a.inner_text("main")
         # une période d'absence : tous les entraînements et matchs de ces jours-là
         a.click("[data-periode]")
         assert a.evaluate("PF.ev") == "periode"
@@ -1499,6 +1499,9 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         for pg in (a, b, c):
             pg.evaluate(f"D.presences.vote_depuis = ''; D.agenda.push({hdm}); render(true)")
         a.evaluate("S.tab = 'moi'; render(false)")
+        # Ma semaine : ses présences des deux semaines qui viennent, répondues comprises, avec sa réponse
+        assert "Mes présences" in a.inner_text("main") and a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).length") == a.locator("main .reps .rep").count()
+        assert ("✓ présent" in a.inner_text("main .reps")) == a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).some(e => statusOf(stored(MOI), e).etat === 'present')")
         assert a.locator(".vote [data-vote]").count() == 2 and a.locator(f".vote [data-vote='9902|{k1}']").count() == 0
         n = len(sent)
         a.click(f".vote [data-vote='9902|{k2}']")

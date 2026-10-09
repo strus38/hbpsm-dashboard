@@ -505,8 +505,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `pronoCompare` / `pronoPast` (Adversaires), bilan de la Semaine, `pronoSaison` (onglet Saison : matchs joués
   et prochain seulement, biais annoncé à partir de 3 matchs).
 - Présences et homme du match (demande de l'auteur, 09/10/2026 ; remplace SportEasy) : onglet « Présences »
-  (`viewPresences`, 2e onglet de l'entraîneur sur téléphone à la place de Joueurs), « À répondre » dans Ma semaine
-  (`todoBlock`). « Qui êtes-vous ? » (`quiBlock`) à l'ouverture tant que l'appareil n'a pas dit qui il est (« hbpsm:moi » ;
+  (`viewPresences`, 2e onglet de l'entraîneur sur téléphone à la place de Joueurs), « Mes présences » dans Ma semaine
+  (`todoBlock` : les deux semaines qui viennent, répondues ou non, demande de l'auteur du 09/10/2026). « Qui êtes-vous ? » (`quiBlock`) à l'ouverture tant que l'appareil n'a pas dit qui il est (« hbpsm:moi » ;
   « hbpsm:moi-aucun » : pas joueur) ; chaque choix (`setMe`, un appareil = « hbpsm:appareil ») part en op `moi` ; un
   nom pris par un autre appareil (dernier choix de chaque appareil, `othersAs`) est signalé, « C'est bien moi » ou un
   autre nom ; l'appareil d'origine voit l'avertissement (`conflictNote`) ; « changer » rouvre le choix ; un choix

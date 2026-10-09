@@ -463,7 +463,7 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
 .code-val{font:700 1.1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:var(--us-bg);color:var(--heading)}
 .code-in{font:600 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;width:15ch;max-width:100%;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
-.code-perso{margin:6px 0 12px}.note.envoi-ko{border-left-color:var(--loss);color:var(--ink)}.moi-qui{margin-bottom:6px}
+.code-perso{margin:6px 0 12px}.reps .todo{color:var(--warn)}.note.envoi-ko{border-left-color:var(--loss);color:var(--ink)}.moi-qui{margin-bottom:6px}
 .rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
 .rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
 .rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
@@ -3169,6 +3169,7 @@ function answerRow(e, me){
   const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = PF.ev === e.id;
   return '<div class="rep'+(open ? " open" : "")+'"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br>'
     + '<span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.retard ? ' · en retard' : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
+    + (s.etat === "absent" && s.texte ? '<span class="small muted">« '+esc(s.texte)+' »</span> ' : '')   // sa propre justification
     + '<span class="small muted">'+(late ? 'délai passé ('+esc(dlText(e))+')' : 'avant le '+esc(dlText(e)))+'</span></span>'
     + '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-rep="'+esc(e.id)+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
     + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-rep-abs="'+esc(e.id)+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button></span></div>'
@@ -3181,12 +3182,15 @@ function periodBlock(){
 }
 const periodEvents = () => { const du = PF.du > presStart() ? PF.du : presStart();
   return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).map(e => e.id).slice(0, 60); };
-function todoBlock(me){   // Ma semaine : le vote de l'homme du match, et ce qui attend encore sa réponse (deux semaines)
-  const today = ymd(new Date()), list = events(today, addDays(today, 13)).filter(e => !e.annule && (statusOf(me, e).etat === "attente" || PF.ev === e.id));
+// Ma semaine : le vote de l'homme du match, puis ses présences des deux semaines qui viennent, répondues ou non, chacune
+// avec sa réponse et de quoi la changer (demande de l'auteur, 09/10/2026 : voir mes présences, pas seulement ce qui reste)
+function todoBlock(me){
+  const today = ymd(new Date()), list = events(today, addDays(today, 13)), todo = list.filter(e => notYet(e, me)).length;
   const votes = ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length));
-  return votes.map(b => voteCard(b, me)).join("") + '<h2>À répondre</h2><div class="panel reps">'
-    + (list.length ? list.map(e => answerRow(e, me)).join("") : '<p class="small">✓ Vous avez répondu pour les deux semaines qui viennent.</p>')
-    + '<p class="small"><button class="link" data-tab="presences">Toutes mes réponses</button></p></div>';
+  return votes.map(b => voteCard(b, me)).join("") + '<h2>Mes présences</h2><div class="panel reps">'
+    + '<p class="small muted">Les deux semaines qui viennent · '+(todo ? '<b class="todo">'+todo+' sans réponse</b>' : '✓ tout est répondu')+'</p>'
+    + (list.length ? list.map(e => answerRow(e, me)).join("") : '<p class="small muted">Ni entraînement ni match ces deux semaines.</p>')
+    + '<p class="small"><button class="link" data-tab="presences">Toute la saison</button></p></div>';
 }
 
 // l'homme du match : élu par les joueurs de la feuille (lue, sinon celle que l'entraîneur a publiée), pendant 48 h

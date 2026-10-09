@@ -445,7 +445,7 @@ toucher au tableau de bord. Secrets : `HBPSM_JETON_CN` ici, `HBPSM_CLE` dans les
 
 ## Présences et homme du match
 
-Onglet « Présences » (et « À répondre » dans Ma semaine). À sa première ouverture, la page demande
+Onglet « Présences » (et « Mes présences » dans Ma semaine : les deux semaines qui viennent, répondues ou non). À sa première ouverture, la page demande
 « Qui êtes-vous ? » : chacun choisit son nom une fois sur son appareil. Ce choix part au dépôt
 `strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est signalé (« C'est bien moi » ou
 « Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est déclaré comme lui. On peut
