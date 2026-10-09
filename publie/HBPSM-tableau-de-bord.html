@@ -462,7 +462,7 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
 .code-val{font:700 1.1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:var(--us-bg);color:var(--heading)}
 .code-in{font:600 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;width:15ch;max-width:100%;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
-.code-perso{margin:10px 0}
+.code-perso{margin:6px 0 12px}.moi-qui{margin-bottom:6px}
 .rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
 .rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
 .rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
@@ -651,7 +651,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b673eac7c7cf", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "08fb4f967cb0", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1651,11 +1651,11 @@ if("serviceWorker" in navigator && location.protocol === "https:") navigator.ser
 // « Ma semaine » : ce qui concerne un joueur (choisi une fois sur l'appareil, comme pour proposer une amende)
 function viewMoi(){
   const me = stored(MOI) || "", P = PLAN, p = byCle(me);
-  let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meLine();
+  let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meBlock();
   h += installCard();
   if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, vos réponses aux entraînements et aux matchs, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
   h += annulesNote();
-  if(!COACH && p) h += todoBlock(me) + codeLine();
+  if(!COACH && p) h += todoBlock(me);
   const status = r => {
     if(!p) return ["", ""];
     if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
@@ -3046,9 +3046,16 @@ async function codeHash(c, code){
 const ownerHash = c => (presOps().find(o => o.t === "moi" && o.joueur === c && o.cle_h) || {}).cle_h || "";
 const myCodeFor = c => { const x = codes()[c]; return x && x.h && (!ownerHash(c) || x.h === ownerHash(c)) ? x : null; };
 const claimsNow = () => { const last = {}; for(const o of presOps()) if(o.t === "moi" && o.app) last[o.app] = o; return last; };
-// les autres appareils qui se disent ce joueur sans être reconnus par son code
-const othersAs = c => { const mine = myCodeFor(c);
-  return Object.values(claimsNow()).filter(o => o.joueur === c && o.app !== deviceId() && !(mine && o.cle_h === mine.h)); };
+// les autres appareils qui se disent ce joueur sans être reconnus par son code. Seulement ceux qui servent encore : un
+// envoi (choix, réponse, vote) depuis que le joueur a son code ; un ancien navigateur oublié (Safari et l'application
+// installée sur iPhone sont deux appareils, une fenêtre privée aussi) ne l'est plus. Écartés ici : « ne plus le signaler ».
+const IGNORES = "hbpsm:ignores";
+const ignored = () => { try { return JSON.parse(stored(IGNORES) || "[]") || []; } catch (e) { return []; } };
+const ownerSince = c => { const o = presOps().find(x => x.t === "moi" && x.joueur === c && x.cle_h); return o ? opTime(o) : 0; };
+const lastSeen = app => Math.max(0, ...presOps().filter(o => o.app === app).map(opTime));
+const othersAs = c => { const mine = myCodeFor(c), since = ownerSince(c), off = ignored();
+  return Object.values(claimsNow()).filter(o => o.joueur === c && o.app !== deviceId() && !(mine && o.cle_h === mine.h)
+    && !off.includes(o.app) && (!since || !!o.cle_h || lastSeen(o.app) >= since)); };
 const taken = c => String(c).startsWith("R:") && (othersAs(c).length > 0 || (!!ownerHash(c) && !myCodeFor(c)));
 const canSendCN = () => !!cnToken() && !!CFG.cn_depot;
 // ce joueur, sur cet appareil ; opt.code : le code donné ; sans code ni empreinte pour lui, cet appareil en reçoit un
@@ -3115,8 +3122,13 @@ function quiBlock(){
   return h + '</div></div>';
 }
 const conflictNote = me => { const o = me && String(me).startsWith("R:") ? othersAs(me) : [];
-  return o.length ? '<br><span class="qui-alerte">⚠️ '+(o.length > 1 ? o.length+' autres appareils se sont aussi déclarés' : 'Un autre appareil s\'est aussi déclaré')
-    + ' comme '+esc(memberName(me))+'. Si ce n\'est pas vous, parlez-en à l\'équipe.</span>' : ""; };
+  if(!o.length) return "";
+  const quand = x => new Date(lastSeen(x.app)).toLocaleString("fr-FR", {weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
+  return '<br><span class="qui-alerte">⚠️ '+(o.length > 1 ? o.length+' autres appareils se sont aussi déclarés' : 'Un autre appareil s\'est aussi déclaré')
+    + ' comme '+esc(memberName(me))+' sans '+(myCodeFor(me) ? 'votre' : 'le')+' code personnel</span> <span class="small muted">(vu '
+    + o.map(x => 'le '+esc(quand(x))+' <button class="link" data-ignore-app="'+esc(x.app)+'">ne plus le signaler</button>').join(", ")+')</span>'
+    + '<br><span class="small muted">Si c\'est vous (autre navigateur, application installée…), donnez-y votre code ; sinon, parlez-en à l\'équipe.</span>'; };
+const meBlock = () => meLine() + codeLine();   // l'identité, puis le code personnel juste dessous
 const meLine = () => { const me = stored(MOI);
   return '<p class="small moi-qui">'+(me ? 'Vous êtes <b>'+esc(memberName(me))+'</b>' : 'Vous n\'avez pas dit qui vous êtes.')
     + ' <button class="link" data-qui-open="1">'+(me ? "changer" : "le dire")+'</button>'+conflictNote(me)+'</p>'; };
@@ -3329,7 +3341,7 @@ function viewPresences(){
   if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
       + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
     + annulesNote() + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + seasonBlock(season) + hdm);
-  h += meLine() + (myCodeFor(me) ? "" : codeLine()) + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
+  h += meBlock() + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
   if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
   return withJumps(h + '<div class="panel reps"><p class="small muted">Tout le calendrier de la saison : répondez à l\'avance, mois par mois. '
     + 'Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>' + periodBlock() + monthsBlock(season, me) + '</div>');
@@ -3436,6 +3448,7 @@ document.addEventListener("click", ev => {
       QUI = null; if(first) S.tab = "moi"; render(!first); setMe(c, {code: v}); }); }
   else if(t.dataset.codeOk){ const c = stored(MOI), v = (document.getElementById("code-saisie") || {}).value || "";
     checkCode(c, v).then(ok => { CODE_ERR = ok ? "" : "Ce n'est pas le code de " + memberName(c) + "."; if(ok) setMe(c, {code: v}); else render(true); }); }
+  else if(t.dataset.ignoreApp){ try { localStorage.setItem(IGNORES, JSON.stringify([...new Set([...ignored(), t.dataset.ignoreApp])])); } catch (e) {} render(true); }
   else if(t.dataset.codeCopie){ const x = myCodeFor(stored(MOI)); if(x) copyText(x.code, () => showWhy("🔑 Code copié : gardez-le pour vous.")); }
   else if(t.dataset.quiBack || t.dataset.quiOpen){ QUI = {}; render(true); }
   else if(t.dataset.quiAucun){ try { localStorage.setItem(MOI_AUCUN, "1"); localStorage.removeItem(MOI); } catch (e) {} QUI = null; render(true); }
@@ -3730,7 +3743,12 @@ async function check(){
   finally { CHECKING = false; status(); }
 }
 setInterval(check, VERIF);
-document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - (CHECKED || 0) > 60000) check(); });
+let PRES_VU = 0;
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) return;
+  if(Date.now() - (CHECKED || 0) > 60000) check();
+  else if(Date.now() - PRES_VU > 20000 && typeof D !== "undefined" && D){ PRES_VU = Date.now(); fetchPresences().then(c => { if(c) render(true); }); }
+});
 window.addEventListener("online", check);
 // passage téléphone / grand écran : la planification change de disposition
 // téléphone : un mode clair au choix (par défaut, la page suit le téléphone, comme avant) ; rangé sur
