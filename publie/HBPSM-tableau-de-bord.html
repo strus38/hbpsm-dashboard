@@ -460,6 +460,9 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .qui{max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto}
 .qui h2{margin:0 0 6px}.qui-list{margin:12px 0}
 .cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
+.code-val{font:700 1.1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:var(--us-bg);color:var(--heading)}
+.code-in{font:600 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;width:15ch;max-width:100%;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
+.code-perso{margin:10px 0}
 .rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
 .rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
 .rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
@@ -648,7 +651,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "9dd8cfe9500c", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b673eac7c7cf", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1652,7 +1655,7 @@ function viewMoi(){
   h += installCard();
   if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, vos réponses aux entraînements et aux matchs, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
   h += annulesNote();
-  if(!COACH && p) h += todoBlock(me);
+  if(!COACH && p) h += todoBlock(me) + codeLine();
   const status = r => {
     if(!p) return ["", ""];
     if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
@@ -3023,21 +3026,68 @@ function tally(e){   // pour l'entraîneur : qui a dit venir, qui non, qui n'a p
   return out;
 }
 
-// « Vous êtes » : le dernier choix de chaque appareil ; un nom déjà pris ailleurs est signalé, l'équipe règle ça entre elle
+// « Vous êtes » : le dernier choix de chaque appareil ; un nom déjà pris ailleurs est signalé, l'équipe règle ça entre elle.
+// Code personnel (demande de l'auteur, 09/10/2026) : le premier appareil d'un joueur en reçoit un, affiché dans Ma semaine ;
+// donné sur un autre appareil, il reconnaît le même joueur, sans avertissement de doublon. Seule son empreinte part au
+// journal (PBKDF2, lente à essayer), jamais le code ; aucun secret GitHub. Sans code : « C'est bien moi », signalé.
+const CODES = "hbpsm:codes", CODE_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+let CODE_ERR = "";
+const codes = () => { try { return JSON.parse(stored(CODES) || "{}") || {}; } catch (e) { return {}; } };
+const saveCode = (c, x) => { try { localStorage.setItem(CODES, JSON.stringify(Object.assign(codes(), {[c]: x}))); } catch (e) {} };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const fmtCode = s => { const n = normCode(s); return n.slice(0, 4) + (n.length > 4 ? "-" + n.slice(4) : ""); };
+const newCode = () => fmtCode([...crypto.getRandomValues(new Uint8Array(8))].map(x => CODE_ALPHA[x % 32]).join(""));
+async function codeHash(c, code){
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(normCode(code)), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({name: "PBKDF2", salt: new TextEncoder().encode("hbpsm-code:" + c), iterations: 100000, hash: "SHA-256"}, material, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+// l'empreinte du joueur : celle du premier appareil qui a reçu un code pour lui ; reconnu = cet appareil a ce code
+const ownerHash = c => (presOps().find(o => o.t === "moi" && o.joueur === c && o.cle_h) || {}).cle_h || "";
+const myCodeFor = c => { const x = codes()[c]; return x && x.h && (!ownerHash(c) || x.h === ownerHash(c)) ? x : null; };
 const claimsNow = () => { const last = {}; for(const o of presOps()) if(o.t === "moi" && o.app) last[o.app] = o; return last; };
-const othersAs = c => Object.values(claimsNow()).filter(o => o.joueur === c && o.app !== deviceId());
+// les autres appareils qui se disent ce joueur sans être reconnus par son code
+const othersAs = c => { const mine = myCodeFor(c);
+  return Object.values(claimsNow()).filter(o => o.joueur === c && o.app !== deviceId() && !(mine && o.cle_h === mine.h)); };
+const taken = c => String(c).startsWith("R:") && (othersAs(c).length > 0 || (!!ownerHash(c) && !myCodeFor(c)));
 const canSendCN = () => !!cnToken() && !!CFG.cn_depot;
-function setMe(c){
+// ce joueur, sur cet appareil ; opt.code : le code donné ; sans code ni empreinte pour lui, cet appareil en reçoit un
+async function setMe(c, opt = {}){
   try { if(c) localStorage.setItem(MOI, c); else localStorage.removeItem(MOI); localStorage.removeItem(MOI_AUCUN); } catch (e) {}
-  if(c && String(c).startsWith("R:") && canSendCN()){
-    setCnOutbox([...cnOutbox(), {id: "moi:" + uid(), t: "moi", joueur: c, app: deviceId(), le: new Date().toISOString()}]);
+  if(!c || !String(c).startsWith("R:")) return;
+  let mine = myCodeFor(c);
+  try {
+    if(opt.code){ mine = {code: fmtCode(opt.code), h: await codeHash(c, opt.code)}; saveCode(c, mine); }
+    else if(!mine && !ownerHash(c)){ const code = newCode(); mine = {code, h: await codeHash(c, code)}; saveCode(c, mine); }
+  } catch (e) { mine = null; }   // navigateur sans chiffrement : pas de code, le choix part quand même
+  if(canSendCN()){
+    setCnOutbox([...cnOutbox(), Object.assign({id: "moi:" + uid(), t: "moi", joueur: c, app: deviceId(), le: new Date().toISOString()}, mine ? {cle_h: mine.h} : {})]);
     sendCN();
   }
+  render(true);
 }
-function ensureClaim(){   // choisi avant que le choix ne soit partagé : cet appareil le fait savoir
+async function checkCode(c, code){   // vrai si le code est celui du joueur
+  const h = ownerHash(c);
+  return !!h && !!normCode(code) && await codeHash(c, code).catch(() => "") === h;
+}
+async function ensureClaim(){   // à l'ouverture : le choix de cet appareil est partagé, et le premier appareil reçoit son code
   const me = stored(MOI);
   if(COACH || !PRESJ || !me || !String(me).startsWith("R:") || !canSendCN()) return;
-  if(!presOps().some(o => o.t === "moi" && o.app === deviceId() && o.joueur === me)) setMe(me);
+  const mine = myCodeFor(me), last = claimsNow()[deviceId()];
+  if((!mine && !ownerHash(me)) || !last || last.joueur !== me || (mine && last.cle_h !== mine.h)) await setMe(me);
+}
+function codeLine(){   // Ma semaine, Présences : son code (à garder), ou de quoi le donner sur cet appareil
+  const me = stored(MOI);
+  if(COACH || !me || !String(me).startsWith("R:")) return "";
+  const mine = myCodeFor(me);
+  if(mine) return '<div class="panel code-perso"><p class="small">🔑 <b>Votre code personnel</b> : <span class="code-val">'+esc(mine.code)+'</span> '
+    + '<button class="link" data-code-copie="1">copier</button></p><p class="small muted">Gardez-le pour vous : sur un autre téléphone ou ordinateur, choisissez votre nom '
+    + 'puis donnez ce code, vous y serez reconnu.</p></div>';
+  if(!ownerHash(me)) return "";
+  return '<div class="panel code-perso"><p class="small">🔑 <b>'+esc(memberName(me))+'</b> a un code personnel, affiché dans Ma semaine sur son premier appareil. '
+    + 'Donnez-le ici pour être reconnu sur cet appareil :</p><div class="edit"><input id="code-saisie" class="code-in" autocomplete="off" autocapitalize="characters" '
+    + 'placeholder="XXXX-XXXX" maxlength="12" aria-label="Code personnel"><button class="btn" data-code-ok="1">Valider</button></div>'
+    + (CODE_ERR ? '<p class="small cstop">'+esc(CODE_ERR)+'</p>' : '')+'</div>';
 }
 const needWho = () => !COACH && !!D && !!D.joueurs && squad().length > 0 && !stored(MOI) && !stored(MOI_AUCUN);
 const shortDay = ms => new Date(ms).toLocaleDateString("fr-FR", {day: "numeric", month: "long"});
@@ -3048,12 +3098,17 @@ function quiBlock(){
   if(pick){
     const o = othersAs(pick).slice(-1)[0];
     h += '<p class="qui-alerte">'+esc(memberName(pick))+' a déjà été choisi sur un autre appareil'+(o ? ' (le '+esc(shortDay(opTime(o)))+')' : '')+'.</p>'
-      + '<p class="small">Si c\'est vous, sur un autre téléphone ou un ordinateur, continuez. Sinon, choisissez votre propre nom : vos réponses et votre vote partent à ce nom. En cas de doute, voyez-le avec l\'équipe.</p>'
-      + '<div class="edit"><button class="btn" data-qui-ok="'+esc(pick)+'">C\'est bien moi</button><button class="btn ghost" data-qui-back="1">Choisir un autre nom</button></div>';
+      + (ownerHash(pick) ? '<p class="small">C\'est vous ? Donnez votre <b>code personnel</b> (dans Ma semaine, sur votre premier appareil) : vous serez reconnu.</p>'
+        + '<div class="edit"><input id="qui-code" class="code-in" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX" maxlength="12" aria-label="Code personnel">'
+        + '<button class="btn" data-qui-code="'+esc(pick)+'">Valider mon code</button></div>'+(QUI.err ? '<p class="small cstop">'+esc(QUI.err)+'</p>' : '')
+        + '<p class="small muted">Pas de code ? Si c\'est bien vous, continuez : l\'autre appareil verra qu\'un doublon existe. Sinon, choisissez votre propre nom.</p>'
+      : '<p class="small">Si c\'est vous, sur un autre téléphone ou un ordinateur, continuez. Sinon, choisissez votre propre nom : vos réponses et votre vote partent à ce nom. En cas de doute, voyez-le avec l\'équipe.</p>')
+      + '<div class="edit"><button class="btn'+(ownerHash(pick) ? " ghost" : "")+'" data-qui-ok="'+esc(pick)+'">C\'est bien moi'+(ownerHash(pick) ? " (sans code)" : "")+'</button>'
+      + '<button class="btn ghost" data-qui-back="1">Choisir un autre nom</button></div>';
   } else {
     h += '<p class="small muted">Une fois sur cet appareil. Vos réponses aux entraînements et aux matchs, votre vote pour l\'homme du match et vos propositions d\'amendes partent à ce nom : choisissez le vôtre.</p>'
       + '<div class="cchips qui-list">'+squad().slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom))).map(p => '<button class="cchip'+(p.cle === me ? " on" : "")+'" data-qui="'+esc(p.cle)+'">'+esc(p.nom)
-        + (p.cle !== me && othersAs(p.cle).length ? ' <small class="pris">déjà pris</small>' : '')+'</button>').join("")+'</div>'
+        + (p.cle !== me && taken(p.cle) ? ' <small class="pris">déjà pris</small>' : '')+'</button>').join("")+'</div>'
       + '<p class="small">'+(D.caisse ? '<button class="link" data-qui="'+esc(D.caisse.coach)+'">Je suis l\'entraîneur</button> · ' : '')
       + '<button class="link" data-qui-aucun="1">Je ne suis pas joueur</button>'+(QUI ? ' · <button class="link" data-qui-close="1">Annuler</button>' : '')+'</p>';
   }
@@ -3274,7 +3329,7 @@ function viewPresences(){
   if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
       + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
     + annulesNote() + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + seasonBlock(season) + hdm);
-  h += meLine() + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
+  h += meLine() + (myCodeFor(me) ? "" : codeLine()) + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
   if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
   return withJumps(h + '<div class="panel reps"><p class="small muted">Tout le calendrier de la saison : répondez à l\'avance, mois par mois. '
     + 'Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>' + periodBlock() + monthsBlock(season, me) + '</div>');
@@ -3372,9 +3427,16 @@ document.addEventListener("click", ev => {
   else if(t.dataset.installNon){ try { localStorage.setItem("hbpsm:installe-vu", "1"); } catch (e) {} render(true); }
   // « Vous êtes » : un nom déjà choisi sur un autre appareil se confirme
   else if(t.dataset.qui !== undefined){ const c = t.dataset.qui, first = needWho();
-    if(String(c).startsWith("R:") && c !== stored(MOI) && othersAs(c).length){ QUI = {pick: c}; render(true); }
-    else { setMe(c); QUI = null; if(first) S.tab = "moi"; render(!first); } }
-  else if(t.dataset.quiOk){ const first = needWho(); setMe(t.dataset.quiOk); QUI = null; if(first) S.tab = "moi"; render(!first); }
+    (PRESJ ? Promise.resolve() : fetchPresences()).then(() => {   // qui a déjà pris ce nom : d'après le journal
+      if(c !== stored(MOI) && taken(c)){ QUI = {pick: c}; render(true); }
+      else { QUI = null; if(first) S.tab = "moi"; render(!first); setMe(c); } }); }
+  else if(t.dataset.quiOk){ const first = needWho(); QUI = null; if(first) S.tab = "moi"; render(!first); setMe(t.dataset.quiOk); }
+  else if(t.dataset.quiCode){ const c = t.dataset.quiCode, v = (document.getElementById("qui-code") || {}).value || "", first = needWho();
+    checkCode(c, v).then(ok => { if(!ok){ QUI = {pick: c, err: "Ce n'est pas le code de " + memberName(c) + "."}; render(true); return; }
+      QUI = null; if(first) S.tab = "moi"; render(!first); setMe(c, {code: v}); }); }
+  else if(t.dataset.codeOk){ const c = stored(MOI), v = (document.getElementById("code-saisie") || {}).value || "";
+    checkCode(c, v).then(ok => { CODE_ERR = ok ? "" : "Ce n'est pas le code de " + memberName(c) + "."; if(ok) setMe(c, {code: v}); else render(true); }); }
+  else if(t.dataset.codeCopie){ const x = myCodeFor(stored(MOI)); if(x) copyText(x.code, () => showWhy("🔑 Code copié : gardez-le pour vous.")); }
   else if(t.dataset.quiBack || t.dataset.quiOpen){ QUI = {}; render(true); }
   else if(t.dataset.quiAucun){ try { localStorage.setItem(MOI_AUCUN, "1"); localStorage.removeItem(MOI); } catch (e) {} QUI = null; render(true); }
   else if(t.dataset.quiClose){ QUI = null; render(true); }
