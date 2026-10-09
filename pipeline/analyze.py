@@ -17,7 +17,7 @@ from collections import Counter, defaultdict
 
 from .common import (DATA, PUBLIE, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team, write_json)
-from . import caisse, pronostic, vault
+from . import caisse, pronostic, selections, vault
 from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
@@ -1614,9 +1614,11 @@ def analyze(today=None, roster=None):
     stamp = paris_now().strftime("%Y-%m-%dT%H:%M")
     year = [m for x in history if latest and x.get("saison") == latest for m in x.get("matches") or []]
     w_past = HIST * fade(len(with_sheet))
+    choix = published_choices()
+    now = stamp if stamp[:10] == today else today + "T00:00"
     pronos, suivi = pronostic.record(saison, profiles, club_name, every_match + outside, year, cal, config, roster, players,
-                                     stamp if stamp[:10] == today else today + "T00:00", config.get("saison"), w_past,
-                                     published_choices()) if club_name else ([], dict(n=0))
+                                     now, config.get("saison"), w_past, choix) if club_name else ([], dict(n=0))
+    agenda = club_agenda(every_fixture, every_match, config, roster)
     equipe = pronostic.lineup_inputs(players, club_name, every_match, year, config, roster, w_past) if club_name else None
     return dict(
         meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
@@ -1643,7 +1645,9 @@ def analyze(today=None, roster=None):
         coupes=cup_results(every_match, every_fixture, config),
         # présences et homme du match (demande de l'auteur, 09/10/2026) : les matchs du club, les jours
         # d'entraînement et les délais de réponse ; les réponses elles-mêmes sont lues par la page
-        agenda=club_agenda(every_fixture, every_match, config, roster),
+        agenda=agenda,
+        # les feuilles publiées de l'entraîneur, et la proposition du tableau de bord à côté (pipeline/selections.py)
+        selections=selections.record(choix, agenda, now, config.get("saison")),
         presences=dict(config.get("presences") or {}, jours=(config.get("entrainement") or {}).get("jours") or [1, 4],
                        # qui les tient (rôle « présences » de l'effectif) : seul à voir l'onglet, reconnu par son code
                        gestion=sorted("R:" + k for k, r in roster.items() if r.get("gere_presences"))),

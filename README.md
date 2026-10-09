@@ -485,6 +485,18 @@ tous les autres, entraîneur compris.
 Tout part par le même jeton et le même workflow que les propositions d'amendes, dans un journal à part,
 `presences.enc` (40 saisies au plus par envoi : au-delà, la page en fait plusieurs).
 
+### L'entraîneur face aux propositions
+
+Chaque feuille publiée (par l'entraîneur ou par celui qui tient les présences) emporte la proposition du
+tableau de bord pour ce match : celle que voient les joueurs sans ce choix, présences comprises. La
+collecte les archive côte à côte dans les données chiffrées (`pipeline/selections.py`,
+`data/selections.json`, repris d'un passage à l'autre), avec la feuille du match une fois lue ; ce qui
+est retenu ne bouge plus après le coup d'envoi. La page (Planification, et Présences pour celui qui les
+tient ; jamais pour les joueurs) montre match par match qui l'entraîneur a fait entrer à la place de qui,
+puis joueur par joueur combien de fois il a été retenu sans être proposé ou proposé sans être retenu,
+avec la note moyenne et les postes de ceux qui entrent et qui sortent : de quoi comprendre ses choix
+avant de toucher à la rotation.
+
 ## Lien avec l'application de préparation des entraînements
 
 Le fichier chiffré contient une séance au format d'échange `.hbt.json` de HANDBALL-training :

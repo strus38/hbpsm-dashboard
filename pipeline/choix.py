@@ -38,9 +38,12 @@ def check(envelope, secret):
         raise vault.VaultError("Choix refusés : contenu de forme inattendue.")
     for choice in matchs.values():
         players = choice.get("joueurs") if isinstance(choice, dict) else None
+        # suggestion : la proposition du tableau de bord pour ce match, gardée à côté (pipeline/selections.py)
+        sugg = choice.get("suggestion", []) if isinstance(choice, dict) else None
         if not isinstance(players, list) or not 0 < len(players) <= MAX_PLAYERS \
                 or not all(isinstance(p, str) and 0 < len(p) < 120 for p in players) \
-                or not isinstance(choice.get("le"), str):
+                or not isinstance(choice.get("le"), str) or not isinstance(sugg, list) or len(sugg) > MAX_PLAYERS \
+                or not all(isinstance(p, str) and 0 < len(p) < 120 for p in sugg):
             raise vault.VaultError("Choix refusés : feuille de forme inattendue.")
     # blessés : {joueur: {de: date du premier match manqué, a: date du retour ou null}}
     hurt = data.get("blesses", {})

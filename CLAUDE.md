@@ -596,6 +596,16 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   plus d'effectif annoncé, `seal`). Plus d'`amendes_depuis` : ni amende « pas de réponse », ni « sans
   justification » (`statusOf`). `sendCN` envoie par paquets de 40 (`CN_MAX`, `MAX_OPS` de hbpsm-cn). Retirés :
   `answerRow`, `monthsBlock`, `periodBlock`, `todoBlock`, `boardBlock`, `moveSel`, `trainingsBlock`, `seasonBlock`.
+- Mémoire des choix de l'entraîneur (demande de l'auteur, 09/10/2026 : « garde mémoire la différence entre tes
+  propositions et celle du coach pour mieux comprendre ses choix ») : chaque feuille publiée porte `suggestion`, la
+  proposition du tableau de bord pour ce match (`suggestionOf` : `planning()` sous `NEUTRAL` = ce match sans choix,
+  rien de cet ordinateur, présences comprises ; `withSuggestion` dans `validate`, `publishChoices`, `publishGestion` ;
+  la première gardée l'emporte ; `choix.check` la vérifie, 16 au plus). `pipeline/selections.py` archive retenue,
+  proposée et feuille lue dans `data/selections.json` (`STATE_FILES`), figé au coup d'envoi, retiré si la validation
+  l'est avant le match ; `D.selections`. Page : `ecartsData` / `ecartsBlock` (Planification en tiroir, Présences), pour
+  l'entraîneur et celui qui tient les présences seulement (`seesAll`). AVANT de changer la rotation ou les notes, lire
+  ces écarts (note moyenne et postes de ceux qui entrent et sortent, joueurs souvent ajoutés ou écartés) et en parler
+  à l'auteur. Le 1er match concerné : J2 du 10/10/2026 à Sablons (sélection donnée par l'auteur le 09/10 au soir).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

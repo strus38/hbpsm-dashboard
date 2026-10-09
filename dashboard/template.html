@@ -476,6 +476,7 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .gestion .sel-gest{margin:10px 0 4px;padding:10px;border-radius:10px;background:var(--bg)}.gestion .sel-gest p:first-child{margin-top:0}
 .rep-btn .btn{white-space:nowrap}.seg.wrap{flex-wrap:wrap}.seg.wrap button{flex:1 1 40%;border-top:1px solid var(--rule);margin-top:-1px}
 @media (max-width:560px){.rep-btn{width:100%}.rep-btn .btn{flex:1;width:auto}}
+.ecarts li{padding:6px 0;border-top:1px dashed var(--rule)}.ecarts li:first-child{border-top:0}.b-plus{color:var(--win)}.b-moins{color:var(--loss)}
 .vote .vote-elu{font-size:1.15rem;margin:6px 0}.vote p:first-child{margin-top:0}
 .cell.nr{opacity:.55}
 .picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
@@ -728,7 +729,8 @@ const isUs = t => t === D.meta.club;
 // En consultation, la proposition ne dépend que des données partagées : rien de ce qui a pu être
 // saisi dans ce navigateur (en mode entraîneur un autre jour) ne la change ; la même pour tous.
 const NEUTRE = {postes:{}, absents:{}, depannage:{}, dm:{}, pin:{}, regle:1};
-const SP = () => COACH ? S : NEUTRE;
+let NEUTRAL = null;   // le match dont on calcule la proposition du tableau de bord (suggestionOf) : rien d'ici n'y entre
+const SP = () => COACH && NEUTRAL === null ? S : NEUTRE;
 const poste = p => (SP().postes[p.cle] ?? p.poste ?? "");
 const isGK = p => poste(p) ? poste(p).split("/").includes("GB") : p.gardien;
 const dispo = p => SP().absents[p.cle] === undefined ? p.disponible !== false : !SP().absents[p.cle];
@@ -945,7 +947,19 @@ const ruleOf = n => Math.min(Number(SP().regle) || 0, n);
 const byCle = k => D.joueurs.find(p => p.cle === k);
 const pubOf = m => (CHOIX && CHOIX.matchs && CHOIX.matchs[m.id]) || null;
 const retiredOf = m => COACH && S.retire && S.retire[m.id];   // retirée ici, retrait pas encore en ligne
-const fixedOf = m => retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+const fixedOf = m => NEUTRAL !== null ? (String(m.id) === NEUTRAL ? null : pubOf(m))
+  : retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+// Mémoire des choix (demande de l'auteur, 09/10/2026) : chaque feuille publiée emporte la proposition du tableau de
+// bord pour ce match (suggestion), celle que voient les joueurs sans ce choix, présences comprises ; la collecte les
+// archive côte à côte (pipeline/selections.py) pour comprendre les choix de l'entraîneur. La première gardée l'emporte ;
+// une feuille publiée sans elle (page d'avant) la reçoit à la publication suivante, tant que le match est à venir.
+function suggestionOf(id){
+  NEUTRAL = String(id);
+  try { const r = planning().find(x => String(x.m.id) === String(id)); return r ? r.sel.map(p => p.cle) : null; }
+  finally { NEUTRAL = null; }
+}
+const withSuggestion = (id, c) => { const s = c.suggestion || (pubOf({id}) || {}).suggestion || suggestionOf(id);
+  return s && s.length ? Object.assign({}, c, {suggestion: s}) : c; };
 // En dépannage (effectif ou fiche du joueur) : retenu seulement s'il manque des joueurs ou un poste
 // clef, et jamais compté dans la rotation.
 const depOf = p => (SP().depannage || {})[p.cle] ?? !!p.depannage;
@@ -1802,7 +1816,53 @@ function viewPlanif(){
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
     + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
     + 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.</p></details>';
+  if(seesAll()) h += '<details class="calc"'+keep("ecarts", false)+'><summary class="small">L\'entraîneur face aux propositions</summary>'+ecartsBlock()+'</details>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
+  return h;
+}
+// L'entraîneur face aux propositions (demande de l'auteur, 09/10/2026 : comprendre ses choix) : les feuilles publiées
+// et la proposition gardée à côté (D.selections, archivées par la collecte ; ce qui est publié depuis, d'après les
+// choix en ligne), match par match puis joueur par joueur. Pour l'entraîneur et celui qui tient les présences.
+function ecartsData(){
+  const list = ((D.selections || {}).matchs || []).map(e => Object.assign({}, e)), byId = {};
+  for(const e of list) byId[String(e.id)] = e;
+  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})){
+    const m = agendaList().find(x => String(x.id) === id);
+    if(!m || !(c.joueurs || []).length || (byId[id] && m.date && new Date(m.date) <= new Date())) continue;   // joué : l'archive fait foi
+    const e = byId[id] || (byId[id] = {id, date: m.date, adversaire: m.adversaire, journee: m.journee, coupe: m.coupe, tour: m.tour});
+    if(!list.includes(e)) list.push(e);
+    e.retenue = c.joueurs;
+    if((c.suggestion || []).length) e.proposee = c.suggestion;
+  }
+  return list.filter(e => (e.proposee || []).length && (e.retenue || []).length)
+    .map(e => Object.assign(e, {plus: e.retenue.filter(c => !e.proposee.includes(c)), moins: e.proposee.filter(c => !e.retenue.includes(c))}))
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+}
+function ecartsBlock(){
+  if(!seesAll()) return "";
+  const list = ecartsData(), nom = c => esc(memberName(c)), noms = l => l.map(nom).join(", ");
+  if(!list.length) return '<p class="small muted">Pas encore de feuille de l\'entraîneur à comparer : dès qu\'une est publiée, la proposition du tableau de bord est gardée à côté, match après match.</p>';
+  const per = {}, add = (c, k) => { (per[c] = per[c] || {cle: c, plus: 0, moins: 0, prop: 0, ret: 0})[k]++; };
+  for(const e of list){ e.proposee.forEach(c => add(c, "prop")); e.retenue.forEach(c => add(c, "ret")); e.plus.forEach(c => add(c, "plus")); e.moins.forEach(c => add(c, "moins")); }
+  const n = list.reduce((a, e) => a + e.plus.length, 0), mean = l => { const v = l.map(byCle).filter(p => p && rated(p)).map(p => p.scores.equilibre);
+    return v.length ? Math.round(v.reduce((a, x) => a + x, 0) / v.length) : null; };
+  const ins = list.flatMap(e => e.plus), outs = list.flatMap(e => e.moins), mi = mean(ins), mo = mean(outs);
+  const postes = l => { const k = {}; for(const c of l){ const p = byCle(c), x = p ? postesOf(p)[0] || "?" : "?"; k[x] = (k[x] || 0) + 1; }
+    return Object.entries(k).sort((a, b) => b[1] - a[1]).map(([x, v]) => x+" ×"+v).join(", "); };
+  let h = '<p class="small">'+list.length+' feuille'+(list.length > 1 ? "s" : "")+' comparée'+(list.length > 1 ? "s" : "")+' · <b>'+n+'</b> changement'+(n > 1 ? "s" : "")
+    + ' par rapport à la proposition'+(list.length > 1 ? ' ('+fr((n / list.length).toFixed(1))+' par match)' : '')+'.'
+    + (mi != null && mo != null ? ' Ceux qu\'il fait entrer ont une note moyenne de <b>'+mi+'</b>, ceux qu\'il écarte <b>'+mo+'</b>.' : '')
+    + (n ? ' Postes : entrent '+esc(postes(ins))+' ; sortent '+esc(postes(outs))+'.' : '')+'</p><ul class="plain ecarts">'
+    + list.slice().reverse().map(e => { const f = e.feuille || [], horsFeuille = f.length ? e.retenue.filter(c => !f.includes(c)) : [], enPlus = f.length ? f.filter(c => !e.retenue.includes(c)) : [];
+      return '<li><b>'+esc(roundShort(e))+' · '+esc(teamShort(e.adversaire || ""))+'</b> <span class="small muted">'+esc(fmtDate(e.date))+'</span><br>'
+        + (e.plus.length ? '<span class="small"><span class="b-plus">+ '+noms(e.plus)+'</span> à la place de <span class="b-moins">− '+noms(e.moins)+'</span></span>'
+          : '<span class="small muted">identique à la proposition</span>')
+        + (horsFeuille.length || enPlus.length ? '<br><span class="small muted">Feuille du match : '+[horsFeuille.length ? 'retenu'+(horsFeuille.length > 1 ? 's' : '')+' mais absent'+(horsFeuille.length > 1 ? 's' : '')+' : '+noms(horsFeuille) : '',
+            enPlus.length ? 'en plus : '+noms(enPlus) : ''].filter(Boolean).join(' ; ')+'</span>' : '')+'</li>'; }).join("")+'</ul>';
+  const tops = Object.values(per).filter(x => x.plus || x.moins).sort((a, b) => b.plus + b.moins - a.plus - a.moins || memberName(a.cle).localeCompare(memberName(b.cle)));
+  if(tops.length) h += '<p class="small"><b>Joueur par joueur</b></p><ul class="plain ecarts">'+tops.map(x => '<li>'+nom(x.cle)+' <span class="small muted">'
+    + [x.plus ? 'retenu '+x.plus+' fois sans être proposé' : '', x.moins ? 'proposé '+x.moins+' fois sans être retenu' : ''].filter(Boolean).join(' · ')
+    + ' (proposé '+x.prop+', retenu '+x.ret+' sur '+list.length+')</span></li>').join("")+'</ul>';
   return h;
 }
 function cycleCell(id, cle){
@@ -3280,11 +3340,11 @@ async function publishGestion(){
   // comme l'entraîneur : les matchs de la planification et les derniers joués ; ses blessés, absents et rendez-vous restent
   const g = gest(), base = CHOIX || {}, matchs = {}, off = new Set(annPub());
   const ids = new Set([...PLAN.map(r => String(r.m.id)), ...(D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).map(x => String(x.id))]);
-  for(const [id, c] of Object.entries(base.matchs || {})) if(ids.has(id)) matchs[id] = c;
+  for(const [id, c] of Object.entries(base.matchs || {})) if(ids.has(id)) matchs[id] = inPlan(id) ? withSuggestion(id, c) : c;
   for(const [id, l] of Object.entries(g.sel)){
     if(!ids.has(id) || sameSet(l, pubSel(id))) continue;
     const m = agendaList().find(x => String(x.id) === id) || {};
-    if(l.length) matchs[id] = {joueurs: l, le: new Date().toISOString(), journee: m.journee ?? null}; else delete matchs[id];
+    if(l.length) matchs[id] = withSuggestion(id, {joueurs: l, le: new Date().toISOString(), journee: m.journee ?? null}); else delete matchs[id];
   }
   for(const [k, on] of Object.entries(g.annule)) if(on) off.add(k); else off.delete(k);
   try {
@@ -3371,7 +3431,8 @@ function viewPresences(){   // celui qui les tient, et lui seul (l'onglet est ca
   const me = stored(MOI) || "", votes = ballots();
   const h = '<header class="top"><p class="when">Qui vient à chaque match, et la sélection de l\'entraîneur : vous seul les saisissez ; '
     + 'seuls l\'entraîneur et vous voyez les réponses</p><h1>Présences</h1></header>' + meBlock() + gestNote() + annulesNote() + gestionBlock();
-  return withJumps(h + (votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, me)).join("") : ""));
+  return withJumps(h + (votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, me)).join("") : "")
+    + sec("ecarts", "Écarts")+'L\'entraîneur face aux propositions</h2><div class="panel">'+ecartsBlock()+'</div>');
 }
 // la séance à importer dans HANDBALL-training, avec ceux qui ont dit venir à l'instant (entraîneur), tant que les
 // entraînements sont suivis
@@ -3645,7 +3706,8 @@ function validate(id){   // la feuille du moment devient le choix de l'entraîne
   const r = PLAN.find(x => String(x.m.id) === String(id));
   if(!r) return;
   S.valide = S.valide || {};
-  S.valide[r.m.id] = {joueurs: r.sel.map(p => p.cle), le: new Date().toISOString(), journee: r.m.journee ?? null};
+  S.valide[r.m.id] = withSuggestion(r.m.id, {joueurs: r.sel.map(p => p.cle), le: new Date().toISOString(), journee: r.m.journee ?? null,
+                                              suggestion: (S.valide[r.m.id] || {}).suggestion});
   if(S.retire) delete S.retire[r.m.id];
   save(); render(true);
   publishChoices();
@@ -3667,8 +3729,8 @@ async function publishChoices(){
   // ce qui est déjà publié (un autre ordinateur a pu valider d'autres matchs), puis les validations d'ici
   // les matchs à venir, et les derniers joués (le bilan d'un match compare la feuille au choix de l'entraîneur)
   const ids = new Set([...PLAN.map(r => String(r.m.id)), ...(D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).map(x => String(x.id))]), matchs = {};
-  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = c;
-  for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
+  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = inPlan(id) ? withSuggestion(id, c) : c;
+  for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = withSuggestion(id, c);
   PUB = "envoi"; render(true);
   try {
     const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow(), rdv: rdvNow(), annulees: annuleesNow()}, phrase);

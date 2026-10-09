@@ -11,7 +11,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, presences, pronostic, publish, sante, vault
+from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, presences, pronostic, publish, sante, selections, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 import pathlib
@@ -45,7 +45,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante, pronostic):
+    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante, pronostic, selections):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
@@ -767,6 +767,8 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         chosen = choix.check(envelope, PHRASE)   # ce que vérifiera le workflow
         first = page.evaluate("String(planning()[0].m.id)")
         assert sorted(chosen["matchs"][first]["joueurs"]) == sorted(page.evaluate("planning()[0].sel.map(p => p.cle)"))
+        # la proposition du tableau de bord part à côté (mémoire des choix) : ici, l'entraîneur l'a validée telle quelle
+        assert sorted(chosen["matchs"][first]["suggestion"]) == sorted(chosen["matchs"][first]["joueurs"])
         # le workflow l'écrit dans publie/choix.enc : la page la retrouve, publiée
         monkeypatch.setenv("HBPSM_CHOIX", json.dumps(envelope))
         assert choix.main() == 0 and (out / "choix.enc").exists()
@@ -1450,6 +1452,7 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert "pas encore saisie" in m.inner_text(".sel-gest") and m.locator("[data-msel]").count() == 14
         m.click(f"[data-msug='{mid}']")
         draft = m.evaluate(f"selOf({json.dumps(mid)})")
+        sugg = list(draft)
         assert len(draft) == 12 and "pas encore publiée" in m.inner_text(".sel-gest")
         assert "1 changement pas encore publié" in m.inner_text("main")
         # un joueur retiré, un autre retenu à sa place
@@ -1475,6 +1478,15 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert m.evaluate("localStorage.getItem('hbpsm:jeton-selection')") == "jeton-de-test" and m.evaluate("stored(TOKEN)") is None
         pub = publish_choices(a, b, c, m)
         assert sorted(pub["matchs"][mid]["joueurs"]) == sorted(draft) and pub["rdv"] == coach["rdv"] and pub["blesses"] == coach["blesses"]
+        # la proposition du tableau de bord, gardée à côté ; les écarts, pour lui et l'entraîneur seulement
+        assert sorted(pub["matchs"][mid]["suggestion"]) == sorted(sugg)
+        m.evaluate("render(true)")
+        assert "L'entraîneur face aux propositions" in m.inner_text("main") and f"+ {m.evaluate(f'memberName({json.dumps(back)})')}" in m.inner_text(".ecarts")
+        assert f"− {m.evaluate(f'memberName({json.dumps(out_of)})')}" in m.inner_text(".ecarts") and "1 changement par rapport" in m.inner_text("main")
+        c.evaluate("S.tab = 'planif'; render(false)")
+        assert "L'entraîneur face aux propositions" in c.inner_text("main") and c.evaluate("ecartsData().length") == 1
+        a.evaluate("S.tab = 'planif'; render(false)")
+        assert "L'entraîneur face aux propositions" not in a.inner_text("main") and a.evaluate("ecartsBlock()") == ""
         m.wait_for_function(f"() => !(String({json.dumps(mid)}) in gest().sel) && gestPending() === 0", timeout=10000)
         assert "publiée" in m.inner_text(".sel-gest") and "pas encore publié" not in m.inner_text("main")
         # vue de tous comme le choix de l'entraîneur
@@ -1483,13 +1495,20 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert ("retenu par l'entraîneur" in a.inner_text(".matchcard .moi-statut")) == (k1 in draft)
         assert c.evaluate("PLAN[0].etat") == "publiee" and sorted(c.evaluate("PLAN[0].sel.map(p => p.cle)")) == sorted(draft)
 
+        # une feuille publiée par la page d'avant, sans la proposition : la publication suivante la complète
+        id1 = m.evaluate("String(PLAN[1].m.id)")
+        monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(dict(pub, matchs=dict(pub["matchs"], **{id1: dict(
+            joueurs=pub["matchs"][mid]["joueurs"], le="2026-10-09T20:00:00Z")})), PHRASE, 2000)))
+        assert choix.main() == 0
+        m.evaluate("fetchChoices().then(() => render(true))")
+
         # 6. un match annulé par celui qui tient les présences : publié, vu de tous ; rétabli, tout revient
         n = len(sent)
         m.click(".gestion [data-gannule]")
         wait_sent(m, n + 1)
         assert m.evaluate(f"annuleId('M-{mid}')") and "match annulé" in m.inner_text(".gestion")
         pub = publish_choices(a, b, c, m)
-        assert pub["annulees"] == [f"M-{mid}"] and pub["rdv"] == coach["rdv"]
+        assert pub["annulees"] == [f"M-{mid}"] and pub["rdv"] == coach["rdv"] and len(pub["matchs"][id1]["suggestion"]) == 12
         a.wait_for_function(f"() => annuleId('M-{mid}') && PLAN.every(r => String(r.m.id) !== {json.dumps(mid)})", timeout=10000)
         assert "Annulé par l'entraîneur" in a.inner_text("main")
         n = len(sent)
@@ -1552,6 +1571,45 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         browser.close()
     server.shutdown()
     assert errors == []
+
+
+def test_memoire_des_choix(sandbox, monkeypatch):
+    """Les feuilles publiées et la proposition du tableau de bord à côté (demande de l'auteur, 09/10/2026) : archivées
+    par la collecte (choix.enc ne garde que les matchs proches), figées au coup d'envoi, avec la feuille une fois lue ;
+    une validation retirée avant le match sort de l'archive."""
+    a, b, c, d, x = ("R:EXEMPLE ISIDORE", "R:MODELE JEAN", "R:ESSAI ZEPHYRIN", "R:ESSAI BALLON", "R:ESSAI FILET")
+    agenda = [dict(id="1", date="2026-10-03T20:30", adversaire="Club Fictif", domicile=True, journee=1, joueurs=[a, b, x]),
+              dict(id="2", date="2026-10-10T20:30", adversaire="Autre Club", domicile=False, journee=2, joueurs=[])]
+    choix_pub = {"1": dict(joueurs=[a, b, c], suggestion=[a, b, d], le="2026-10-02T21:00:00Z"),
+                 "2": dict(joueurs=[b, a], suggestion=[a, c], le="2026-10-08T21:00:00Z")}
+    out = selections.record(choix_pub, agenda, "2026-10-05T12:00", "2026-2027")
+    assert [(e["id"], e["retenue"], e["proposee"]) for e in out["matchs"]] == [("1", sorted([a, b, c]), sorted([a, b, d])),
+                                                                             ("2", sorted([a, b]), sorted([a, c]))]
+    assert out["matchs"][0]["feuille"] == sorted([a, b, x]) and "feuille" not in out["matchs"][1]
+    # après le coup d'envoi, ce qui était retenu ne bouge plus ; avant, la dernière publication l'emporte (proposition gardée)
+    later = {"1": dict(joueurs=[d], le="2026-10-06T08:00:00Z"), "2": dict(joueurs=[b, c], le="2026-10-06T08:00:00Z")}
+    out = selections.record(later, agenda, "2026-10-06T12:00", "2026-2027")
+    assert [(e["retenue"], e["proposee"]) for e in out["matchs"]] == [(sorted([a, b, c]), sorted([a, b, d])), (sorted([b, c]), sorted([a, c]))]
+    # validation retirée avant le match : plus dans l'archive ; sans phrase (rien de lu), rien ne bouge
+    assert [e["id"] for e in selections.record({}, agenda, "2026-10-07T12:00", "2026-2027")["matchs"]] == ["1", "2"]
+    assert [e["id"] for e in selections.record({"1": later["1"]}, agenda, "2026-10-07T12:00", "2026-2027")["matchs"]] == ["1"]
+    # le workflow « Choix de l'entraîneur » accepte la proposition à côté, de la forme attendue seulement
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    good = dict(format="hbpsm-choix", v=1, matchs={"2": dict(joueurs=[a, b], le="2026-10-08T21:00:00Z", suggestion=[a, c])})
+    assert choix.check(vault.encrypt(good, PHRASE, 2000), PHRASE)["matchs"]["2"]["suggestion"] == [a, c]
+    for bad in ("tous", [a] * 17, [a, 3]):
+        with pytest.raises(vault.VaultError):
+            choix.check(vault.encrypt(dict(good, matchs={"2": dict(good["matchs"]["2"], suggestion=bad)}), PHRASE, 2000), PHRASE)
+    # dans la collecte : D.selections, d'après choix.enc (phrase du club)
+    demo(sandbox)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    nxt = an.analyze("2026-10-04")["agenda"]
+    upcoming = next(m for m in nxt if m["bp"] is None)
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(dict(good, matchs={upcoming["id"]: good["matchs"]["2"]}), PHRASE, 2000))
+    got = an.analyze("2026-10-04")["selections"]["matchs"]
+    assert [e["id"] for e in got] == ["1", upcoming["id"]]   # la mémoire garde aussi les matchs d'avant
+    assert (got[-1]["retenue"], got[-1]["proposee"]) == (sorted([a, b]), sorted([a, c]))
+    assert json.loads((sandbox / "data" / "selections.json").read_text("utf-8"))["matchs"][upcoming["id"]]["adversaire"] == upcoming["adversaire"]
 
 
 def test_debut_de_saison(sandbox):
