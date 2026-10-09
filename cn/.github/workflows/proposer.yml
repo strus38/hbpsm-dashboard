@@ -11,6 +11,10 @@
 # Deux envois rapprochés : le second, mis en attente, repartait du commit de son lancement (journal
 # sans le premier) et butait sur un conflit au push. On part donc du dernier état de la branche et,
 # si le push est refusé, on y réapplique l'envoi (sans doublon).
+#
+# Pas de file d'attente (09/10/2026) : GitHub n'en garde qu'un en attente, et le suivant l'annulait
+# (trois joueurs à la même seconde : un envoi perdu jusqu'à la prochaine ouverture de sa page). Les
+# envois passent donc en parallèle et se départagent au push, avec plus d'essais et un délai au hasard.
 name: Envoi d'un joueur
 
 on:
@@ -22,10 +26,6 @@ on:
 
 permissions:
   contents: write
-
-concurrency:
-  group: propositions
-  cancel-in-progress: false
 
 jobs:
   ajouter:
@@ -51,14 +51,14 @@ jobs:
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for essai in 1 2 3 4 5; do
+          for essai in 1 2 3 4 5 6 7 8; do
             git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
             python propositions.py
             git add -- *.enc
             git diff --cached --quiet && exit 0
             git commit -q -m "Envoi d'un joueur"
             git push -q origin "HEAD:$BRANCHE" && exit 0
-            echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
-            sleep $((essai * 5))
+            echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/8)"
+            sleep $((essai * 2 + RANDOM % 6))
           done
           exit 1

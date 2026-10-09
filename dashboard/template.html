@@ -2532,6 +2532,9 @@ async function sendCN(){
   render(true);
   if(CN_PUB === "envoyee") watchCN();
 }
+// pas en ligne au bout de deux minutes (un envoi perdu en route) : renvoyé de lui-même, deux fois au plus ;
+// le dépôt ne compte jamais deux fois le même envoi
+let CN_RETRY = 0;
 function watchCN(){   // la mise en ligne prend une minute ou deux : un coup d'œil toutes les 15 s
   clearInterval(CN_POLL);
   let n = 0;
@@ -2539,7 +2542,8 @@ function watchCN(){   // la mise en ligne prend une minute ou deux : un coup d'�
     n++;
     const a = await fetchCN(), b = await fetchPresences();
     if(a || b) render(true);
-    if(!cnOutbox().length){ CN_PUB = ""; render(true); clearInterval(CN_POLL); }
+    if(!cnOutbox().length){ CN_PUB = ""; CN_RETRY = 0; render(true); clearInterval(CN_POLL); }
+    else if(n === 8 && CN_RETRY < 2){ CN_RETRY++; clearInterval(CN_POLL); sendCN(); }
     else if(n >= 16){ CN_PUB = "lent"; render(true); clearInterval(CN_POLL); }
   }, 15000);
 }

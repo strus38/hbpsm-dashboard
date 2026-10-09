@@ -464,6 +464,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `caisse.yml`, `choix.yml`, `cn/…/proposer.yml` partent du dernier état de la branche (`ref: github.ref`)
   et, si le push est refusé, reprennent ce dernier état et y réappliquent l'entrée (5 essais ; sans doublon
   pour les journaux, l'envoi le plus récent gagne pour les choix). La collecte part aussi du dernier état.
+  `proposer.yml` (hbpsm-cn) sans file d'attente depuis le 09/10/2026 : GitHub n'y garde qu'un envoi en attente et
+  le suivant l'annulait (trois joueurs à la même seconde, un envoi annulé) ; envois en parallèle, départagés au push
+  (8 essais, délai au hasard) ; la page renvoie d'elle-même ce qui n'est pas en ligne après deux minutes (`CN_RETRY`,
+  deux fois au plus).
 - Navigation et statistiques (demande de l'auteur, 08/10/2026, tout en un) : sur téléphone, 4 onglets selon le mode
   (`PRIMARY` : entraîneur planif, semaine, convoc, joueurs ; joueur moi, semaine, saison, caisse), les autres sous
   « Plus » (`plusMenu`, classe `sec`, ordre `--o`). Ouverture : planification pour l'entraîneur, « Ma semaine » pour un
