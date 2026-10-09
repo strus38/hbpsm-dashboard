@@ -31,7 +31,7 @@ import pathlib
 import sys
 import time
 
-from . import agenda, collect, vault
+from . import agenda, collect, presences, vault
 from .analyze import analyze
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
@@ -79,10 +79,11 @@ def cn_config(config):
     lui, n'est jamais dans la page publique : il voyage dans les données chiffrées."""
     cn = config.get("propositions") or {}
     if not cn.get("depot"):
-        return dict(cn="", cn_depot="", cn_workflow="")
+        return dict(cn="", cn_depot="", cn_workflow="", presences="")
     branch = cn.get("branche") or "main"
+    # les réponses de présence, les « Vous êtes » et les votes de l'homme du match : même dépôt, même workflow
     return dict(cn=f"https://raw.githubusercontent.com/{cn['depot']}/{branch}/propositions.enc", cn_depot=cn["depot"],
-                cn_branche=branch, cn_workflow=cn.get("workflow") or "proposer.yml")
+                cn_branche=branch, cn_workflow=cn.get("workflow") or "proposer.yml", presences=presences.url(config))
 
 
 def collect_state():
@@ -250,13 +251,15 @@ def seal(today=None):
     config = load_config()
     data = analyze(today)
     scratch = ROOT / "raw" / "export"
-    _, seance = build_exports(data, scratch, today)
+    # l'effectif annoncé de la prochaine séance : les réponses de présence des joueurs (dépôt hbpsm-cn)
+    _, seance = build_exports(data, scratch, today, presences.journal(config, secret))
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()
     hist_digest = hashlib.sha256(json.dumps(hist, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     jeton = hashlib.sha256((os.environ.get("HBPSM_JETON_CN") or "").encode("utf-8")).hexdigest()[:12]   # un jeton posé : republier
-    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest, jeton], sort_keys=True,
+    effectif = [seance["contenu"]["seance"][k] for k in ("effectifJoueurs", "effectifGardiens")]   # de nouveaux présents : republier
+    digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest, jeton, effectif], sort_keys=True,
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()

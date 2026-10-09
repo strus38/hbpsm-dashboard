@@ -8,6 +8,8 @@ workflow « Caisse noire » (caisse.yml), que ce module applique au registre pub
 Une amende proposée d'après une feuille n'existe qu'une fois validée par un trésorier.
 Seuls les joueurs à jour de leur cotisation mettent ou dénoncent une amende (demande de l'auteur,
 08/10/2026) ; un joueur « hors caisse » (rôle de l'effectif) n'y cotise pas et n'y a pas d'amende.
+Réponse de présence manquante et homme du match (demande de l'auteur, 09/10/2026) : proposées par la
+page, d'après les réponses et les votes des joueurs (dépôt hbpsm-cn, presences.enc).
 
 Usage (dans le workflow) : HBPSM_CLE=… HBPSM_CAISSE='{coffre}' python -m pipeline.caisse
 """
@@ -42,8 +44,9 @@ REGLEMENT = [
          emoji="📰", texte="Toute apparition du nom dans la presse ou sur les réseaux : 1 €."),
     dict(code="presse_photo", partie="Saison", titre="À vos plus beaux sourires !", montant=1, unite="présence sur une photo",
          emoji="📸", texte="Toute apparition en photo dans la presse ou sur les réseaux : 1 € (hors photos d'équipe en match)."),
-    dict(code="e_sporteasy", partie="Entraînement", titre="Absence / Retard", montant=1, unite="non-renseignement SportEasy",
-         emoji="📵", texte="Présence ou absence renseignée sur SportEasy au moins 4 jours avant, 21 h au plus tard."),
+    dict(code="e_sporteasy", partie="Entraînement", titre="Absence / Retard", montant=1, unite="réponse manquante",
+         emoji="📵", texte="Présence ou absence (avec son motif) donnée sur le tableau de bord au moins 4 jours avant, 21 h au "
+         "plus tard ; sans réponse, absent sans justification.", auto=True),
     dict(code="e_retard", partie="Entraînement", titre="Absence / Retard", montant=1, unite="tranche de 5 min de retard",
          emoji="🐢", texte="À l'heure SportEasy, sur le terrain, en tenue complète et échauffé : 1 € par tranche de 5 minutes."),
     dict(code="e_oubli", partie="Entraînement", titre="Tête en l'air", montant=1, unite="élément oublié", emoji="🧦",
@@ -62,8 +65,9 @@ REGLEMENT = [
          texte="Tout scotch à l'entraînement, jeux compris (pas à l'échauffement) : 1 €."),
     dict(code="e_fin_temps", partie="Entraînement", titre="Hop hop hop, fin du temps !", montant=1, unite="5 min dépassées",
          emoji="⏱️", texte="Pour le coach : 1 € par tranche de 5 minutes au-delà du créneau (rentrée au vestiaire)."),
-    dict(code="m_sporteasy", partie="Match", titre="Absence / Retard", montant=2, unite="non-renseignement SportEasy",
-         emoji="📵", texte="Présence ou absence au match renseignée sur SportEasy au moins 5 jours avant, 21 h au plus tard."),
+    dict(code="m_sporteasy", partie="Match", titre="Absence / Retard", montant=2, unite="réponse manquante",
+         emoji="📵", texte="Présence ou absence au match (avec son motif) donnée sur le tableau de bord au moins 4 jours avant, "
+         "21 h au plus tard ; sans réponse, absent sans justification.", auto=True),
     dict(code="m_retard", partie="Match", titre="Absence / Retard", montant=2, unite="tranche de 5 min de retard", emoji="🐢",
          texte="À l'heure et au lieu de rendez-vous du coach : 2 € par tranche de 5 minutes."),
     dict(code="m_oubli", partie="Match", titre="Tête en l'air", montant=2, unite="élément oublié", emoji="🧥",
@@ -95,7 +99,8 @@ REGLEMENT = [
     dict(code="m_scotch", partie="Match", titre="Scotch / Pastis", montant=2, unite="scotch", emoji="🧱",
          texte="Scotché par le gardien adverse en match : 2 €."),
     dict(code="m_mvp", partie="Match", titre="MVP", montant=2, unite="homme du match", emoji="🏆",
-         texte="L'homme du match élu sur SportEasy s'acquitte de 2 €."),
+         texte="L'homme du match, élu par les joueurs de la feuille dans les 48 h qui suivent le match, s'acquitte de 2 €.",
+         auto=True),
     dict(code="m_fessee", partie="Match", titre="La fessée !", montant=None, unite="tournée du coach", emoji="🍻",
          texte="Victoire d'au moins 20 buts (championnat, coupe ou amical) : tournée ou présent du coach.", auto=True, nature=True),
 ]

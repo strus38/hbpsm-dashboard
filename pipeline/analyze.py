@@ -1426,6 +1426,26 @@ def cup_ahead(fixtures, config, today, league):
     return out
 
 
+def club_agenda(fixtures, matches, config, roster):
+    """Tous les matchs du club de la saison, championnat et coupe, joués ou à venir (sans ceux contre une
+    équipe en forfait général) : les réponses de présence et le vote de l'homme du match s'y rapportent
+    (demande de l'auteur, 09/10/2026). joueurs : les joueurs de l'effectif sur la feuille, quand elle est
+    lue (ils élisent l'homme du match)."""
+    played = {str(m.get("id")): m for m in matches}
+    out = []
+    for f in fixtures:
+        dom = is_club(f.get("home"), config)
+        if f.get("externe") or not (dom or is_club(f.get("away"), config)):
+            continue
+        sheet = ((played.get(str(f["id"])) or {}).get("players") or {}).get("home" if dom else "away") or []
+        who = ["R:" + k for k in (match_name(pl.get("name"), roster) for pl in sheet) if k]
+        out.append(dict(id=str(f["id"]), date=f.get("date"), provisoire=bool(f.get("date_provisoire")),
+                        adversaire=f["away"] if dom else f["home"], domicile=dom, journee=f.get("journee"),
+                        coupe=f.get("coupe"), tour=f.get("tour"), bp=f.get("score_home" if dom else "score_away"),
+                        bc=f.get("score_away" if dom else "score_home"), joueurs=sorted(set(who))))
+    return sorted(out, key=lambda x: x["date"] or "9999")
+
+
 def cup_results(matches, fixtures, config):
     """Le parcours du club en coupe : matchs joués (score, feuille lue) et à venir."""
     played = {m["id"]: m for m in matches if m.get("coupe")}
@@ -1606,6 +1626,10 @@ def analyze(today=None, roster=None):
                                feuille=bool((m.get("players") or {}).get("home")))
                           for m in matches), key=lambda r: r["date"] or "", reverse=True),
         coupes=cup_results(every_match, every_fixture, config),
+        # présences et homme du match (demande de l'auteur, 09/10/2026) : les matchs du club, les jours
+        # d'entraînement et les délais de réponse ; les réponses elles-mêmes sont lues par la page
+        agenda=club_agenda(every_fixture, every_match, config, roster),
+        presences=dict(config.get("presences") or {}, jours=(config.get("entrainement") or {}).get("jours") or [1, 4]),
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
         chances=chances, trajectoire=trajet,

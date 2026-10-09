@@ -164,3 +164,15 @@ entrainement:
   categorie_age: "+18 ans"
   # jours d'entraînement : 0 = lundi ... 6 = dimanche
   jours: [1, 4]
+# Présences (demande de l'auteur, 09/10/2026) : chacun dit sur la page s'il vient à chaque entraînement et à chaque
+# match, au plus tard `delai_jours` avant, à `heure_limite` (règlement de la caisse noire) ; absent : malade, blessé,
+# vacances ou autre (un mot obligatoire). Sans réponse à temps : absent sans justification, et l'amende du règlement
+# (e_sporteasy, m_sporteasy) proposée aux trésoriers pour les séances et les matchs à partir de `amendes_depuis`.
+# Les réponses partent au dépôt des propositions (presences.enc). L'homme du match est élu par les joueurs de la
+# feuille pendant `vote_heures` après le match.
+presences:
+  debut: "2026-10-10"            # premier match où l'homme du match est élu
+  delai_jours: 4
+  heure_limite: "21:00"
+  amendes_depuis: "2026-10-16"
+  vote_heures: 48

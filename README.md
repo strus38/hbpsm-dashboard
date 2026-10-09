@@ -435,13 +435,46 @@ alignée (les notes).
 ## Caisse noire : propositions de tous
 
 N'importe quel joueur qui a la phrase du club et qui est à jour de sa cotisation propose une amende
-depuis l'onglet Caisse noire : il dit qui il est, choisit le joueur et la règle, puis touche « Proposer
+depuis l'onglet Caisse noire : il a dit qui il est (« Qui êtes-vous ? »), choisit le joueur et la règle, puis touche « Proposer
 l'amende ». La proposition part,
 chiffrée, au dépôt public à part `strus38/hbpsm-cn` (code tenu dans `cn/`), avec un jeton limité à
 ce seul dépôt : la collecte le range dans les données chiffrées, personne n'a rien à coller. Tout le
 monde la voit d'ici une à deux minutes ; seuls les trésoriers la valident ou la refusent. Même extrait
 de la page, ce jeton ne permet que d'ajouter une proposition, jamais de valider une amende ni de
 toucher au tableau de bord. Secrets : `HBPSM_JETON_CN` ici, `HBPSM_CLE` dans les deux dépôts.
+
+## Présences et homme du match
+
+Onglet « Présences » (et « À répondre » dans Ma semaine). À sa première ouverture, la page demande
+« Qui êtes-vous ? » : chacun choisit son nom une fois sur son appareil. Ce choix part au dépôt
+`strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est signalé (« C'est bien moi » ou
+« Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est déclaré comme lui. On peut
+toujours se redéclarer (« changer ») : l'équipe règle les doublons entre elle.
+
+- Chacun répond pour chaque entraînement (jours de `entrainement.jours`) et chaque match du club,
+  au plus tard 4 jours avant, 21 h (`presences` dans `config.yml`) : « Présent », ou « Absent » avec
+  un motif (malade, blessé, vacances, autre ; « autre » demande un mot). « Absent plusieurs jours »
+  couvre d'un coup les séances et les matchs d'une période.
+- Seul l'entraîneur voit les réponses des autres ; un joueur ne voit que les siennes, ni les réponses
+  ni le nombre de présents des autres (demande de l'auteur, 09/10/2026). Le journal est chiffré avec
+  la phrase du club : comme le mode entraîneur, c'est un usage, pas un verrou.
+- Feuille proposée (entraîneur) : un joueur qui a dit ne pas venir sort ; si assez de joueurs ont dit
+  venir (10 joueurs de champ et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon,
+  comme avant, parmi tous les disponibles. Un clic de l'entraîneur prime sur la réponse. En
+  consultation, la suggestion ne tient compte que de la réponse de celui qui regarde.
+- L'entraîneur voit, match par match, la feuille, ceux qui ont dit venir, ceux qui n'ont pas répondu
+  et les absents avec leur motif, et retient ou retire d'un bouton ; puis il valide la feuille. Pour
+  chaque entraînement : joueurs de champ et gardiens annoncés, absents, sans réponse ; il peut
+  annuler une séance (publié avec ses choix). La séance exportée vers HANDBALL-training porte le
+  nombre de joueurs de champ et de gardiens annoncés (`effectifJoueurs`, `effectifGardiens`).
+- Sans réponse à temps : « absent – sans justification » et l'amende du règlement (1 € entraînement,
+  2 € match) proposée aux trésoriers, pour les séances et les matchs à partir de `amendes_depuis`.
+- Homme du match : les joueurs de la feuille (lue, sinon celle publiée par l'entraîneur) votent
+  pendant 48 h après le match, pas pour eux-mêmes ; le résultat est visible de tous (Présences, bilan
+  de la Semaine) et l'amende « MVP » (2 €) proposée aux trésoriers.
+
+Tout part par le même jeton et le même workflow que les propositions d'amendes, dans un journal à part,
+`presences.enc`.
 
 ## Lien avec l'application de préparation des entraînements
 

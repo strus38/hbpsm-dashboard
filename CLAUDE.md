@@ -30,7 +30,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (14 tests, `python -m pytest -q`, une vingtaine de secondes) sur un faux site et de fausses
+Testé (56 tests au 09/10/2026, `python -m pytest -q`, deux minutes environ) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -500,6 +500,46 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   restent ceux de la force alignée, choix de l'auteur sur les notes) ; `pronoLive` dans la Projection,
   `pronoCompare` / `pronoPast` (Adversaires), bilan de la Semaine, `pronoSaison` (onglet Saison : matchs joués
   et prochain seulement, biais annoncé à partir de 3 matchs).
+- Présences et homme du match (demande de l'auteur, 09/10/2026 ; remplace SportEasy) : onglet « Présences »
+  (`viewPresences`, 2e onglet de l'entraîneur sur téléphone à la place de Joueurs), « À répondre » dans Ma semaine
+  (`todoBlock`). « Qui êtes-vous ? » (`quiBlock`) à l'ouverture tant que l'appareil n'a pas dit qui il est (« hbpsm:moi » ;
+  « hbpsm:moi-aucun » : pas joueur) ; chaque choix (`setMe`, un appareil = « hbpsm:appareil ») part en op `moi` ; un
+  nom pris par un autre appareil (dernier choix de chaque appareil, `othersAs`) est signalé, « C'est bien moi » ou un
+  autre nom ; l'appareil d'origine voit l'avertissement (`conflictNote`) ; « changer » rouvre le choix ; un choix
+  d'avant le 09/10 est partagé au démarrage (`ensureClaim`). Pas un verrou : l'équipe règle les doublons. Le
+  sélecteur « Vous êtes » libre de la caisse a disparu (trésoriers : `#cme`, passe aussi par `setMe`).
+  Réponses (`declare`, op `dispo` : `evs` = « E-AAAA-MM-JJ » séance, « M-<rencontre> » match, 60 au plus ; `etat`
+  present / absent ; `motif` malade, blesse, vacances, autre ; `texte`, obligatoire pour « autre », choix de lecture
+  de la demande) au plus tard `delai_jours` (4) avant, `heure_limite` (21:00) ; « Absent plusieurs jours »
+  (`periodBlock`). Statut (`statusOf`) : dernière réponse ; `retard` si la première est après la limite ; sans
+  réponse, « attente », puis « sans » (absent – sans justification) une fois la limite passée, à partir de
+  `amendes_depuis`. Heure d'un envoi (`opTime`, `presences.op_time`) : celle de l'appareil, sauf réception plus d'un
+  jour après. CONFIDENTIALITÉ (demande de l'auteur, 09/10/2026) : seul l'entraîneur voit les réponses des autres ;
+  un joueur ne voit que les siennes, jamais les nombres de présents (`seesAnswer`, `playerSays` ; en consultation la
+  suggestion n'applique que la réponse de celui qui regarde, `restricts` est réservé à l'entraîneur). Le journal est
+  chiffré avec la phrase du club que tous ont : usage, pas verrou (chiffrer pour une clé de l'entraîneur serait
+  l'étape suivante si l'auteur la veut). Les amendes proposées ne disent que « pas de réponse » ou « en retard ».
+  Feuille (`availOf`) : la saisie de l'entraîneur prime ; dit absent : sort ; si assez ont dit venir (gardiens et
+  joueurs de champ comptés à part : 2 et 10, 2 et 12 en coupe), la feuille se fait parmi eux (`noAnswerOut`, case
+  « sans rép. », `.cell.nr`) ; sinon l'algorithme d'avant. Un clic sur la case d'un absent par sa réponse le
+  retient quand même (`dm` « d »). Tableau de l'entraîneur (`boardBlock`) : sur la feuille, ont dit venir, sans
+  réponse, absents (motif, retard) ; « Retenir » / « Retirer » (`moveSel`, comme `cycleCell`) ; séances
+  (`trainingsBlock`) : joueurs de champ + gardiens annoncés, listes, « Pas d'entraînement ce jour-là » (`S.annule`,
+  publié dans choix.enc `annulees`, vérifié par `choix.check`). Amendes proposées aux trésoriers (`presenceFines`) :
+  `e_sporteasy` 1 €, `m_sporteasy` 2 € (règlement : « 4 jours avant » pour les deux, demande de l'auteur ; le texte
+  d'avant disait 5 pour le match), id « regle:<repère>:<joueur> », seulement les participants de la caisse, jamais
+  avant la lecture du journal. Homme du match (`ballot`, `voteCard`, `vote`, op `vote`) : électeurs = joueurs de la
+  feuille lue (`agenda[].joueurs`), sinon feuille publiée par l'entraîneur ; vote ouvert du coup d'envoi + 90 min
+  pendant `vote_heures` (48) (horaire provisoire : dès que le score est connu, jusqu'au lendemain 22 h + 48 h),
+  pas pour soi, le dernier vote compte ; résultat visible de tous (Présences, Ma semaine, bilan de la Semaine)
+  une fois clos, ex aequo tous élus ; `m_mvp` (2 €) proposé (`motmFines`) ; seulement à partir de `debut`
+  (2026-10-10). Collecte : `analyze.club_agenda` -> `D.agenda` (matchs du club joués et à venir, sans forfait,
+  joueurs de la feuille), `D.presences` (réglages et jours d'entraînement) ; `pipeline/presences.py` lit le journal
+  (`journal`, adresse `url`) pour `effectifJoueurs` / `effectifGardiens` de la séance exportée (nombres seulement,
+  dans l'empreinte du manifeste). Dépôt hbpsm-cn : `propositions.py` accepte `proposition` (-> propositions.enc) et
+  `moi`, `dispo`, `vote` (-> presences.enc, 20 000 au plus), ajoute `recu` ; workflow « Envoi d'un joueur »
+  (`git add -- *.enc`). Page : `CFG.presences`, `fetchPresences` (copie « hbpsm:presences »), même boîte d'envoi
+  que les propositions (`cnOutbox`, `sendCN`).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

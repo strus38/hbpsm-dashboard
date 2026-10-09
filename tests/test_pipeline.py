@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, pronostic, publish, sante, vault
+from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, presences, pronostic, publish, sante, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 import pathlib
@@ -49,6 +49,7 @@ def sandbox(tmp_path, monkeypatch):
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, val)
     monkeypatch.setattr(publish, "ROOT", tmp_path)
+    monkeypatch.setattr(presences, "fetch", lambda address: None)   # jamais le vrai journal des présences
     monkeypatch.setattr(sante, "ROOT", tmp_path)
     monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
@@ -633,7 +634,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.evaluate("document.documentElement.dataset.theme") == "light"
         page.click("#theme-btn")
         assert page.evaluate("document.documentElement.dataset.theme") is None
-        for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
+        for tab in ("semaine", "planif", "convoc", "presences", "joueurs", "adv", "saison"):
             page.evaluate("t => { S.tab = t; render(false); }", tab)
             assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0, tab
             # rien ne déborde de sa case (les colonnes de la planification sont étroites)
@@ -656,7 +657,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # quatre onglets selon le mode (ici l'entraîneur), les autres sous « Plus »
         assert page.locator("nav.tabs button[data-tab=adv]").is_hidden() and page.locator("nav.tabs [data-plus]").is_visible()
         page.click("nav.tabs [data-plus]")
-        assert sorted(page.evaluate("[...document.querySelectorAll('#plus-menu button[data-tab]')].map(b => b.dataset.tab)")) == ["adv", "caisse", "moi", "saison"]
+        assert sorted(page.evaluate("[...document.querySelectorAll('#plus-menu button[data-tab]')].map(b => b.dataset.tab)")) == ["adv", "caisse", "joueurs", "moi", "saison"]
         page.click("#plus-menu button[data-tab=adv]")
         assert page.evaluate("S.tab") == "adv" and page.locator("#plus-menu").is_hidden() and "on" in page.get_attribute("nav.tabs [data-plus]", "class")
         page.click("nav.tabs button[data-tab=planif]")
@@ -913,9 +914,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         ro.locator("[data-cpick-r=m_oubli]").click()
         assert ro.locator("[data-cgo]").count() == 0 and ro.locator("[data-cdenonce]").count() == 1
         # seul un joueur à jour de sa cotisation dénonce : il dit qui il est ; l'entraîneur (payée) oui, sans elle non
-        ro.select_option("#cmoi", "")
+        ro.evaluate("localStorage.removeItem('hbpsm:moi'); localStorage.setItem('hbpsm:moi-aucun', '1'); render(true)")
         assert ro.locator("[data-cdenonce]").is_disabled() and "qui vous êtes" in ro.inner_text(".picker .cstop")
-        ro.select_option("#cmoi", coach)
+        ro.evaluate(f"setMe({json.dumps(coach)}); render(true)")
         assert ro.locator("[data-cdenonce]").is_enabled() and ro.locator(".picker .cstop").count() == 0
         ro.evaluate("window.__caisse = CAISSE; CAISSE = {ops: CAISSE.ops.filter(o => o.regle !== 'cotisation')}; render(true)")
         assert ro.locator("[data-cdenonce]").is_disabled() and "réglez vos" in ro.inner_text(".picker .cstop")
@@ -954,9 +955,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         # elle part au dépôt à part, tout le monde la voit, seul un trésorier la valide
         ro.evaluate("""D.caisse.jeton_cn = "jeton-cn-test"; CFG.cn = CFG.caisse.replace("caisse.enc", "propositions.enc");
           CFG.cn_depot = "exemple/cn"; CFG.cn_workflow = "proposer.yml"; render(true)""")
-        ro.select_option("#cmoi", "")
+        ro.evaluate("localStorage.removeItem('hbpsm:moi'); localStorage.setItem('hbpsm:moi-aucun', '1'); render(true)")
         assert ro.locator("[data-cpropose]").is_disabled()   # d'abord : qui propose ?
-        ro.select_option("#cmoi", coach)
+        ro.evaluate(f"setMe({json.dumps(coach)}); render(true)")
         before = len(sent)
         ro.locator("[data-cpropose]").click()
         wait_sent(before + 1)
@@ -1099,6 +1100,322 @@ def test_depot_des_propositions(tmp_path, monkeypatch):
         send(**bad)
         with pytest.raises(cn.vault.VaultError):
             cn.main(book)
+
+
+def cn_module(monkeypatch, name):
+    """Le module du dépôt à part (strus38/hbpsm-cn), chiffrement allégé pour les tests."""
+    import importlib.util
+    sys.path.insert(0, str(ROOT_DIR / "cn"))
+    spec = importlib.util.spec_from_file_location(name, ROOT_DIR / "cn" / "propositions.py")
+    cn = importlib.util.module_from_spec(spec); spec.loader.exec_module(cn)
+    monkeypatch.setattr(cn.vault, "ITERATIONS", 2000)
+    monkeypatch.setattr(cn.vault.encrypt, "__defaults__", (2000,))
+    return cn
+
+
+def test_depot_des_presences(tmp_path, monkeypatch):
+    """Réponses de présence, « Vous êtes » et votes (demande de l'auteur, 09/10/2026) : même dépôt et même workflow que
+    les propositions, rangés à part dans presences.enc, avec l'heure de réception ; absent : un motif, « autre » : un mot."""
+    cn = cn_module(monkeypatch, "propositions_cn_pres")
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    send = lambda ops: monkeypatch.setenv("HBPSM_PROP", json.dumps(cn.vault.encrypt(dict(format="hbpsm-cn", v=1, ops=ops), PHRASE, 2000)))
+    moi = dict(id="moi:1", t="moi", joueur="R:EXEMPLE ISIDORE", app="appareil-1", le="2026-10-09T10:00:00.000Z")
+    oui = dict(id="d:1", t="dispo", joueur="R:EXEMPLE ISIDORE", evs=["E-2026-10-16", "M-42"], etat="present", motif="", texte="",
+               app="appareil-1", le="2026-10-09T10:01:00.000Z")
+    non = dict(oui, id="d:2", evs=["E-2026-10-20"], etat="absent", motif="autre", texte="mariage")
+    vote = dict(id="vote:1", t="vote", match="42", joueur="R:EXEMPLE ISIDORE", pour="R:MODELE JEAN", app="appareil-1", le="2026-10-11T22:00:00.000Z")
+    prop = dict(id="prop:1", t="proposition", joueur="R:MODELE JEAN", regle="m_oubli", n=1, montant=2, date="2026-10-10",
+                note="", par="R:EXEMPLE ISIDORE", le="2026-10-10T20:00:00Z", match=None)
+    send([moi, oui, non, vote, prop])
+    book, pres = tmp_path / "propositions.enc", tmp_path / "presences.enc"
+    assert cn.main(book) == 0 and cn.main(book) == 0   # renvoyés : comptés une fois
+    journal = cn.vault.decrypt(json.loads(pres.read_text("utf-8")), PHRASE)
+    assert [o["id"] for o in journal["ops"]] == ["moi:1", "d:1", "d:2", "vote:1"] and all(o["recu"].endswith("Z") for o in journal["ops"])
+    assert [o["id"] for o in cn.vault.decrypt(json.loads(book.read_text("utf-8")), PHRASE)["ops"]] == ["prop:1"]
+    for bad in (dict(non, id="d:3", motif=""),                       # absent sans motif
+                dict(non, id="d:4", texte="  "),                     # « autre » sans un mot
+                dict(oui, id="d:5", motif="malade"),                 # présent avec un motif
+                dict(non, id="d:6", motif="fatigue"),                # motif inconnu
+                dict(oui, id="d:7", evs=["E-2026-10-16"] * 61),      # trop de séances d'un coup
+                dict(oui, id="d:8", etat="peut-etre"),
+                dict(vote, id="vote:2", pour=""), dict(moi, id="moi:2", nom="en clair")):
+        send([bad])
+        with pytest.raises(cn.vault.VaultError):
+            cn.main(book)
+    # ce que lit la collecte : les présents d'une séance, joueurs de champ et gardiens, jamais un nom
+    joueurs = [dict(cle="R:EXEMPLE ISIDORE", poste="ARG", gardien=False), dict(cle="R:MODELE JEAN", poste="GB", gardien=True),
+               dict(cle="R:ESSAI ZEPHYRIN", poste="PIV", gardien=False)]
+    ops = journal["ops"] + [dict(id="d:9", t="dispo", joueur="R:MODELE JEAN", evs=["E-2026-10-16"], etat="present", le="2026-10-09T11:00:00Z"),
+                            dict(id="d:10", t="dispo", joueur="R:ESSAI ZEPHYRIN", evs=["E-2026-10-16"], etat="present", le="2026-10-09T11:00:00Z"),
+                            dict(id="d:11", t="dispo", joueur="R:ESSAI ZEPHYRIN", evs=["E-2026-10-16"], etat="absent", motif="malade", le="2026-10-10T08:00:00Z")]
+    assert presences.training_counts(ops, "2026-10-16", joueurs) == (1, 1)   # le dernier mot compte
+    assert presences.training_counts(ops, "2026-10-13", joueurs) == (0, 0)
+    # une horloge fausse : arrivé plus d'un jour après, c'est l'heure de réception qui compte
+    late = dict(id="x", le="2026-10-01T10:00:00Z", recu="2026-10-05T10:00:00Z")
+    assert presences.op_time(late).day == 5 and presences.op_time(dict(late, recu="2026-10-01T10:05:00Z")).day == 1
+
+
+def test_presences_dans_la_collecte(sandbox, monkeypatch):
+    """La collecte : les matchs du club et les délais pour la page, l'effectif annoncé de la prochaine séance dans le
+    fichier de HANDBALL-training, les séances annulées publiées par l'entraîneur."""
+    demo(sandbox)
+    (sandbox / "roster.csv").write_text("nom,poste,disponible\n" + "".join(f"{n},{p}\n" for n, p in zip(
+        [f"Joueur {k:02d}" for k in range(1, 15)], demo_data.POSTES)), "utf-8")
+    d = an.analyze("2026-10-04")
+    assert d["presences"]["delai_jours"] == 4 and d["presences"]["jours"] == [1, 4] and d["presences"]["vote_heures"] == 48
+    ag = d["agenda"]
+    assert ag and all(m["id"] and "adversaire" in m for m in ag) and ag == sorted(ag, key=lambda m: m["date"] or "9999")
+    played = [m for m in ag if m["bp"] is not None]
+    assert played and all(k.startswith("R:") for m in played for k in m["joueurs"]) and any(m["joueurs"] for m in played)
+    assert {m["id"] for m in ag} >= {str(m["id"]) for m in d["saison"]["matchs"]}
+    keepers = [p["cle"] for p in d["joueurs"] if p["gardien"]]
+    field = [p["cle"] for p in d["joueurs"] if not p["gardien"] and p["cle"].startswith("R:")]
+    ops = [dict(id=f"d:{k}", t="dispo", joueur=c, evs=["E-2026-10-06"], etat="present", le="2026-10-01T10:00:00Z")
+           for k, c in enumerate(keepers[:1] + field[:9])]
+    _, fichier = build_exports(d, sandbox / "docs", today="2026-10-05", answers=ops)
+    s = fichier["contenu"]["seance"]
+    assert s["date"] == "2026-10-06" and (s["effectifJoueurs"], s["effectifGardiens"]) == (9, 1)
+    assert "Joueur 0" not in json.dumps(fichier, ensure_ascii=False)
+    # séances annulées : publiées avec les choix de l'entraîneur, de la forme attendue
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    good = dict(format="hbpsm-choix", v=1, matchs={}, annulees=["2026-10-27", "2026-10-30"])
+    monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(good, PHRASE, 2000)))
+    assert choix.main() == 0
+    for bad in (dict(good, annulees="2026-10-27"), dict(good, annulees=["27/10"])):
+        monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(bad, PHRASE, 2000)))
+        with pytest.raises(vault.VaultError):
+            choix.main()
+
+
+def test_presences_dans_la_page(sandbox, monkeypatch):
+    """Dans la page (demande de l'auteur, 09/10/2026) : chacun dit qui il est, un nom déjà pris est signalé et l'on
+    peut se redéclarer ; chacun répond pour lui seul et ne voit que ses réponses ; l'entraîneur voit tout, bouge la
+    feuille, annule une séance ; sans réponse à temps, l'amende est proposée ; l'homme du match est élu par les
+    joueurs de la feuille, son nom visible de tous et son amende proposée."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setattr(vault, "ITERATIONS", 2000)
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    monkeypatch.setenv("HBPSM_JETON_CN", "jeton-cn-test")
+    demo(sandbox)
+    (sandbox / "roster.csv").write_text("nom,poste,disponible\n" + "".join(f"{n},{p}\n" for n, p in zip(
+        [f"Joueur {k:02d}" for k in range(1, 15)], demo_data.POSTES)), "utf-8")
+    publish.seal("2026-10-04")
+    out = sandbox / "publie"
+    cn = cn_module(monkeypatch, "propositions_cn_page")
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def end_headers(self):  # comme raw.githubusercontent.com
+            self.send_header("Access-Control-Allow-Origin", "*")
+            super().end_headers()
+
+        def log_message(self, *a, **k):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Handler, directory=str(out)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}/"
+    page_file = sandbox / "tableau.html"
+    page_file.write_text(render(None, dict(src=base + "hbpsm.enc", manifeste=base + "manifeste.json", versions="",
+                                           choix=base + "choix.enc", caisse=base + "caisse.enc", depot="exemple/depot", branche="main",
+                                           cn=base + "propositions.enc", cn_depot="exemple/cn", cn_branche="main", cn_workflow="proposer.yml",
+                                           presences=base + "presences.enc", iterations=2000, club="HBPSM", verif=600)), "utf-8")
+    sent, errors = [], []
+
+    def github(route):
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST"}
+        if route.request.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        sent.append(dict(url=route.request.url, body=json.loads(route.request.post_data)))
+        route.fulfill(status=204, headers=cors)
+
+    def wait_sent(pg, n):
+        for _ in range(200):
+            if len(sent) >= n:
+                return
+            pg.wait_for_timeout(100)
+        raise AssertionError("rien envoyé à GitHub")
+
+    def apply(*pages):   # ce que fait le workflow du dépôt à part, puis chaque page relit le journal
+        monkeypatch.setenv("HBPSM_PROP", sent[-1]["body"]["inputs"]["prop"])
+        assert sent[-1]["url"].endswith("/repos/exemple/cn/actions/workflows/proposer.yml/dispatches")
+        assert cn.main(out / "propositions.enc") == 0
+        for pg in pages:
+            pg.evaluate("fetchPresences().then(() => render(true))")
+            pg.wait_for_function("() => cnOutbox().length === 0", timeout=10000)
+        return cn.check(json.loads(sent[-1]["body"]["inputs"]["prop"]), PHRASE)
+
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+
+        def device(hash=""):
+            ctx = browser.new_context()
+            ctx.route("https://api.github.com/**", github)
+            pg = ctx.new_page()
+            pg.on("pageerror", lambda e: errors.append(str(e)))
+            pg.goto(page_file.as_uri() + hash)
+            pg.wait_for_selector("#phrase")
+            pg.fill("#phrase", PHRASE)
+            pg.click("#unlock")
+            pg.wait_for_selector("header.top h1")
+            pg.wait_for_function("() => PRESJ !== null", timeout=10000)   # pas encore de journal : vide
+            return pg
+
+        # 1. « Vous êtes » : demandé d'emblée ; le choix part au dépôt à part
+        a = device()
+        assert a.locator(".qui").is_visible() and "Qui êtes-vous" in a.inner_text(".qui")
+        squad = a.evaluate("squad().map(p => p.cle)")
+        assert len(squad) == 14
+        k1, k2, k3 = [a.evaluate(f"D.joueurs.find(p => p.nom === 'Joueur {n}').cle") for n in ("05", "06", "07")]
+        a.click(f".qui [data-qui='{k1}']")
+        wait_sent(a, 1)
+        assert a.evaluate("stored(MOI)") == k1 and a.evaluate("S.tab") == "moi" and a.locator(".qui").count() == 0
+        assert [(o["t"], o["joueur"]) for o in apply(a)] == [("moi", k1)] and not (out / "propositions.enc").exists()
+        # un autre appareil prend le même nom : signalé ; il confirme, puis se redéclare sous le sien
+        b = device()
+        assert "déjà pris" in b.inner_text(f".qui [data-qui='{k1}']")
+        b.click(f".qui [data-qui='{k1}']")
+        assert "déjà été choisi sur un autre appareil" in b.inner_text(".qui")
+        b.click("[data-qui-ok]")
+        wait_sent(b, 2)
+        apply(a, b)
+        assert "Un autre appareil s'est aussi déclaré comme Joueur 05" in a.inner_text("main")
+        b.click("[data-qui-open]")
+        b.click(f".qui [data-qui='{k2}']")
+        wait_sent(b, 3)
+        apply(a, b)
+        assert b.evaluate("stored(MOI)") == k2 and "Un autre appareil" not in a.inner_text("main")
+
+        # 2. les réponses : présent d'un geste ; absent avec un motif, « autre » avec un mot obligatoire
+        ev = a.evaluate("events(addDays(ymd(new Date()), 6), addDays(ymd(new Date()), 13)).find(e => e.type === 'e').id")
+        a.evaluate("""(() => { const d = addDays(ymd(new Date()), 10), adv = D.saison.matchs[0].adversaire;
+          D.agenda.push({id: "9901", date: d + "T20:30", provisoire: false, adversaire: adv, domicile: true, joueurs: []});
+          S.tab = "presences"; render(false); })()""")
+        assert "Mes réponses" in a.inner_text("main") and "ont dit venir" not in a.inner_text("main")
+        a.click(f"[data-rep='{ev}']")
+        wait_sent(a, 4)
+        assert [(o["t"], o["etat"], o["evs"]) for o in apply(a)] == [("dispo", "present", [ev])]
+        a.click("[data-rep-abs='M-9901']")
+        a.click("[data-motif=autre]")
+        assert a.locator("[data-rep-envoi]").is_disabled()
+        a.fill("#pf-texte", "mariage de mon frère")
+        assert a.locator("[data-rep-envoi]").is_enabled()
+        a.click("[data-rep-envoi]")
+        wait_sent(a, 5)
+        ops = apply(a)
+        assert [(o["etat"], o["motif"], o["texte"], o["evs"]) for o in ops] == [("absent", "autre", "mariage de mon frère", ["M-9901"])]
+        assert a.evaluate(f"statusOf({json.dumps(k1)}, {{id: '{ev}', day: '{ev[2:]}'}}).etat") == "present"
+        assert "✓ présent" in a.inner_text("main") and "✕ absent" in a.inner_text("main")
+        # une période d'absence : tous les entraînements et matchs de ces jours-là
+        a.click("[data-periode]")
+        assert a.evaluate("PF.ev") == "periode"
+        a.evaluate("PF.du = addDays(ymd(new Date()), 20); PF.au = addDays(ymd(new Date()), 26)")
+        assert len(a.evaluate("periodEvents()")) >= 2
+        a.click("[data-rep-annule]")
+
+        # 3. un joueur ne voit que ses réponses : ni celles des autres, ni leur nombre ; en consultation, la
+        # feuille proposée ne tient compte que de la sienne
+        b.evaluate("""(() => { D.agenda.push({id: "9901", date: addDays(ymd(new Date()), 10) + "T20:30", adversaire: D.saison.matchs[0].adversaire,
+          domicile: true, joueurs: []}); S.tab = "presences"; render(false); })()""")
+        assert b.evaluate(f"playerSays(byCle({json.dumps(k1)}), {{id: '9901', date: addDays(ymd(new Date()), 10)}})") == "attente"
+        assert "mariage" not in b.inner_text("main") and "ont dit venir" not in b.inner_text("main") and "Joueur 05" not in b.inner_text("main")
+        m0 = b.evaluate("PLAN[0].m.id")
+        mine = b.evaluate(f"""(() => {{ const e = "M-" + {json.dumps(m0)};
+          PRESJ.ops.push({{id: "t1", t: "dispo", joueur: {json.dumps(k1)}, evs: [e], etat: "absent", motif: "malade", le: new Date().toISOString()}},
+                         {{id: "t2", t: "dispo", joueur: {json.dumps(k2)}, evs: [e], etat: "absent", motif: "vacances", le: new Date().toISOString()}});
+          DECL = null; const r = planning()[0];
+          return [availOf(byCle({json.dumps(k1)}), r.m), availOf(byCle({json.dumps(k2)}), r.m), r.sel.some(p => p.cle === {json.dumps(k2)})]; }})()""")
+        assert mine == ["d", "a", False], mine
+
+        # 4. l'entraîneur voit tout : les réponses, leurs motifs, et bouge la feuille d'un geste
+        c = device("#entraineur")
+        assert c.locator(".qui").count() == 0
+        c.evaluate("S.tab = 'presences'; render(false)")
+        assert "Les matchs" in c.inner_text("main") and "Les entraînements" in c.inner_text("main")
+        board = c.evaluate(f"""(() => {{ const m = PLAN[0].m, e = "M-" + m.id, gk = D.joueurs.filter(isGK), fld = D.joueurs.filter(p => !isGK(p));
+          const says = (p, etat, motif) => PRESJ.ops.push({{id: "c" + p.cle, t: "dispo", joueur: p.cle, evs: [e], etat, motif: motif || "", texte: "",
+                                                            le: new Date().toISOString()}});
+          gk.forEach(p => says(p, "present")); fld.slice(0, 10).forEach(p => says(p, "present")); says(fld[10], "absent", "malade");
+          DECL = null; render(true); const r = PLAN[0], quiet = fld[11];
+          return {{n: r.sel.length, all: r.sel.every(p => statusOf(p.cle, evMatch(m)).etat === "present"), quiet: quiet.cle,
+                   out: availOf(quiet, m), nr: noAnswerOut(quiet, m), sick: fld[10].cle}}; }})()""")
+        assert board["n"] == 12 and board["all"] and board["out"] == "a" and board["nr"], board
+        assert "Malade" in c.inner_text(".board") and "Sans réponse" in c.inner_text(".board")
+        c.click(f".board [data-sel$='|{board['quiet']}|in']")
+        assert c.evaluate(f"PLAN[0].sel.some(p => p.cle === {json.dumps(board['quiet'])})") and c.evaluate("PLAN[0].sel.length") == 12
+        c.click(f".board [data-sel$='|{board['quiet']}|out']")
+        assert not c.evaluate(f"PLAN[0].sel.some(p => p.cle === {json.dumps(board['quiet'])})")
+        # en planification, la case dit pourquoi
+        c.evaluate("S.tab = 'planif'; render(false)")
+        assert "il l'a dit (🤒 Malade)" in c.get_attribute(f".plan button.cell[data-cell='{m0}|{board['sick']}']", "title")
+        # pas assez de réponses : comme avant, parmi tous les disponibles
+        c.evaluate("PRESJ.ops = PRESJ.ops.filter(o => !String(o.id).startsWith('c')); render(true)")
+        assert c.evaluate(f"availOf(byCle({json.dumps(board['sick'])}), PLAN[0].m)") == "d"
+        # une séance annulée : publiée avec les choix ; plus personne n'y répond
+        day = c.evaluate("events(addDays(ymd(new Date()), 1), addDays(ymd(new Date()), 8)).find(e => e.type === 'e').day")
+        c.evaluate("S.tab = 'presences'; render(false)")
+        c.locator(f"[data-annule='{day}']").dispatch_event("click")   # dans le tiroir de la séance
+        assert c.evaluate("statusPending()") and c.evaluate(f"annuleesNow()") == [day]
+        c.evaluate("localStorage.setItem('hbpsm:jeton', 'jeton-de-test')")
+        before = len(sent)
+        c.click("[data-publier-blessures]")
+        wait_sent(c, before + 1)
+        assert sent[-1]["url"].endswith("/actions/workflows/choix.yml/dispatches")
+        assert choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)["annulees"] == [day]
+
+        # 5. sans réponse à temps : l'amende du règlement, proposée aux trésoriers ; à l'heure, rien ; en retard, dit
+        fines = c.evaluate(f"""(() => {{ const today = ymd(new Date()); D.presences.amendes_depuis = addDays(today, -12);
+          const past = events(addDays(today, -12), today).filter(e => e.type === "e" && deadline(e) < new Date());
+          const [e1, e2] = past, k = {json.dumps(k1)};
+          PRESJ.ops.push({{id: "f1", t: "dispo", joueur: k, evs: [e1.id], etat: "absent", motif: "blesse", le: new Date(deadline(e1) - 3600e3).toISOString()}},
+                         {{id: "f2", t: "dispo", joueur: k, evs: [e2.id], etat: "present", le: new Date(deadline(e2).getTime() + 3600e3).toISOString()}});
+          DECL = null; const F = presenceFines(ledger()).filter(f => f.joueur === k && f.regle === "e_sporteasy");
+          return {{ids: F.map(f => f.id), e1: e1.id, e2: e2.id, motif: (F.find(f => f.id.includes(e2.id)) || {{}}).motif || "",
+                   regle: [...new Set(F.map(f => f.regle))], n: past.length}}; }})()""")
+        assert fines["n"] >= 2 and len(fines["ids"]) == fines["n"] - 1, fines
+        assert not any(fines["e1"] in i for i in fines["ids"]) and "en retard" in fines["motif"] and fines["regle"] == ["e_sporteasy"]
+        assert "mariage" not in json.dumps(fines) and "blesse" not in json.dumps(fines)
+
+        # 6. l'homme du match : les joueurs de la feuille votent pendant 48 h, pas pour eux-mêmes
+        ago = a.evaluate("""(() => { const d = new Date(Date.now() - 3 * 3600e3), two = n => String(n).padStart(2, "0");
+          return ymd(d) + "T" + two(d.getHours()) + ":" + two(d.getMinutes()); })()""")
+        hdm = json.dumps(dict(id="9902", date=ago, provisoire=False, adversaire="Equipe Fictive", domicile=False,
+                              bp=30, bc=25, joueurs=[k1, k2, k3]))
+        # un match d'avant la mise en place du vote (config.yml, presences.debut) : pas de vote
+        assert c.evaluate(f"(() => {{ D.presences.debut = addDays(ymd(new Date()), 1); return ballot({hdm}) === null; }})()")
+        for pg in (a, b, c):
+            pg.evaluate(f"D.presences.debut = ''; D.agenda.push({hdm}); render(true)")
+        a.evaluate("S.tab = 'moi'; render(false)")
+        assert a.locator(".vote [data-vote]").count() == 2 and a.locator(f".vote [data-vote='9902|{k1}']").count() == 0
+        n = len(sent)
+        a.click(f".vote [data-vote='9902|{k2}']")
+        wait_sent(a, n + 1)
+        n = len(sent)
+        assert [(o["t"], o["match"], o["pour"]) for o in apply(a, b, c)] == [("vote", "9902", k2)]
+        b.evaluate("S.tab = 'presences'; render(false)")
+        b.click(f".vote [data-vote='9902|{k1}']")
+        wait_sent(b, n + 1)
+        apply(a, b, c)
+        c.evaluate(f"PRESJ.ops.push({{id: 'v3', t: 'vote', match: '9902', joueur: {json.dumps(k3)}, pour: {json.dumps(k2)}, le: new Date().toISOString()}}); DECL = null; render(true)")
+        assert "2 votes sur 3" in a.inner_text(".vote") and "Joueur 06" not in a.inner_text(".vote .small.muted")
+        res = c.evaluate("""(() => { const m = agendaList().find(x => x.id === "9902"), later = new Date(Date.now() + 3 * 86400e3), b = ballot(m, later);
+          return {elus: b.elus, top: b.top, votants: b.votants, card: voteCard(b, ""),
+                  fines: motmFines(ledger(), later).map(f => [f.regle, f.joueur, f.montant])}; })()""")
+        assert res["elus"] == [k2] and res["top"] == 2 and res["votants"] == 3, res
+        assert "Joueur 06" in res["card"] and "2 voix sur 3" in res["card"] and res["fines"] == [["m_mvp", k2, 2]]
+        # sans feuille lue, ce sont les joueurs retenus et publiés par l'entraîneur qui votent
+        assert c.evaluate(f"""(() => {{ const keep = CHOIX; CHOIX = {{matchs: {{"9903": {{joueurs: [{json.dumps(k1)}, {json.dumps(k3)}]}}}}}};
+          const el = electors({{id: "9903", joueurs: []}}); CHOIX = keep; return el; }})()""") == [k1, k3]
+
+        # téléphone : rien ne déborde
+        for pg in (a, c):
+            pg.set_viewport_size({"width": 360, "height": 780})
+            pg.evaluate("S.tab = 'presences'; render(false)")
+            assert pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        browser.close()
+    server.shutdown()
+    assert errors == []
 
 
 def test_debut_de_saison(sandbox):

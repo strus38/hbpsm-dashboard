@@ -7,10 +7,13 @@ Sorties, publiées avec le tableau de bord :
 
 Les deux projets restent indépendants : ce fichier respecte le format d'échange
 .hbt.json de l'application, et rien d'autre ne les relie. La séance arrive sans
-exercice : le tableau de bord dit quoi travailler, l'entraîneur choisit comment.
+exercice : le tableau de bord dit quoi travailler, l'entraîneur choisit comment ; elle porte le
+nombre de joueurs de champ et de gardiens qui ont dit venir (réponses de présence, pipeline/presences.py),
+0 tant que personne n'a répondu.
 """
 import datetime as dt
 
+from . import presences
 from .analyze import analyze
 from .common import DOCS, load_config, paris_now, read_json, write_json
 
@@ -60,7 +63,8 @@ def objective_text(data):
     return " ".join(parts)
 
 
-def build_exports(data=None, out_dir=DOCS, today=None):
+def build_exports(data=None, out_dir=DOCS, today=None, answers=()):
+    """answers : les envois du journal des présences (pipeline/presences.py), pour l'effectif de la séance."""
     data = data or read_json(out_dir / "data.json") or analyze()
     config = load_config()
     conf = config.get("entrainement") or {}
@@ -75,11 +79,12 @@ def build_exports(data=None, out_dir=DOCS, today=None):
         saison={k: v for k, v in (data.get("saison") or {}).items() if k != "matchs"} or None)
     write_json(out_dir / "entrainement.json", brief)
     titre = f"Préparer {nxt['adversaire']}" if nxt else "Séance de la semaine"
+    day = next_training(today, conf.get("jours") or [1, 4])
+    field, keepers = presences.training_counts(answers or [], day, data.get("joueurs") or [])
     seance = dict(
-        id=f"tableau-de-bord-{today}", titre=titre[:80],
-        date=next_training(today, conf.get("jours") or [1, 4]),
+        id=f"tableau-de-bord-{today}", titre=titre[:80], date=day,
         equipe=conf.get("equipe", ""), categorieAge=conf.get("categorie_age", ""),
-        objectifSeance=brief["objectif"], effectifJoueurs=0, effectifGardiens=0,
+        objectifSeance=brief["objectif"], effectifJoueurs=field, effectifGardiens=keepers,
         espaceDisponible="", retour="", retourEcritLe="", exercices=[], creeLe=now, modifieLe=now)
     fichier = dict(format="handball-training", version=FORMAT_VERSION, exporteLe=now,
                    application="hbpsm-dashboard", contenu=dict(type="seance", seance=seance))

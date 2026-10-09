@@ -455,6 +455,30 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .tile .small{color:inherit;opacity:.8}
 .stepper{display:inline-flex;align-items:center;gap:10px}.stepper .btn{margin-top:0;padding:6px 14px;font-size:1.1rem}
 .cnote{width:100%;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:9px 10px;margin-top:8px}
+/* présences, « Vous êtes », homme du match (09/10/2026) */
+.qui-fond{position:fixed;inset:0;z-index:20;background:rgba(11,42,82,.55);display:grid;place-items:center;padding:16px;overflow:auto}
+.qui{max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto}
+.qui h2{margin:0 0 6px}.qui-list{margin:12px 0}
+.cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
+.rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
+.rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
+.rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
+.pst-etat{display:inline-block;margin:4px 0 0;padding:2px 9px;border-radius:99px;font-weight:600;font-size:.86rem;background:rgba(127,127,127,.15)}
+.pst-etat.ok{background:color-mix(in srgb,var(--win) 22%,transparent)}.pst-etat.no{background:color-mix(in srgb,var(--loss) 22%,transparent)}
+.pst-etat.wait{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+.absform{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}
+.absform input[type=date]{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
+.seance{padding:8px 0;border-top:1px solid var(--rule)}.seance:first-child{border-top:0}.seance summary{cursor:pointer}.seance.off{opacity:.6}
+.board-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;margin-top:10px}.board-col{min-width:0}
+.board-col li>span,.rep-l>span{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+.rep-btn .btn{white-space:nowrap}.seg.wrap{flex-wrap:wrap}.seg.wrap button{flex:1 1 40%;border-top:1px solid var(--rule);margin-top:-1px}
+@media (max-width:560px){.board-cols{grid-template-columns:1fr}.rep-btn{width:100%}.rep-btn .btn{flex:1;width:auto}}
+.board-col h3{margin:0 0 6px;font-size:1rem}.board-col ul{list-style:none;margin:0;padding:0}
+.board-col li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--rule)}
+.board-col li .btn{margin-top:0;padding:6px 10px;flex-shrink:0}
+.b-why.ok{color:var(--win)}.b-why.no{color:var(--loss)}.b-why.wait{color:var(--warn)}
+.vote .vote-elu{font-size:1.15rem;margin:6px 0}.vote p:first-child{margin-top:0}
+.cell.nr{opacity:.55}
 .picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
 .compte{border-top:1px solid var(--rule)}.cgroupe + .compte{border-top:0}
 .compte summary{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 104px;gap:12px;align-items:center;padding:9px 0}
@@ -574,6 +598,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
   .kpis{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
   .kpis .num{font-size:1.4rem}
   .btn{width:100%;text-align:center}
+  .board-col li .btn{width:auto;flex:0 0 auto}
   .plan-wrap{padding:6px}
   .plan{grid-template-columns:minmax(100px,1fr) repeat(var(--n),48px) 30px;min-width:0;font-size:.8rem}
   .plan>div{padding:4px 2px}
@@ -609,6 +634,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
   <button role="tab" data-tab="planif" aria-selected="true"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 13h2M14 13h2M8 17h2M14 17h2"/></svg><span class="tl">Planification</span><span class="ts">Planif.</span></button>
   <button role="tab" data-tab="semaine" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>Semaine</span></button>
   <button role="tab" data-tab="convoc" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><span class="tl">Convocation</span><span class="ts">Convoc.</span></button>
+  <button role="tab" data-tab="presences" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h11M10 12h11M10 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg><span>Présences</span></button>
   <button role="tab" data-tab="joueurs" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.5c2.5.2 4.2 1.8 5 4.5"/></svg><span>Joueurs</span></button>
   <button role="tab" data-tab="adv" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/></svg><span class="tl">Adversaires</span><span class="ts">Équipes</span></button>
   <button role="tab" data-tab="saison" aria-selected="false"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Saison</span></button>
@@ -642,7 +668,7 @@ const KEY = "hbpsm:v1";
 const OPEN = new Set();
 // Saisies de l'entraîneur, gardées sur cet ordinateur : postes, absences longues, disponibilités et
 // choix par match (dm, pin), heure de rendez-vous, convocations envoyées, règle de rotation.
-let S = {postes:{}, absents:{}, depannage:{}, valide:{}, retire:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null, blesse:{}};
+let S = {postes:{}, absents:{}, depannage:{}, valide:{}, retire:{}, adv:null, tab:"planif", poule:null, dm:{}, pin:{}, rdv:{}, convoque:{}, regle:1, convM:null, blesse:{}, annule:{}, presM:null};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 // avant le 05/10/2026, regle valait 3 (« 1 match sur 3 ») ou 2 (« 1 sur 2 ») : désormais le minimum de matchs sur 4
 const normRule = () => { if(S.regle === 3) S.regle = 1; };
@@ -655,14 +681,15 @@ const COACH = location.hash.slice(1).split("&").includes("entraineur");
 // L'onglet d'ouverture : la planification pour l'entraîneur (demande de l'auteur, 05/10/2026), « Ma semaine » pour
 // un joueur qui a dit qui il est sur cet appareil (08/10/2026) ; un lien vers un onglet l'ouvre (…/#caisse, #saison,
 // #entraineur&convoc…) ; au rechargement automatique après une mise à jour de la page, on revient où l'on était.
-const TAB_IDS = ["planif", "semaine", "convoc", "joueurs", "adv", "saison", "moi", "caisse"];
-const TAB_ALIAS = {planification: "planif", convocation: "convoc", adversaires: "adv", equipes: "adv", "ma-semaine": "moi", "caisse-noire": "caisse"};
+const TAB_IDS = ["planif", "semaine", "convoc", "presences", "joueurs", "adv", "saison", "moi", "caisse"];
+const TAB_ALIAS = {planification: "planif", convocation: "convoc", presence: "presences", dispo: "presences", adversaires: "adv", equipes: "adv", "ma-semaine": "moi", "caisse-noire": "caisse"};
 S.tab = COACH ? "planif" : (() => { try { return localStorage.getItem("hbpsm:moi") ? "moi" : "planif"; } catch (e) { return "planif"; } })();
 const HASH_TAB = location.hash.slice(1).split("&").map(x => TAB_ALIAS[x] || x).find(x => TAB_IDS.includes(x));
 if(HASH_TAB) S.tab = HASH_TAB;
 try { const back = sessionStorage.getItem("hbpsm:onglet"); if(back){ S.tab = back; sessionStorage.removeItem("hbpsm:onglet"); } } catch (e) {}
 // téléphone : quatre onglets selon qui regarde, les autres sous « Plus » (demande de l'auteur, 08/10/2026)
-const PRIMARY = COACH ? ["planif", "semaine", "convoc", "joueurs"] : ["moi", "semaine", "saison", "caisse"];
+// l'entraîneur : les présences remplacent les joueurs (09/10/2026), qui passent sous « Plus »
+const PRIMARY = COACH ? ["planif", "presences", "convoc", "semaine"] : ["moi", "semaine", "saison", "caisse"];
 document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => {
   const i = PRIMARY.indexOf(b.dataset.tab);
   b.classList.toggle("sec", i < 0);
@@ -795,11 +822,20 @@ const rdvOf = m => (COACH && S.rdv[m.id]) || (CHOIX && CHOIX.rdv && CHOIX.rdv[m.
 const rdvNow = () => { const out = {}; for(const r of PLAN || []){ const v = rdvOf(r.m); if(v) out[r.m.id] = v; } return out; };
 const rdvPub = () => { const out = {}; for(const r of PLAN || []){ const v = CHOIX && CHOIX.rdv && CHOIX.rdv[r.m.id]; if(v) out[r.m.id] = v; } return out; };
 const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringify((CHOIX && CHOIX.blesses) || {})
-  || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()) || JSON.stringify(rdvNow()) !== JSON.stringify(rdvPub()));
+  || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()) || JSON.stringify(rdvNow()) !== JSON.stringify(rdvPub())
+  || JSON.stringify(annuleesNow()) !== JSON.stringify(annuleesPub()));
 // plus disponible après la date de l'effectif (« jusqu_au »)
 const gone = (p, m) => !!p.jusqu_au && (m.date || "9999").slice(0, 10) > p.jusqu_au;
 const untilText = p => "disponible jusqu'au " + new Date(p.jusqu_au + "T12:00").toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"});
-const availOf = (p, m) => !dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m) ? "a" : (localAv(p, m) || "d");
+// la réponse du joueur (présences, 09/10/2026) : absent s'il l'a dit ; s'il n'a pas répondu et que d'autres, assez
+// nombreux, ont dit venir, la feuille se fait parmi eux (entraîneur seulement) ; ce que l'entraîneur a saisi ici prime
+const availOf = (p, m) => {
+  if(!dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m)) return "a";
+  const l = localAv(p, m);
+  if(l) return l;
+  const s = playerSays(p, m);
+  return s === "absent" || (s !== "present" && restricts(m, isGK(p))) ? "a" : "d";
+};
 const pinOf = (p, m) => (SP().pin[m.id] || {})[p.cle];
 const teamShort = t => {   // « P16M DIV- SABLONS RHODIA… » -> « Sablons Rhodia »
   const w = String(t).replace(/^P\d+[MF]?\s*(DIV\d*)?\s*-?\s*/i, "").split(/\s+/)
@@ -944,6 +980,7 @@ const covered = team => coverage(team).every(c => c.n >= c.min);
 // joueurs sur la feuille : 12 en championnat, ce que permet la coupe sinon (14 en Coupe de France)
 const sizeOf = m => m.effectif || D.meta.effectif || 12;
 function planning(){
+  DECL = null; RESTRICT = {};   // réponses et règle des présents relues à chaque calcul
   const H = horizon(), nGK = D.meta.gardiens ?? 2;
   // 1. pour chaque match, les mieux notés parmi les disponibles, vos choix d'abord
   const P = H.map((m, k) => {
@@ -1436,6 +1473,9 @@ function bilanBlock(now = new Date()){
       : (away.length ? 'retenus mais pas sur la feuille : '+away.map(q => esc(firstName(q))).join(", ")+'. ' : '')
         + (extra.length ? 'sur la feuille sans avoir été retenus : '+extra.map(q => esc(firstName(q))).join(", ")+'.' : ''))+'</p>';
   }
+  const vb = (m => m && ballot(m))(agendaList().find(a => String(a.id) === String(x.id)));
+  if(vb) h += '<p><b>🏆 Homme du match</b> : '+(!vb.clos ? 'vote des joueurs de la feuille en cours ('+vb.votants+' sur '+vb.el.length+'), jusqu\'au '+esc(dateHeure(vb.w.fin))
+    : vb.elus.length ? vb.elus.map(c => esc(byCle(c) ? firstName(byCle(c)) : memberName(c))).join(" et ")+' ('+vb.top+' voix sur '+vb.votants+')' : 'aucun vote')+'.</p>';
   if(cur) h += '<p><b>Chances de '+esc(goal)+'</b> : '+(before && before.proba !== cur.proba ? before.proba+' % avant le match, '+cur.proba+' % maintenant' : cur.proba+' %')+'.</p>';
   const ax = (D.axes || []).slice(0, 3);
   if(ax.length) h += '<p><b>À travailler cette semaine</b> : '+ax.map(a => esc(a.titre)).join(" · ")+'.</p>';
@@ -1605,11 +1645,10 @@ if("serviceWorker" in navigator && location.protocol === "https:") navigator.ser
 // « Ma semaine » : ce qui concerne un joueur (choisi une fois sur l'appareil, comme pour proposer une amende)
 function viewMoi(){
   const me = stored(MOI) || "", P = PLAN, p = byCle(me);
-  let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>'
-    + '<div class="edit"><label class="small muted" for="cmoi">Vous êtes</label><select id="cmoi"><option value="">—</option>'
-    + members().map(c => '<option value="'+esc(c)+'"'+(c === me ? " selected" : "")+'>'+esc(memberName(c))+'</option>').join("")+'</select></div>';
+  let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meLine();
   h += installCard();
-  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, vos réponses aux entraînements et aux matchs, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  if(!COACH && p) h += todoBlock(me);
   const status = r => {
     if(!p) return ["", ""];
     if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
@@ -1674,7 +1713,7 @@ function viewPlanif(){
     + '<button class="link" data-reset="all">Tout réinitialiser</button></div>'
     + '<div class="edit noprint coach"><span class="small muted">Toucher une case</span><div class="seg tap" role="group" aria-label="Toucher une case">'
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
-  if(statusPending()) h += '<p class="note coach injury-box">Blessés, absents ou rendez-vous pas encore publiés : les autres ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>';
+  if(statusPending()) h += '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : les autres ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
     + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
@@ -1709,12 +1748,15 @@ function viewPlanif(){
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle], ext = sel && r.extra.includes(p);
         const hurt = injured(p, r.m), hb = hurt ? blesses()[p.cle] : null, fin = gone(p, r.m);
-        const cls = hurt ? "a hurt" : av === "a" ? "a" : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
+        const nr = av === "a" && noAnswerOut(p, r.m), said = av !== "a" && COACH && ownCall(p, r.m) && playerSays(p, r.m) === "present";
+        const cls = hurt ? "a hurt" : av === "a" ? (nr ? "a nr" : "a") : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
         const sym = hurt ? "✚" : av === "a" ? "✕" : sel ? (rot || ext ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
         const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
         const forced = r.forced.includes(p);
         const what = hurt ? "blessé depuis le match du "+fmtDate(hb.de)+(hb.a ? ", de retour le "+fmtDate(hb.a) : ", jusqu'à son retour")+" : indisponible"+(COACH ? " ; touchez un match suivant pour le dire rétabli à partir de celui-ci" : "")
           : fin ? untilText(p) + " : pas pour ce match"
+          : saidAbsent(p, r.m) ? (COACH ? "absent : il l'a dit ("+motifTxt(statusOf(p.cle, evMatch(r.m)))+") ; touchez pour le retenir quand même" : "absent : votre réponse")
+          : nr ? "pas de réponse : assez d'autres ont dit venir, la feuille se fait parmi eux ; touchez pour le retenir quand même"
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
@@ -1730,8 +1772,9 @@ function viewPlanif(){
           : sel && depOf(p) ? w+" en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
           : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match")
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
-        h += '<div><button class="cell '+cls+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(what)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(what)+'">'+sym
-          + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? "absent" : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
+        const why = what + (said ? " · a dit venir" : "");
+        h += '<div><button class="cell '+cls+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
+          + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? (nr ? "sans rép." : "absent") : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
@@ -1749,7 +1792,7 @@ function viewPlanif(){
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
 
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
+  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas de réponse, alors qu\'assez d\'autres ont dit venir ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
     + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
@@ -1776,6 +1819,7 @@ function cycleCell(id, cle){
     dm[cle] = "d"; delete pin[cle];
   }
   else if(declaredAbsent(p, r.m)){ dm[cle] = "d"; delete pin[cle]; S.blesse[cle] = {de: d, a: null}; }   // blessé à partir de ce match
+  else if(av === "a" && ownCall(p, r.m)){ dm[cle] = "d"; }   // sa réponse (absent, ou pas de réponse) : retenu quand même
   else if(av === "a"){ delete dm[cle]; delete pin[cle]; if(!dispo(p)) S.absents[cle] = false; }
   else if(av === "i") dm[cle] = "a";
   else if(!pin[cle]) pin[cle] = r.sel.includes(p) ? "out" : "in";
@@ -2373,8 +2417,9 @@ const santeBanner = () => {
   const list = (SANTE.alertes || []).filter(a => COACH || canWrite() || !/^(jeton|rappel)/.test(String(a.code)));
   return list.length ? '<p class="demo sante">⚠️ '+list.map(a => esc(a.message)).join(" ")+'</p>' : "";
 };
-const CN_TXT = {envoi: "Envoi de la proposition…", envoyee: "Proposition envoyée : visible par tous d'ici une à deux minutes.",
-  erreur: "Envoi impossible pour l'instant (connexion ?) : la proposition reste ici, réessayez.", lent: "La mise en ligne tarde : elle apparaîtra au prochain passage."};
+// le même envoi pour les propositions d'amendes, les réponses de présence, « Vous êtes » et les votes
+const CN_TXT = {envoi: "Envoi…", envoyee: "Envoyé : en ligne d'ici une à deux minutes.",
+  erreur: "Envoi impossible pour l'instant (connexion ?) : c'est gardé sur cet appareil, réessayez.", lent: "La mise en ligne tarde : ce sera en ligne au prochain passage."};
 const outbox = () => { try { return JSON.parse(stored(OUTBOX) || "[]"); } catch (e) { return []; } };
 const setOutbox = list => { try { localStorage.setItem(OUTBOX, JSON.stringify(list)); } catch (e) {} };
 const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -2421,7 +2466,7 @@ function cnProposals(L){
   return out;
 }
 function caisseProposals(L){   // d'après les feuilles (calculées sur GitHub), les propositions des joueurs, et les « Bon point ! » des mois finis
-  const props = [...openProps(L, p => !p.check && p.regle !== "cotisation"), ...cnProposals(L)].filter(p => !L.out.has(p.joueur));
+  const props = [...openProps(L, p => !p.check && p.regle !== "cotisation"), ...cnProposals(L), ...presenceFines(L), ...motmFines(L)].filter(p => !L.out.has(p.joueur));
   const first = L.ops.map(o => (o.le || "").slice(0, 7)).filter(Boolean).sort()[0];
   const cur = new Date().toISOString().slice(0, 7);
   for(let m = first; m && m < cur; m = nextMonth(m)){
@@ -2491,7 +2536,8 @@ function watchCN(){   // la mise en ligne prend une minute ou deux : un coup d'�
   let n = 0;
   CN_POLL = setInterval(async () => {
     n++;
-    if(await fetchCN()) render(true);
+    const a = await fetchCN(), b = await fetchPresences();
+    if(a || b) render(true);
     if(!cnOutbox().length){ CN_PUB = ""; render(true); clearInterval(CN_POLL); }
     else if(n >= 16){ CN_PUB = "lent"; render(true); clearInterval(CN_POLL); }
   }, 15000);
@@ -2621,14 +2667,13 @@ function pickerBlock(){
   const parts = ["Match", "Entraînement", "Saison"];
   const rules = (D.caisse.reglement || []).filter(x => x.partie === PICK.partie);
   const unit = r && r.montant != null && !r.nature, amount = !r ? null : r.nature ? null : r.montant != null ? r.montant * PICK.n : (Number(String(PICK.montant).replace(",", ".")) || 0);
-  const prop = canPropose(), moi = stored(MOI) || "", stop = blocage(auteur(), L, w), go = PICK.joueur && !L.out.has(PICK.joueur) && !stop;
+  const prop = canPropose(), stop = blocage(auteur(), L, w), go = PICK.joueur && !L.out.has(PICK.joueur) && !stop;
   // téléphone : le formulaire s'ouvre d'un bouton, pour laisser voir les comptes (demande de l'auteur, 08/10/2026)
   const titre = w ? "Mettre une amende" : prop ? "Proposer une amende" : "Dénoncer";
   const open = !isNarrow() || (KEEP.cpicker ?? (!!PICK.joueur || !!PICK.regle));
   let h = sec("amende", w ? "Amende" : prop ? "Proposer" : "Dénoncer")+titre+'</h2><details id="cpicker" class="picker-box" data-keep="cpicker"'+(open ? " open" : "")+'>'
     + '<summary class="btn ghost"><span class="ouvrir">✍️ '+titre+'</span><span class="fermer">Fermer le formulaire</span></summary><div class="panel picker">'
-    + (w ? '' : '<p class="step">Vous êtes</p><div class="edit"><select id="cmoi" aria-label="Qui '+(prop ? "propose" : "dénonce")+'"><option value="">—</option>'
-      + members().map(c => '<option value="'+esc(c)+'"'+(c === moi ? " selected" : "")+'>'+esc(memberName(c))+'</option>').join("")+'</select></div>')
+    + (w ? '' : '<p class="step">Vous êtes</p>'+meLine())
     + (stop ? '<p class="small cstop">'+esc(stop)+'</p>' : '')
     + '<p class="step">1. Qui ?</p><div class="cchips">'+participants(L).map(c => '<button class="cchip'+(PICK.joueur === c ? " on" : "")+'" data-cpick-j="'+esc(c)+'">'+esc(memberName(c))+'</button>').join("")+'</div>'
     + '<p class="step">2. Quoi ?</p><div class="seg" role="group" aria-label="Partie du règlement">'+parts.map(p => '<button data-cpart="'+p+'" aria-pressed="'+(PICK.partie === p)+'">'+p+'</button>').join("")+'</div>'
@@ -2843,7 +2888,365 @@ function viewPoules(){
 }
 const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
-const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, joueurs:viewJoueurs, adv:viewAdv,
+// ---------------------------------------------------------------- présences
+// Présences aux entraînements et aux matchs, homme du match (demande de l'auteur, 09/10/2026). Chacun dit une fois
+// qui il est sur son appareil (« Vous êtes »), puis répond pour chaque séance et chaque match au plus tard 4 jours
+// avant, 21 h (config.yml, presences) : présent, ou absent avec un motif (« autre » : un mot obligatoire). Sans
+// réponse à temps : absent sans justification, et l'amende du règlement proposée aux trésoriers. Réponses, « Vous
+// êtes » et votes partent au dépôt des propositions (hbpsm-cn, presences.enc), avec le même jeton. Seul l'entraîneur
+// voit les réponses des autres ; un joueur ne voit que les siennes (demande de l'auteur, 09/10/2026). Comme le mode
+// entraîneur, ce n'est pas un verrou : le journal est chiffré avec la phrase du club.
+const PRESC = () => (D && D.presences) || {};
+const APP_KEY = "hbpsm:appareil", MOI_AUCUN = "hbpsm:moi-aucun", PRES_KEY = "hbpsm:presences";
+const PRES_T = ["moi", "dispo", "vote"];
+const MOTIFS = {malade: "🤒 Malade", blesse: "🩹 Blessé", vacances: "🏖️ Vacances", autre: "✏️ Autre"};
+let PRESJ = null, PRESJ_SIG = null, DECL = null, RESTRICT = {}, QUI = null;
+let PF = {ev: null, motif: "", texte: "", du: "", au: ""};   // la réponse « absent » en cours de saisie
+const deviceId = () => { let v = stored(APP_KEY); if(!v){ v = uid(); try { localStorage.setItem(APP_KEY, v); } catch (e) {} } return v; };
+// l'heure d'un envoi : celle de l'appareil, sauf s'il n'est arrivé que plus d'un jour après (horloge fausse)
+const opTime = o => { const le = Date.parse(o.le), re = Date.parse(o.recu);
+  return isNaN(le) ? (isNaN(re) ? 0 : re) : !isNaN(re) && re - le > 86400000 ? re : le; };
+function presOps(){   // le journal, plus ce qui part encore de cet appareil, dans l'ordre
+  const pub = (PRESJ && PRESJ.ops) || [], seen = new Set(pub.map(o => o.id));
+  return [...pub, ...cnOutbox().filter(o => PRES_T.includes(o.t) && !seen.has(o.id)).map(o => Object.assign({envoi: true}, o))]
+    .sort((a, b) => opTime(a) - opTime(b));
+}
+function declIndex(){   // « joueur|repère » -> sa première et sa dernière réponse
+  const idx = {};
+  for(const o of presOps()) if(o.t === "dispo") for(const ev of o.evs || []){
+    const k = o.joueur + "|" + ev;
+    if(idx[k]) idx[k].last = o; else idx[k] = {first: o, last: o};
+  }
+  return idx;
+}
+const decl = () => DECL || (DECL = declIndex());
+async function fetchPresences(){   // vrai si le journal des présences a changé
+  const phrase = stored(PASS);
+  if(!CFG.presences || !phrase) return false;
+  let env = null;
+  try {
+    const r = await fetch(CFG.presences + "?t=" + Date.now(), {cache: "no-store"});
+    if(r.status === 404){ const had = !!(PRESJ && PRESJ.ops && PRESJ.ops.length); PRESJ = {ops: []}; PRESJ_SIG = null; DECL = null; return had; }
+    if(r.ok) env = await r.json();
+  } catch (e) {}
+  if(!env){ try { env = JSON.parse(stored(PRES_KEY) || "null"); } catch (e) {} }   // hors connexion : la dernière copie
+  if(!env || env.donnees === PRESJ_SIG) return false;
+  try { PRESJ = await openVault(env, phrase); PRESJ_SIG = env.donnees; } catch (e) { return false; }
+  try { localStorage.setItem(PRES_KEY, JSON.stringify(env)); } catch (e) {}
+  const known = new Set((PRESJ.ops || []).map(o => o.id));
+  setCnOutbox(cnOutbox().filter(o => !known.has(o.id)));   // en ligne : plus rien à envoyer
+  DECL = null;
+  return true;
+}
+// les séances (« E-AAAA-MM-JJ », jours d'entraînement de config.yml) et les matchs du club (« M-<rencontre> »)
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const addDays = (day, n) => { const d = new Date(day + "T12:00"); d.setDate(d.getDate() + n); return ymd(d); };
+const agendaList = () => D.agenda || ((D.saison && D.saison.matchs) || []);
+// une séance annulée par l'entraîneur (vacances, gymnase fermé), publiée avec ses choix ; ce qu'il a saisi ici prime
+const annulee = day => COACH && S.annule && day in S.annule ? !!S.annule[day] : ((CHOIX && CHOIX.annulees) || []).includes(day);
+const recentDay = () => addDays(ymd(new Date()), -60);
+const annuleesNow = () => [...new Set([...((CHOIX && CHOIX.annulees) || []), ...Object.keys(S.annule || {})])].filter(d => d >= recentDay() && annulee(d)).sort();
+const annuleesPub = () => ((CHOIX && CHOIX.annulees) || []).filter(d => d >= recentDay()).slice().sort();
+const evTraining = day => ({id: "E-" + day, type: "e", day, date: day, annule: annulee(day)});
+const evMatch = m => ({id: "M-" + m.id, type: "m", day: String(m.date || "").slice(0, 10), date: m.date, m});
+function events(from, to){   // de from à to inclus, dans l'ordre
+  const days = PRESC().jours || [1, 4], out = [];
+  for(let d = from; d <= to; d = addDays(d, 1)) if(days.includes((new Date(d + "T12:00").getDay() + 6) % 7)) out.push(evTraining(d));
+  for(const m of agendaList()){ const e = evMatch(m); if(e.day && e.day >= from && e.day <= to) out.push(e); }
+  return out.sort((a, b) => a.day.localeCompare(b.day) || (a.type === "e" ? -1 : 1));
+}
+// la limite pour répondre : 4 jours avant, 21 h (heure de l'appareil, celle de Paris pour l'équipe)
+const deadline = e => { const [y, mo, d] = e.day.split("-").map(Number), [h, mi] = String(PRESC().heure_limite || "21:00").split(":").map(Number);
+  return new Date(y, mo - 1, d - (PRESC().delai_jours ?? 4), h || 0, mi || 0); };
+const hTxt = d => d.getHours() + "h" + (d.getMinutes() ? String(d.getMinutes()).padStart(2, "0") : "");
+const dateHeure = d => d.toLocaleDateString("fr-FR", {weekday: "short", day: "numeric", month: "short"}) + " " + hTxt(d);
+const dlText = e => dateHeure(deadline(e));
+const limiteTxt = () => { const [h, mi] = String(PRESC().heure_limite || "21:00").split(":").map(Number); return hTxt(new Date(2000, 0, 1, h || 0, mi || 0)); };
+const evName = e => e.type === "e" ? "l'entraînement du " + fmtDate(e.day) : roundOf(e.m) + " contre " + teamShort(e.m.adversaire) + " (" + fmtDate(e.date, e.m.provisoire) + ")";
+const squad = () => D.joueurs.filter(p => String(p.cle).startsWith("R:"));
+// qui doit répondre : l'effectif, sauf les indisponibles de la saison, ceux qui ne sont plus là et les blessés déclarés
+const concerned = (p, e) => dispo(p) && !gone(p, e) && !injured(p, e);
+function statusOf(c, e, now = new Date()){
+  const x = decl()[c + "|" + e.id], dl = deadline(e);
+  if(!x) return {etat: now > dl && e.day >= (PRESC().amendes_depuis || "") ? "sans" : "attente"};
+  const o = x.last;
+  return {etat: o.etat, motif: o.motif || "", texte: o.texte || "", le: opTime(o), retard: opTime(x.first) > dl.getTime(), envoi: !!o.envoi};
+}
+const ETAT_P = {present: ["ok", "✓ présent"], absent: ["no", "✕ absent"], attente: ["wait", "pas encore répondu"], sans: ["no", "absent – sans justification"]};
+const motifTxt = s => s.etat === "absent" ? (MOTIFS[s.motif] || "absent") + (s.texte ? " : " + s.texte : "") : "";
+// la feuille proposée : l'entraîneur tient compte de toutes les réponses ; en consultation, chacun de la sienne seulement
+const seesAnswer = c => COACH || c === stored(MOI);
+const playerSays = (p, m) => seesAnswer(p.cle) ? statusOf(p.cle, evMatch(m)).etat : "attente";
+// assez de joueurs ont dit venir (gardiens d'un côté, joueurs de champ de l'autre) : la feuille se fait parmi eux ;
+// sinon, comme avant, parmi tous les disponibles, sans ceux qui ont dit ne pas venir (entraîneur seulement)
+function restricts(m, gk){
+  if(!COACH) return false;
+  const k = m.id + "|" + gk;
+  if(k in RESTRICT) return RESTRICT[k];
+  const nGK = D.meta.gardiens ?? 2, n = gk ? nGK : sizeOf(m) - nGK;
+  return RESTRICT[k] = D.joueurs.filter(p => isGK(p) === gk && dispo(p) && !gone(p, m) && !injured(p, m) && !declaredAbsent(p, m)
+    && (localAv(p, m) === "d" || (!localAv(p, m) && playerSays(p, m) === "present"))).length >= n;
+}
+// ni l'effectif, ni une blessure, ni l'entraîneur n'ont tranché : la réponse du joueur décide
+const ownCall = (p, m) => dispo(p) && !gone(p, m) && !injured(p, m) && !declaredAbsent(p, m) && !localAv(p, m);
+const saidAbsent = (p, m) => ownCall(p, m) && playerSays(p, m) === "absent";
+const noAnswerOut = (p, m) => ownCall(p, m) && !["present", "absent"].includes(playerSays(p, m)) && restricts(m, isGK(p));
+function tally(e){   // pour l'entraîneur : qui a dit venir, qui non, qui n'a pas répondu
+  const out = {present: [], absent: [], attente: [], sans: []};
+  for(const p of squad()) if(concerned(p, e)) out[statusOf(p.cle, e).etat].push(p);
+  return out;
+}
+
+// « Vous êtes » : le dernier choix de chaque appareil ; un nom déjà pris ailleurs est signalé, l'équipe règle ça entre elle
+const claimsNow = () => { const last = {}; for(const o of presOps()) if(o.t === "moi" && o.app) last[o.app] = o; return last; };
+const othersAs = c => Object.values(claimsNow()).filter(o => o.joueur === c && o.app !== deviceId());
+const canSendCN = () => !!cnToken() && !!CFG.cn_depot;
+function setMe(c){
+  try { if(c) localStorage.setItem(MOI, c); else localStorage.removeItem(MOI); localStorage.removeItem(MOI_AUCUN); } catch (e) {}
+  if(c && String(c).startsWith("R:") && canSendCN()){
+    setCnOutbox([...cnOutbox(), {id: "moi:" + uid(), t: "moi", joueur: c, app: deviceId(), le: new Date().toISOString()}]);
+    sendCN();
+  }
+}
+function ensureClaim(){   // choisi avant que le choix ne soit partagé : cet appareil le fait savoir
+  const me = stored(MOI);
+  if(COACH || !PRESJ || !me || !String(me).startsWith("R:") || !canSendCN()) return;
+  if(!presOps().some(o => o.t === "moi" && o.app === deviceId() && o.joueur === me)) setMe(me);
+}
+const needWho = () => !COACH && !!D && !!D.joueurs && squad().length > 0 && !stored(MOI) && !stored(MOI_AUCUN);
+const shortDay = ms => new Date(ms).toLocaleDateString("fr-FR", {day: "numeric", month: "long"});
+function quiBlock(){
+  if(!QUI && !needWho()) return "";
+  const me = stored(MOI) || "", pick = QUI && QUI.pick;
+  let h = '<div class="qui-fond"><div class="qui panel" role="dialog" aria-modal="true" aria-labelledby="qui-t"><h2 id="qui-t">Qui êtes-vous ?</h2>';
+  if(pick){
+    const o = othersAs(pick).slice(-1)[0];
+    h += '<p class="qui-alerte">'+esc(memberName(pick))+' a déjà été choisi sur un autre appareil'+(o ? ' (le '+esc(shortDay(opTime(o)))+')' : '')+'.</p>'
+      + '<p class="small">Si c\'est vous, sur un autre téléphone ou un ordinateur, continuez. Sinon, choisissez votre propre nom : vos réponses et votre vote partent à ce nom. En cas de doute, voyez-le avec l\'équipe.</p>'
+      + '<div class="edit"><button class="btn" data-qui-ok="'+esc(pick)+'">C\'est bien moi</button><button class="btn ghost" data-qui-back="1">Choisir un autre nom</button></div>';
+  } else {
+    h += '<p class="small muted">Une fois sur cet appareil. Vos réponses aux entraînements et aux matchs, votre vote pour l\'homme du match et vos propositions d\'amendes partent à ce nom : choisissez le vôtre.</p>'
+      + '<div class="cchips qui-list">'+squad().slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom))).map(p => '<button class="cchip'+(p.cle === me ? " on" : "")+'" data-qui="'+esc(p.cle)+'">'+esc(p.nom)
+        + (p.cle !== me && othersAs(p.cle).length ? ' <small class="pris">déjà pris</small>' : '')+'</button>').join("")+'</div>'
+      + '<p class="small">'+(D.caisse ? '<button class="link" data-qui="'+esc(D.caisse.coach)+'">Je suis l\'entraîneur</button> · ' : '')
+      + '<button class="link" data-qui-aucun="1">Je ne suis pas joueur</button>'+(QUI ? ' · <button class="link" data-qui-close="1">Annuler</button>' : '')+'</p>';
+  }
+  return h + '</div></div>';
+}
+const conflictNote = me => { const o = me && String(me).startsWith("R:") ? othersAs(me) : [];
+  return o.length ? '<br><span class="qui-alerte">⚠️ '+(o.length > 1 ? o.length+' autres appareils se sont aussi déclarés' : 'Un autre appareil s\'est aussi déclaré')
+    + ' comme '+esc(memberName(me))+'. Si ce n\'est pas vous, parlez-en à l\'équipe.</span>' : ""; };
+const meLine = () => { const me = stored(MOI);
+  return '<p class="small moi-qui">'+(me ? 'Vous êtes <b>'+esc(memberName(me))+'</b>' : 'Vous n\'avez pas dit qui vous êtes.')
+    + ' <button class="link" data-qui-open="1">'+(me ? "changer" : "le dire")+'</button>'+conflictNote(me)+'</p>'; };
+const sendLine = () => { const n = cnOutbox().filter(o => PRES_T.includes(o.t)).length;
+  if(CN_PUB && CN_TXT[CN_PUB]) return '<p class="note">'+esc(CN_TXT[CN_PUB])+(n && CN_PUB !== "envoi" ? ' <button class="link" data-cnsend="1">Renvoyer</button>' : '')+'</p>';
+  return n ? '<p class="note">'+n+' envoi'+(n > 1 ? "s" : "")+' pas encore en ligne. <button class="link" data-cnsend="1">Renvoyer</button></p>' : ""; };
+
+// les réponses : présent d'un geste ; absent avec son motif (« autre » : un mot obligatoire), pour un jour ou une période
+const motifOK = () => !!PF.motif && (PF.motif !== "autre" || !!PF.texte.trim());
+function declare(evs, etat, motif, texte){
+  const me = stored(MOI);
+  if(!me || !String(me).startsWith("R:") || !evs.length) return;
+  setCnOutbox([...cnOutbox(), {id: "d:" + uid(), t: "dispo", joueur: me, evs: evs.slice(0, 60), etat, motif: etat === "absent" ? motif : "",
+    texte: etat === "absent" ? String(texte || "").trim().slice(0, 300) : "", app: deviceId(), le: new Date().toISOString()}]);
+  DECL = null; PF = {ev: null, motif: "", texte: "", du: "", au: ""};
+  render(true); sendCN();
+}
+const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">(seul l\'entraîneur le voit)</span></p><div class="cchips">'
+  + Object.entries(MOTIFS).map(([k, v]) => '<button class="cchip'+(PF.motif === k ? " on" : "")+'" data-motif="'+k+'">'+v+'</button>').join("")+'</div>'
+  + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif === "autre" ? "Votre justification (obligatoire)" : "Un mot pour l'entraîneur (facultatif)")+'" value="'+esc(PF.texte)+'">'
+  + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer mon absence</button><button class="link" data-rep-annule="1">Annuler</button></div>';
+function answerRow(e, me){
+  const what = e.type === "e" ? "🏃 Entraînement" : (e.m.coupe ? "🏆 " : "🤾 ")+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire))+(e.m.domicile ? " · dom." : " · ext.");
+  const when = esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire));
+  if(e.annule) return '<div class="rep off"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br><span class="small muted">pas d\'entraînement ce jour-là (annulé par l\'entraîneur)</span></span></div></div>';
+  const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = PF.ev === e.id;
+  return '<div class="rep'+(open ? " open" : "")+'"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br>'
+    + '<span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.retard ? ' · en retard' : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
+    + '<span class="small muted">'+(late ? 'délai passé ('+esc(dlText(e))+')' : 'avant le '+esc(dlText(e)))+'</span></span>'
+    + '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-rep="'+esc(e.id)+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
+    + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-rep-abs="'+esc(e.id)+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button></span></div>'
+    + (open ? '<div class="absform">'+motifPart()+'</div>' : '')+'</div>';
+}
+function periodBlock(){
+  if(PF.ev !== "periode") return '<p class="small"><button class="link" data-periode="1">Absent plusieurs jours (vacances, blessure…) ?</button></p>';
+  return '<div class="absform"><p class="small"><b>Absent du</b> <input type="date" id="pf-du" value="'+esc(PF.du)+'"> <b>au</b> <input type="date" id="pf-au" value="'+esc(PF.au)+'"></p>'
+    + '<p class="small muted">Tous les entraînements et les matchs de ces jours-là.</p>'+motifPart()+'</div>';
+}
+const periodEvents = () => { const today = ymd(new Date()), du = PF.du > today ? PF.du : today;
+  return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).filter(e => !e.annule).map(e => e.id).slice(0, 60); };
+function todoBlock(me){   // Ma semaine : le vote de l'homme du match, et ce qui attend encore sa réponse (deux semaines)
+  const today = ymd(new Date()), list = events(today, addDays(today, 13)).filter(e => !e.annule && (statusOf(me, e).etat === "attente" || PF.ev === e.id));
+  const votes = ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length));
+  return votes.map(b => voteCard(b, me)).join("") + '<h2>À répondre</h2><div class="panel reps">'
+    + (list.length ? list.map(e => answerRow(e, me)).join("") : '<p class="small">✓ Vous avez répondu pour les deux semaines qui viennent.</p>')
+    + '<p class="small"><button class="link" data-tab="presences">Toutes mes réponses</button></p></div>';
+}
+
+// l'homme du match : élu par les joueurs de la feuille (lue, sinon celle que l'entraîneur a publiée), pendant 48 h
+function voteWindow(m){
+  const H = PRESC().vote_heures ?? 48, day = String(m.date || "").slice(0, 10);
+  if(!day || day < (PRESC().debut || "")) return null;
+  let debut;
+  if(String(m.date).length > 10 && !m.provisoire) debut = new Date(new Date(m.date).getTime() + MATCH_MIN * 60000);
+  else if(m.bp != null) debut = new Date(day + "T22:00");   // horaire jamais fixé : dès que le score est connu
+  else return null;
+  return {debut, fin: new Date((m.provisoire ? new Date(addDays(day, 1) + "T22:00") : debut).getTime() + H * 3600000)};
+}
+const electors = m => { const sheet = (m.joueurs || []).filter(k => byCle(k));
+  if(sheet.length) return sheet;
+  const pub = CHOIX && CHOIX.matchs && CHOIX.matchs[m.id];
+  return pub ? (pub.joueurs || []).filter(k => String(k).startsWith("R:") && byCle(k)) : []; };
+function ballot(m, now = new Date()){
+  const w = voteWindow(m);
+  if(!w) return null;
+  const el = electors(m), last = {}, count = {};
+  for(const o of presOps()) if(o.t === "vote" && String(o.match) === String(m.id) && el.includes(o.joueur) && el.includes(o.pour)
+    && o.pour !== o.joueur && opTime(o) <= w.fin.getTime()) last[o.joueur] = o;
+  for(const o of Object.values(last)) count[o.pour] = (count[o.pour] || 0) + 1;
+  const top = Math.max(0, ...Object.values(count));
+  return {m, w, el, last, count, top, votants: Object.keys(last).length, ouvert: now >= w.debut && now <= w.fin, clos: now > w.fin,
+          elus: top ? Object.keys(count).filter(c => count[c] === top) : []};
+}
+// les votes ouverts, et ceux clos depuis moins d'une semaine
+const ballots = (now = new Date()) => agendaList().map(m => ballot(m, now)).filter(b => b && now >= b.w.debut && now - b.w.fin < 7 * 86400000);
+function voteCard(b, me){
+  const title = '<b>'+esc(roundShort(b.m))+' contre '+esc(teamShort(b.m.adversaire))+'</b>'+(b.m.bp != null ? ' <span class="small muted">'+b.m.bp+'-'+b.m.bc+'</span>' : '');
+  if(b.clos) return '<div class="panel vote"><p>🏆 Homme du match · '+title+'</p>'+(b.elus.length
+      ? '<p class="vote-elu">'+b.elus.map(c => '<b>'+esc(memberName(c))+'</b>').join(" et ")+' <span class="small muted">'+b.top+' voix sur '+b.votants+' votant'+(b.votants > 1 ? "s" : "")+'</span></p>'
+        + '<p class="small muted">'+(b.elus.length > 1 ? 'Ex aequo : chacun' : 'Il')+' s\'acquitte de '+euros(RULE("m_mvp").montant)+' pour la caisse noire (proposé aux trésoriers).</p>'
+      : '<p class="small muted">Aucun vote : pas d\'homme du match.</p>')+'</div>';
+  const h = '<div class="panel vote"><p>🏆 Homme du match · '+title+' <span class="small muted">· vote ouvert jusqu\'au '+esc(dateHeure(b.w.fin))+' · '+b.votants+' vote'+(b.votants > 1 ? "s" : "")+' sur '+b.el.length+'</span></p>';
+  if(!b.el.length) return h + '<p class="small muted">Le vote s\'ouvre aux joueurs de la feuille dès que l\'entraîneur l\'a publiée ou que la feuille de match est lue.</p></div>';
+  if(!b.el.includes(me)) return h + '<p class="small muted">'+(me || COACH ? 'Seuls les joueurs de la feuille votent' : 'Dites qui vous êtes pour voter, si vous étiez sur la feuille')+' ; le résultat sera visible de tous à la fin du vote.</p></div>';
+  const mine = b.last[me];
+  return h + '<p class="small">'+(mine ? 'Votre vote : <b>'+esc(memberName(mine.pour))+'</b>'+(mine.envoi ? ' (envoi en cours)' : '')+'. Vous pouvez le changer jusqu\'à la fin du vote.' : 'Votre homme du match (pas vous-même) :')+'</p>'
+    + '<div class="cchips">'+b.el.filter(c => c !== me).map(c => '<button class="cchip'+(mine && mine.pour === c ? " on" : "")+'" data-vote="'+esc(b.m.id)+'|'+esc(c)+'">'+esc(memberName(c))+'</button>').join("")+'</div></div>';
+}
+function vote(mid, c){
+  const me = stored(MOI), m = agendaList().find(x => String(x.id) === String(mid)), b = m && ballot(m);
+  if(!b || !b.ouvert || !b.el.includes(me) || c === me || !b.el.includes(c)) return;
+  setCnOutbox([...cnOutbox(), {id: "vote:" + uid(), t: "vote", match: String(mid), joueur: me, pour: c, app: deviceId(), le: new Date().toISOString()}]);
+  showWhy("🏆 Vote envoyé : " + memberName(c) + ". Le résultat sera visible de tous à la fin du vote.");
+  render(true); sendCN();
+}
+
+// la caisse : sans réponse à temps, l'amende du règlement ; l'homme du match, la sienne ; à valider par un trésorier.
+// Le motif dit seulement « pas de réponse » ou « en retard », jamais la réponse elle-même.
+function presenceFines(L, now = new Date()){
+  const from = PRESC().amendes_depuis;
+  if(!from || !PRESJ) return [];   // tant que le journal n'est pas lu, personne n'est en défaut
+  const out = [], who = participants(L).filter(c => String(c).startsWith("R:"));
+  for(const e of events(from, ymd(now))){
+    if(e.annule || deadline(e) >= now) continue;
+    const code = e.type === "m" ? "m_sporteasy" : "e_sporteasy", r = RULE(code);
+    for(const c of who){
+      const p = byCle(c), x = decl()[c + "|" + e.id], id = code + ":" + e.id + ":" + c;
+      if(!p || !concerned(p, e) || (x && opTime(x.first) <= deadline(e).getTime()) || L.decided.has(id)) continue;
+      out.push({id, regle: code, joueur: c, n: 1, montant: r.montant, date: e.day, match: e.type === "m" ? e.m.id : null,
+        motif: (x ? "réponse donnée en retard" : "pas de réponse") + " pour " + evName(e) + " (attendue avant le " + dlText(e) + ")"});
+    }
+  }
+  return out;
+}
+function motmFines(L, now = new Date()){
+  const out = [];
+  for(const m of agendaList()){
+    const b = ballot(m, now);
+    if(!b || !b.clos || !b.elus.length) continue;
+    for(const c of b.elus){
+      const id = "m_mvp:" + m.id + ":" + c;
+      if(!L.decided.has(id)) out.push({id, regle: "m_mvp", joueur: c, n: 1, montant: RULE("m_mvp").montant, date: String(m.date || "").slice(0, 10), match: m.id,
+        motif: "homme du match contre " + teamShort(m.adversaire) + " : " + b.top + " voix sur " + b.votants});
+    }
+  }
+  return out;
+}
+
+// l'entraîneur, et lui seul : qui a dit quoi, et la feuille qu'il bouge d'un geste (demande de l'auteur, 09/10/2026)
+function presWhy(p, m, e){
+  if(injured(p, m)) return ["no", "🩹 blessé (votre saisie)"];
+  if(gone(p, m)) return ["no", untilText(p)];
+  if(!dispo(p)) return ["no", "indisponible pour la saison"];
+  if(declaredAbsent(p, m)) return ["no", "absent : votre saisie"];
+  const s = statusOf(p.cle, e), late = s.retard ? " · en retard" : "";
+  if(s.etat === "absent") return ["no", motifTxt(s) + late];
+  if(s.etat === "present") return ["ok", "✓ a dit venir" + late];
+  return s.etat === "sans" ? ["no", "absent – sans justification"] : ["wait", "pas encore répondu"];
+}
+function moveSel(id, cle, add){   // retenir ou retirer, comme un clic dans la planification
+  const r = PLAN.find(x => String(x.m.id) === id), p = byCle(cle);
+  if(!r || !p) return;
+  const dm = S.dm[id] = S.dm[id] || {}, pin = S.pin[id] = S.pin[id] || {};
+  if(r.fixed){   // feuille validée : on la retouche, les autres restent
+    S.valide = S.valide || {}; S.valide[id] = null;
+    const drop = add ? r.sel.filter(q => isGK(q) === isGK(p)).sort((a, b) => val(a, r.m) - val(b, r.m))[0] : null;
+    for(const q of r.sel) if(q !== p && q !== drop && !pin[q.cle]) pin[q.cle] = "in";
+  }
+  if(add){ if(availOf(p, r.m) !== "d") dm[cle] = "d"; pin[cle] = "in"; }
+  else pin[cle] = "out";
+}
+function boardBlock(){
+  const P = PLAN;
+  if(!P.length) return "";
+  const r = P.find(x => String(x.m.id) === String(S.presM)) || P[0], m = r.m, e = evMatch(m), id = String(m.id);
+  const sel = [...r.gks, ...r.field], inSel = new Set(sel), etat = p => statusOf(p.cle, e).etat;
+  const hard = p => !dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m), others = D.joueurs.filter(p => !inSel.has(p));
+  const pres = others.filter(p => !hard(p) && etat(p) === "present"), none = others.filter(p => !hard(p) && ["attente", "sans"].includes(etat(p)));
+  const abs = others.filter(p => hard(p) || etat(p) === "absent"), t = tally(e), gk = t.present.filter(isGK).length;
+  const row = (p, how) => { const [c, why] = presWhy(p, m, e);
+    return '<li><span><b>'+esc(p.nom)+'</b>'+(poste(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')+'<br><span class="small b-why '+c+'">'+esc(why)+'</span></span>'
+      + (how ? '<button class="btn'+(how === "out" ? " ghost" : "")+'" data-sel="'+esc(id)+'|'+esc(p.cle)+'|'+how+'">'+(how === "out" ? "Retirer" : "Retenir")+'</button>' : '')+'</li>'; };
+  const col = (title, list, how, n) => '<div class="board-col"><h3>'+title+' <span class="small muted">'+n+'</span></h3>'
+    + (list.length ? '<ul>'+list.map(p => row(p, how)).join("")+'</ul>' : '<p class="small muted">personne</p>')+'</div>';
+  return sec("matchs", "Matchs")+'Les matchs</h2><div class="seg wrap noprint" role="group" aria-label="Match">'
+    + P.map(x => '<button data-presm="'+esc(x.m.id)+'" aria-pressed="'+(x === r)+'">'+esc(roundShort(x.m))+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>'
+    + '<div class="panel board" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p>'
+    + '<p class="small"><b>'+(t.present.length - gk)+'</b> joueur'+(t.present.length - gk > 1 ? "s" : "")+' de champ et <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")+' ont dit venir · '
+    + t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+(t.attente.length + t.sans.length)+' sans réponse <span class="muted">(réponses attendues avant le '+esc(dlText(e))+')</span></p>'
+    + etatLine(r)+'<div class="board-cols">'+col("Sur la feuille", sel, "out", sel.length+"/"+r.size)+col("Ont dit venir", pres, "in", pres.length)
+    + col("Sans réponse", none, "in", none.length)+col("Absents", abs, null, abs.length)+'</div>'
+    + '<p class="small muted">Retenir ou retirer change la feuille comme un clic dans la planification ; validez-la ensuite pour la publier.</p></div>';
+}
+function trainingsBlock(list){
+  if(!list.length) return "";
+  const names = l => l.map(p => esc(p.nom)+(isGK(p) ? ' <small class="pst">GB</small>' : '')).join(", ");
+  return sec("seances", "Entraînements")+'Les entraînements</h2><div class="panel">'+list.map(e => {
+    if(e.annule) return '<div class="seance off"><b>'+esc(fmtDate(e.day))+'</b> <span class="small muted">pas d\'entraînement (annulé)</span> <button class="link" data-annule="'+e.day+'">rétablir</button></div>';
+    const t = tally(e), gk = t.present.filter(isGK).length, n = t.present.length, s = t.attente.length + t.sans.length;
+    return '<details class="seance"'+keep("s-"+e.day, false)+'><summary><b>'+esc(fmtDate(e.day))+'</b> · <b>'+(n - gk)+'</b> joueur'+(n - gk > 1 ? "s" : "")+' de champ + <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")
+      + ' <span class="small muted">· '+t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+s+' sans réponse</span></summary>'
+      + (n ? '<p class="small"><b>Présents</b> : '+names(t.present)+'</p>' : '')
+      + (t.absent.length ? '<p class="small"><b>Absents</b> : '+t.absent.map(p => { const x = statusOf(p.cle, e);
+          return esc(p.nom)+' <span class="muted">('+esc(motifTxt(x))+(x.retard ? ', en retard' : '')+')</span>'; }).join(", ")+'</p>' : '')
+      + (s ? '<p class="small"><b>Sans réponse</b> : '+names([...t.attente, ...t.sans])+(t.sans.length ? ' <span class="muted">(délai passé : absents sans justification)</span>' : '')+'</p>' : '')
+      + '<p><button class="link" data-annule="'+e.day+'">Pas d\'entraînement ce jour-là</button></p></details>';
+  }).join("")+'</div>';
+}
+function viewPresences(){
+  const me = stored(MOI) || "", today = ymd(new Date()), coming = events(today, addDays(today, 27)), votes = ballots();
+  let h = '<header class="top"><p class="when">Réponse au plus tard '+(PRESC().delai_jours ?? 4)+' jours avant, '+limiteTxt()
+    + ' ; sans réponse, absent sans justification</p><h1>Présences</h1></header>' + sendLine();
+  const hdm = votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, COACH ? "" : me)).join("") : "";
+  if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
+      + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
+    + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + hdm);
+  h += meLine() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
+  if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
+  return withJumps(h + '<div class="panel reps"><p class="small muted">Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>'
+    + coming.map(e => answerRow(e, me)).join("") + periodBlock() + '</div>');
+}
+// la séance à importer dans HANDBALL-training, avec ceux qui ont dit venir à l'instant (entraîneur)
+function seanceWithCounts(){
+  const f = JSON.parse(JSON.stringify(D.seance_hbt)), s = f && f.contenu && f.contenu.seance;
+  if(COACH && PRESJ && s && s.date){
+    const t = tally(evTraining(String(s.date).slice(0, 10))), gk = t.present.filter(isGK).length;
+    s.effectifGardiens = gk; s.effectifJoueurs = t.present.length - gk;
+  }
+  return f;
+}
+const VIEWS = {semaine:viewSemaine, planif:viewPlanif, convoc:viewConvoc, presences:viewPresences, joueurs:viewJoueurs, adv:viewAdv,
                saison: () => withJumps(viewSaison() + viewCoupes() + viewPoules() + viewParcours()), caisse: viewCaisse, moi: viewMoi};
 function render(keepScroll){
   const y = window.scrollY;
@@ -2857,7 +3260,7 @@ function render(keepScroll){
     ? '<p class="demo">Une version plus récente de ce fichier existe.'+(CFG.versions ? ' <a href="'+esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a>' : '')+'</p>'
     : '<p class="demo">Une nouvelle version de la page est en ligne : elle s\'affichera d\'elle-même d\'ici quelques minutes, sans rien perdre de vos réglages.</p>';
   PLAN = planning();
-  document.getElementById("app").innerHTML = newer + santeBanner() + VIEWS[S.tab]();
+  document.getElementById("app").innerHTML = newer + santeBanner() + VIEWS[S.tab]() + quiBlock();
   document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
   const more = document.querySelector("nav.tabs [data-plus]");
   if(more) more.classList.toggle("on", !PRIMARY.includes(S.tab));
@@ -2887,7 +3290,7 @@ function copyConvocation(id){
   if(navigator.clipboard) navigator.clipboard.writeText(convText(r)).then(done, fallback); else fallback();
 }
 // Le planning ne vit que dans ce navigateur : un fichier pour le garder ou le reprendre ailleurs.
-const PLAN_KEYS = ["postes", "absents", "depannage", "valide", "dm", "pin", "rdv", "convoque", "regle"];
+const PLAN_KEYS = ["postes", "absents", "depannage", "valide", "dm", "pin", "rdv", "convoque", "regle", "annule"];
 function exportPlan(){
   const out = {format:"hbpsm-planning", v:1, exporte:new Date().toISOString()};
   for(const k of PLAN_KEYS) out[k] = S[k];
@@ -2914,6 +3317,26 @@ document.addEventListener("click", ev => {
   else if(t.dataset.shareBilan){ shareBilan(); }
   else if(t.dataset.install && INSTALL){ INSTALL.prompt(); INSTALL.userChoice.finally(() => { INSTALL = null; render(true); }); }
   else if(t.dataset.installNon){ try { localStorage.setItem("hbpsm:installe-vu", "1"); } catch (e) {} render(true); }
+  // « Vous êtes » : un nom déjà choisi sur un autre appareil se confirme
+  else if(t.dataset.qui !== undefined){ const c = t.dataset.qui, first = needWho();
+    if(String(c).startsWith("R:") && c !== stored(MOI) && othersAs(c).length){ QUI = {pick: c}; render(true); }
+    else { setMe(c); QUI = null; if(first) S.tab = "moi"; render(!first); } }
+  else if(t.dataset.quiOk){ const first = needWho(); setMe(t.dataset.quiOk); QUI = null; if(first) S.tab = "moi"; render(!first); }
+  else if(t.dataset.quiBack || t.dataset.quiOpen){ QUI = {}; render(true); }
+  else if(t.dataset.quiAucun){ try { localStorage.setItem(MOI_AUCUN, "1"); localStorage.removeItem(MOI); } catch (e) {} QUI = null; render(true); }
+  else if(t.dataset.quiClose){ QUI = null; render(true); }
+  // présences : sa réponse, son motif, une période ; le vote ; la feuille et les séances de l'entraîneur
+  else if(t.dataset.rep){ declare([t.dataset.rep], "present"); }
+  else if(t.dataset.repAbs){ PF = {ev: t.dataset.repAbs, motif: "", texte: "", du: "", au: ""}; render(true); }
+  else if(t.dataset.periode){ const d = ymd(new Date()); PF = {ev: "periode", motif: "", texte: "", du: d, au: d}; render(true); }
+  else if(t.dataset.motif){ PF.motif = t.dataset.motif; render(true); }
+  else if(t.dataset.repAnnule){ PF = {ev: null, motif: "", texte: "", du: "", au: ""}; render(true); }
+  else if(t.dataset.repEnvoi && motifOK()){ const evs = PF.ev === "periode" ? periodEvents() : [PF.ev];
+    if(evs.length) declare(evs, "absent", PF.motif, PF.texte); else showWhy("Aucun entraînement ni match à venir entre ces deux dates."); }
+  else if(t.dataset.vote){ const [mid, c] = t.dataset.vote.split("|"); vote(mid, c); }
+  else if(t.dataset.presm){ S.presM = t.dataset.presm; save(); render(true); }
+  else if(t.dataset.sel && COACH){ const [id, cle, how] = t.dataset.sel.split("|"); moveSel(id, cle, how === "in"); save(); render(true); }
+  else if(t.dataset.annule && COACH){ S.annule = S.annule || {}; S.annule[t.dataset.annule] = !annulee(t.dataset.annule); save(); render(true); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
@@ -2983,15 +3406,15 @@ document.addEventListener("click", ev => {
   else if(t.dataset.print){ window.print(); }
   else if(t.dataset.export){ exportPlan(); }
   else if(t.dataset.poule){ S.poule = t.dataset.poule; save(); render(true); }
-  else if(t.dataset.dl && D.seance_hbt) downloadJSON(D.seance_hbt, "seance-prochaine.hbt.json");
+  else if(t.dataset.dl && D.seance_hbt) downloadJSON(seanceWithCounts(), "seance-prochaine.hbt.json");
   else if(t.dataset.abs){ const p = D.joueurs.find(x => x.cle === t.dataset.abs); S.absents[p.cle] = dispo(p); save(); render(true); }
 });
 document.addEventListener("change", ev => {
   const t = ev.target;
   if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
-  if(t.id === "cme"){ try { localStorage.setItem(ME, t.value); } catch (e) {} render(true); return; }
+  if(t.id === "cme"){ setMe(t.value); render(true); return; }
   if(t.id === "jtri"){ JTRI = t.value; render(true); return; }
-  if(t.id === "cmoi"){ try { localStorage.setItem(MOI, t.value); } catch (e) {} render(true); return; }
+  if(t.id === "pf-du" || t.id === "pf-au"){ PF[t.id.slice(3)] = t.value; return; }
   if(t.id === "cdate"){ PICK.date = t.value; return; }
   if(t.dataset.cpenadd !== undefined){ if(t.value){ (PENS[t.dataset.cpenadd] = PENS[t.dataset.cpenadd] || {})[t.value] = {a: 0, h: 0}; } render(true); return; }
   if(t.id === "adv"){ S.adv = t.value; save(); render(true); }
@@ -3010,6 +3433,7 @@ document.addEventListener("click", ev => { if(!ev.target.closest("#plus-menu, [d
 document.addEventListener("input", ev => {   // le formulaire de la caisse garde ce qu'on tape d'un rendu à l'autre
   if(ev.target.id === "cnote") PICK.note = ev.target.value;
   else if(ev.target.id === "cmontant") PICK.montant = ev.target.value;
+  else if(ev.target.id === "pf-texte"){ PF.texte = ev.target.value; const b = document.querySelector("[data-rep-envoi]"); if(b) b.disabled = !motifOK(); }
 });
 document.addEventListener("toggle", ev => {
   const d = ev.target; if(!d.dataset) return;
@@ -3088,7 +3512,7 @@ async function publishChoices(){
   for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
   PUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow(), rdv: rdvNow()}, phrase);
+    const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow(), rdv: rdvNow(), annulees: annuleesNow()}, phrase);
     const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/choix.yml/dispatches", {
       method:"POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {choix: JSON.stringify(env)}}),
       headers:{"Authorization":"Bearer " + token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json"}});
@@ -3170,6 +3594,7 @@ async function check(){
     if(await fetchChoices()) render(true);   // l'entraîneur a validé une feuille
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(await fetchCN()) render(true);        // une proposition d'amende d'un joueur
+    if(await fetchPresences()) render(true); // une réponse de présence, un « Vous êtes », un vote
     if(await fetchSante()) render(true);     // une alerte de santé (site, feuilles, jetons)
     if(m.maj && m.maj !== GENERE){
       const env = await fetchVault();
@@ -3226,6 +3651,7 @@ async function start(phrase){
   fetchChoices().then(changed => { if(changed) render(true); });
   fetchCaisse().then(changed => { if(changed) render(true); });
   fetchCN().then(changed => { if(changed) render(true); if(cnOutbox().length) sendCN(); });
+  fetchPresences().then(changed => { if(changed) render(true); ensureClaim(); });   // « Vous êtes » choisi avant : partagé
   fetchSante().then(changed => { if(changed) render(true); });   // une proposition restée en route : renvoyée
   check();  // le manifeste dit aussi si la page elle-même a une version plus récente
 }

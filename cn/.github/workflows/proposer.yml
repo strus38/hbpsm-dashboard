@@ -1,15 +1,17 @@
-# Proposition d'amende de la caisse noire HBPSM, envoyée depuis la page par n'importe quel joueur.
+# Ce qu'un joueur de l'HBPSM envoie depuis la page : proposition d'amende de la caisse noire, réponse de
+# présence à un entraînement ou à un match, « Vous êtes », vote de l'homme du match.
 #
 # La page lance ce workflow avec un jeton limité à ce dépôt (droit « Actions » seulement) : il ne
 # peut rien faire d'autre. Sa seule entrée est un coffre chiffré avec la phrase du club ; il est
-# vérifié et ajouté au journal propositions.enc par propositions.py. Le dépôt est public : rien n'est
-# jamais déchiffré dans ce journal, et l'entrée, visible dans le résumé du lancement, n'est que le
-# coffre chiffré. Les trésoriers valident ou refusent dans le tableau de bord.
+# vérifié et ajouté aux journaux propositions.enc (amendes proposées) et presences.enc (réponses,
+# « Vous êtes », votes) par propositions.py. Le dépôt est public : rien n'est jamais déchiffré dans
+# ces journaux, et l'entrée, visible dans le résumé du lancement, n'est que le coffre chiffré. Les
+# trésoriers valident ou refusent les amendes dans le tableau de bord.
 #
-# Deux propositions rapprochées : la seconde, mise en attente, repartait du commit de son lancement
-# (journal sans la première) et butait sur un conflit au push. On part donc du dernier état de la
-# branche et, si le push est refusé, on y réapplique la proposition (sans doublon).
-name: Proposition d'amende
+# Deux envois rapprochés : le second, mis en attente, repartait du commit de son lancement (journal
+# sans le premier) et butait sur un conflit au push. On part donc du dernier état de la branche et,
+# si le push est refusé, on y réapplique l'envoi (sans doublon).
+name: Envoi d'un joueur
 
 on:
   workflow_dispatch:
@@ -41,7 +43,7 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Vérifier et ajouter la proposition (toujours chiffrée), enregistrer dans le dépôt
+      - name: Vérifier et ajouter l'envoi (toujours chiffré), enregistrer dans le dépôt
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_PROP: ${{ inputs.prop }}
@@ -52,9 +54,9 @@ jobs:
           for essai in 1 2 3 4 5; do
             git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
             python propositions.py
-            git add propositions.enc
+            git add -- *.enc
             git diff --cached --quiet && exit 0
-            git commit -q -m "Proposition d'amende"
+            git commit -q -m "Envoi d'un joueur"
             git push -q origin "HEAD:$BRANCHE" && exit 0
             echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
             sleep $((essai * 5))

@@ -21,6 +21,7 @@ MAX_TEXT = 60_000   # quatre feuilles de 12 joueurs, chiffrées, tiennent en que
 MAX_MATCHES = 40
 MAX_PLAYERS = 16
 MAX_INJURED = 40
+MAX_OFF = 200   # séances annulées sur la saison
 ENVELOPE = ("format", "v", "kdf", "iterations", "sel", "chiffre", "nonce", "donnees")
 
 
@@ -57,6 +58,10 @@ def check(envelope, secret):
     if not isinstance(rdv, dict) or len(rdv) > MAX_MATCHES or not all(
             isinstance(k, str) and 0 < len(k) < 40 and isinstance(v, str) and len(v) <= 5 for k, v in rdv.items()):
         raise vault.VaultError("Choix refusés : rendez-vous de forme inattendue.")
+    # entraînements annulés par l'entraîneur (vacances, gymnase fermé) : ["AAAA-MM-JJ"] ; personne n'a à y répondre
+    off = data.get("annulees", [])
+    if not isinstance(off, list) or len(off) > MAX_OFF or not all(isinstance(d, str) and len(d) == 10 for d in off):
+        raise vault.VaultError("Choix refusés : séances annulées de forme inattendue.")
     return data
 
 
