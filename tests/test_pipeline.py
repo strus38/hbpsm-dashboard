@@ -636,7 +636,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         assert page.evaluate("document.documentElement.dataset.theme") == "light"
         page.click("#theme-btn")
         assert page.evaluate("document.documentElement.dataset.theme") is None
-        for tab in ("semaine", "planif", "convoc", "presences", "joueurs", "adv", "saison"):
+        for tab in ("semaine", "planif", "convoc", "joueurs", "adv", "saison"):
             page.evaluate("t => { S.tab = t; render(false); }", tab)
             assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0, tab
             # rien ne déborde de sa case (les colonnes de la planification sont étroites)
@@ -656,10 +656,10 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.locator("button.pm").nth(1).click()
         assert page.evaluate("S.pm") == 1 and "on" in page.get_attribute("button.pm >> nth=1", "class")
         assert page.evaluate("getComputedStyle(document.querySelector('nav.tabs')).position") == "fixed"
-        # quatre onglets selon le mode (ici l'entraîneur), les autres sous « Plus »
+        # quatre onglets selon le mode (ici l'entraîneur), les autres sous « Plus » ; « Présences » n'est qu'à celui qui les tient
         assert page.locator("nav.tabs button[data-tab=adv]").is_hidden() and page.locator("nav.tabs [data-plus]").is_visible()
         page.click("nav.tabs [data-plus]")
-        assert sorted(page.evaluate("[...document.querySelectorAll('#plus-menu button[data-tab]')].map(b => b.dataset.tab)")) == ["adv", "caisse", "joueurs", "moi", "saison"]
+        assert sorted(page.evaluate("[...document.querySelectorAll('#plus-menu button[data-tab]')].map(b => b.dataset.tab)")) == ["adv", "caisse", "moi", "saison"]
         page.click("#plus-menu button[data-tab=adv]")
         assert page.evaluate("S.tab") == "adv" and page.locator("#plus-menu").is_hidden() and "on" in page.get_attribute("nav.tabs [data-plus]", "class")
         page.click("nav.tabs button[data-tab=planif]")
@@ -1207,17 +1207,19 @@ def test_presences_dans_la_collecte(sandbox, monkeypatch):
 
 
 def test_presences_dans_la_page(sandbox, monkeypatch):
-    """Dans la page (demande de l'auteur, 09/10/2026) : chacun dit qui il est, un nom déjà pris est signalé et l'on
-    peut se redéclarer ; chacun répond pour lui seul et ne voit que ses réponses ; l'entraîneur voit tout, bouge la
-    feuille, annule une séance ; sans réponse à temps, l'amende est proposée ; l'homme du match est élu par les
-    joueurs de la feuille, son nom visible de tous et son amende proposée."""
+    """Dans la page (demandes de l'auteur, 09/10/2026) : chacun dit qui il est, un nom déjà pris est signalé et le code
+    personnel le fait reconnaître ailleurs ; seul le joueur au rôle « présences » voit l'onglet Présences : il dit, match
+    par match, qui vient et qui est absent, saisit la sélection de l'entraîneur et la publie comme ses choix (sans
+    toucher à ce que l'entraîneur a publié), annule un match ; les joueurs ne voient pas leurs présences, l'entraîneur
+    les voit en planification ; plus d'entraînement suivi ni d'amende « pas de réponse » ; l'homme du match est élu par
+    les joueurs de la feuille, son nom visible de tous et son amende proposée."""
     pw = pytest.importorskip("playwright.sync_api")
     monkeypatch.setattr(vault, "ITERATIONS", 2000)
     monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
     monkeypatch.setenv("HBPSM_CLE", PHRASE)
     monkeypatch.setenv("HBPSM_JETON_CN", "jeton-cn-test")
     demo(sandbox)
-    (sandbox / "roster.csv").write_text("nom,poste,disponible\n" + "".join(f"{n},{p}\n" for n, p in zip(
+    (sandbox / "roster.csv").write_text("nom,poste,disponible,role\n" + "".join(f"{n},{p},,{'présences' if n == 'Joueur 01' else ''}\n" for n, p in zip(
         [f"Joueur {k:02d}" for k in range(1, 15)], demo_data.POSTES)), "utf-8")
     publish.seal("2026-10-04")
     out = sandbox / "publie"
@@ -1257,14 +1259,25 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
             pg.wait_for_timeout(100)
         raise AssertionError("rien envoyé à GitHub")
 
-    def apply(*pages):   # ce que fait le workflow du dépôt à part, puis chaque page relit le journal
-        monkeypatch.setenv("HBPSM_PROP", sent[-1]["body"]["inputs"]["prop"])
-        assert sent[-1]["url"].endswith("/repos/exemple/cn/actions/workflows/proposer.yml/dispatches")
-        assert cn.main(out / "propositions.enc") == 0
+    def apply(*pages, k=1):   # ce que fait le workflow du dépôt à part (k envois), puis chaque page relit le journal
+        ops = []
+        for s in sent[-k:]:
+            monkeypatch.setenv("HBPSM_PROP", s["body"]["inputs"]["prop"])
+            assert s["url"].endswith("/repos/exemple/cn/actions/workflows/proposer.yml/dispatches")
+            assert cn.main(out / "propositions.enc") == 0
+            ops += cn.check(json.loads(s["body"]["inputs"]["prop"]), PHRASE)
         for pg in pages:
             pg.evaluate("fetchPresences().then(() => render(true))")
             pg.wait_for_function("() => cnOutbox().length === 0", timeout=10000)
-        return cn.check(json.loads(sent[-1]["body"]["inputs"]["prop"]), PHRASE)
+        return ops
+
+    def publish_choices(*pages):   # ce que fait le workflow « Choix de l'entraîneur », puis chaque page relit les choix
+        assert sent[-1]["url"].endswith("/repos/exemple/depot/actions/workflows/choix.yml/dispatches")
+        monkeypatch.setenv("HBPSM_CHOIX", sent[-1]["body"]["inputs"]["choix"])
+        assert choix.main() == 0
+        for pg in pages:
+            pg.evaluate("fetchChoices().then(() => render(true))")
+        return choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)
 
     with pw.sync_playwright() as p:
         browser = chrome(p)
@@ -1274,6 +1287,7 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
             ctx.route("https://api.github.com/**", github)
             pg = ctx.new_page()
             pg.on("pageerror", lambda e: errors.append(str(e)))
+            pg.on("dialog", lambda d: d.accept())
             pg.goto(page_file.as_uri() + hash)
             pg.wait_for_selector("#phrase")
             pg.fill("#phrase", PHRASE)
@@ -1282,12 +1296,15 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
             pg.wait_for_function("() => PRESJ !== null", timeout=10000)   # pas encore de journal : vide
             return pg
 
+        tab_visible = lambda pg: pg.evaluate("!document.querySelector('nav.tabs [data-tab=presences]').hidden")
+
         # 1. « Vous êtes » : demandé d'emblée ; le choix part au dépôt à part
-        a = device()
+        a = device("#presences")
         assert a.locator(".qui").is_visible() and "Qui êtes-vous" in a.inner_text(".qui")
         squad = a.evaluate("squad().map(p => p.cle)")
         assert len(squad) == 14
-        k1, k2, k3 = [a.evaluate(f"D.joueurs.find(p => p.nom === 'Joueur {n}').cle") for n in ("05", "06", "07")]
+        k1, k2, k3, km = [a.evaluate(f"D.joueurs.find(p => p.nom === 'Joueur {n}').cle") for n in ("05", "06", "07", "01")]
+        assert a.evaluate("D.presences.gestion") == [km] and a.evaluate("D.presences.entrainements") is False
         a.click(f".qui [data-qui='{k1}']")
         wait_sent(a, 1)
         assert a.evaluate("stored(MOI)") == k1 and a.evaluate("S.tab") == "moi" and a.locator(".qui").count() == 0
@@ -1334,162 +1351,169 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         old = a.evaluate(f"""(() => {{ const k = {json.dumps(k1)}, t0 = new Date(ownerSince(k) - 3600e3).toISOString();
           PRESJ.ops.unshift({{id: "vieux", t: "moi", joueur: k, app: "ancien-navigateur", le: t0}}); DECL = null;
           const avant = othersAs(k).length;
-          PRESJ.ops.push({{id: "rep-vieux", t: "dispo", joueur: k, app: "ancien-navigateur", evs: ["E-2030-01-01"], etat: "present",
-                          le: new Date().toISOString()}});
+          PRESJ.ops.push({{id: "rep-vieux", t: "vote", joueur: k, app: "ancien-navigateur", match: "1", pour: "R:X", le: new Date().toISOString()}});
           DECL = null; render(true); return [avant, othersAs(k).length]; }})()""")
         assert old == [0, 1] and "sans votre code personnel" in a.inner_text(".moi-qui")
         a.click("[data-ignore-app='ancien-navigateur']")
         assert "Un autre appareil" not in a.inner_text("main")
 
-        # 2. les réponses : présent d'un geste ; absent avec un motif, « autre » avec un mot obligatoire
-        ev = a.evaluate("events(addDays(ymd(new Date()), 6), addDays(ymd(new Date()), 13)).find(e => e.type === 'e').id")
-        a.evaluate("""(() => { const d = addDays(ymd(new Date()), 10), adv = D.saison.matchs[0].adversaire;
-          D.agenda.push({id: "9901", date: d + "T20:30", provisoire: false, adversaire: adv, domicile: true, joueurs: []});
-          S.tab = "presences"; render(false); })()""")
-        assert "Mes réponses" in a.inner_text("main") and "ont dit venir" not in a.inner_text("main")
+        # 2. un joueur : ni onglet Présences (même demandé dans l'adresse), ni ses présences dans Ma semaine
+        for pg in (a, b):
+            assert not tab_visible(pg) and pg.evaluate("primaryTabs()") == ["moi", "semaine", "saison", "caisse"]
+            pg.evaluate("S.tab = 'presences'; render(false)")
+            assert pg.evaluate("S.tab") == "moi" and "Mes présences" not in pg.inner_text("main") and pg.locator("main .rep").count() == 0
+        assert "Mes réponses" not in a.inner_text("main") and a.locator(".code-val").count() == 1   # le code reste
+        # plus d'entraînement suivi : seuls les matchs ; plus d'amende « pas de réponse » sans date de départ
+        assert a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 60)).every(e => e.type === 'm')")
+        assert a.evaluate("(() => { D.presences.debut = ''; const n = presenceFines(ledger(), new Date(Date.now() + 864e5 * 60)).length; return n; })()") == 0
+
+        # 3. celui qui tient les présences : son nom, puis son code ; l'onglet n'est qu'à lui
+        m = device()
+        m.click(f".qui [data-qui='{km}']")
+        wait_sent(m, 5)
+        apply(a, b, m)
+        m.wait_for_selector(".code-val")
+        code_m = m.inner_text(".code-val")
+        assert tab_visible(m) and m.evaluate("primaryTabs()") == ["moi", "presences", "semaine", "caisse"]
+        # les matchs de la planification dans les jours qui viennent (le calendrier de démonstration est fixe)
+        setup = """(() => { PLAN.forEach((r, i) => { const x = D.agenda.find(a => String(a.id) === String(r.m.id)); x.date = addDays(ymd(new Date()), 1 + i) + "T20:30"; });
+          S.presM = String(PLAN[0].m.id); render(true); return S.presM; })()"""
+        mid = m.evaluate(setup)
+        for pg in (a, b):
+            pg.evaluate(setup)
+        ev = f"M-{mid}"
+        m.evaluate("S.tab = 'presences'; render(false)")
+        assert m.evaluate("S.tab") == "presences" and "Les matchs" in m.inner_text("main") and "pas encore renseigné" in m.inner_text("main .gestion")
+        assert "Les entraînements" not in m.inner_text("main") and m.locator("[data-mrep]").count() == 14
+        # présent d'un geste, pour un autre joueur que lui
         n = len(sent)
-        a.click(f"[data-rep='{ev}']")
-        wait_sent(a, n + 1)
-        assert [(o["t"], o["etat"], o["evs"]) for o in apply(a)] == [("dispo", "present", [ev])]
-        a.click("[data-rep-abs='M-9901']")
-        assert a.locator("[data-rep-envoi]").is_disabled() and "Choisissez d'abord un motif" in a.inner_text("#pf-hint")
-        a.click("[data-motif=autre]")
-        assert a.locator("[data-rep-envoi]").is_disabled() and "écrivez votre justification" in a.inner_text("#pf-hint")
-        a.fill("#pf-texte", "mariage de mon frère")
-        assert a.locator("[data-rep-envoi]").is_enabled() and a.inner_text("#pf-hint") == ""
-        # une justification écrite sans motif : « Autre »
-        a.evaluate("PF.motif = ''; render(true)")
-        a.fill("#pf-texte", "mariage de mon frère")
-        assert a.evaluate("PF.motif") == "autre" and a.locator("[data-rep-envoi]").is_enabled() and "on" in a.get_attribute("[data-motif=autre]", "class")
+        m.click(f"[data-mrep='{ev}|{k1}']")
+        wait_sent(m, n + 1)
+        ops = apply(a, b, m)
+        assert [(o["t"], o["joueur"], o["etat"], o["evs"]) for o in ops] == [("dispo", k1, "present", [ev])]
+        # absent : un motif, « autre » avec un mot obligatoire
+        m.click(f"[data-mrep-abs='{ev}|{k2}']")
+        assert m.locator("[data-rep-envoi]").is_disabled() and "Choisissez d'abord un motif" in m.inner_text("#pf-hint")
+        m.click("[data-motif=autre]")
+        assert m.locator("[data-rep-envoi]").is_disabled() and "écrivez la justification" in m.inner_text("#pf-hint")
+        m.fill("#pf-texte", "mariage de son frère")
+        assert m.locator("[data-rep-envoi]").is_enabled() and m.inner_text("#pf-hint") == ""
         # GitHub refuse l'envoi (réseau d'entreprise) : dit clairement, rien n'est perdu, renvoyé ensuite
         refuse.append(404)
         n = len(sent)
-        a.click("[data-rep-envoi]")
-        a.wait_for_selector(".note.envoi-ko")
-        assert "code 404" in a.inner_text(".note.envoi-ko") and len(sent) == n and a.evaluate("cnOutbox().length") == 1
-        assert a.evaluate("statusOf(stored(MOI), {id: 'M-9901', day: addDays(ymd(new Date()), 10)}).etat") == "absent"   # gardé ici
+        m.click("[data-rep-envoi]")
+        m.wait_for_selector(".note.envoi-ko")
+        assert "code 404" in m.inner_text(".note.envoi-ko") and len(sent) == n and m.evaluate("cnOutbox().length") == 1
         refuse.clear()
-        a.click(".note.envoi-ko [data-cnsend]")
-        wait_sent(a, n + 1)
-        apply(a)
-        a.click("[data-rep-abs='M-9901']")
-        a.click("[data-motif=autre]")
-        a.fill("#pf-texte", "mariage de mon frère")
+        m.click(".note.envoi-ko [data-cnsend]")
+        wait_sent(m, n + 1)
+        ops = apply(a, b, m)
+        assert [(o["joueur"], o["etat"], o["motif"], o["texte"]) for o in ops] == [(k2, "absent", "autre", "mariage de son frère")]
+        assert "« mariage de son frère »" in m.inner_text("main .gestion") and "✓ présent" in m.inner_text("main .gestion")
+        # présent d'un coup pour tous ceux qui ne sont pas encore renseignés
+        todo = m.evaluate(f"unset(evMatch(agendaList().find(x => String(x.id) === {json.dumps(mid)}))).map(p => p.cle)")
+        assert len(todo) == 12 and k1 not in todo and k2 not in todo
         n = len(sent)
-        a.click("[data-rep-envoi]")
-        wait_sent(a, n + 1)
-        ops = apply(a)
-        assert [(o["etat"], o["motif"], o["texte"], o["evs"]) for o in ops] == [("absent", "autre", "mariage de mon frère", ["M-9901"])]
-        assert a.evaluate(f"statusOf({json.dumps(k1)}, {{id: '{ev}', day: '{ev[2:]}'}}).etat") == "present"
-        assert "✓ présent" in a.inner_text("main") and "✕ absent" in a.inner_text("main") and "« mariage de mon frère »" in a.inner_text("main")
-        # une période d'absence : tous les entraînements et matchs de ces jours-là
-        a.click("[data-periode]")
-        assert a.evaluate("PF.ev") == "periode"
-        a.evaluate("PF.du = addDays(ymd(new Date()), 20); PF.au = addDays(ymd(new Date()), 26)")
-        assert len(a.evaluate("periodEvents()")) >= 2
-        a.click("[data-rep-annule]")
-        # tout le calendrier de la saison, mois par mois : « présent » d'un coup à ce qui reste sans réponse
-        a.evaluate("D.presences.fin = addDays(ymd(new Date()), 100); render(true)")
-        assert a.locator("details.mois").count() >= 4
-        mo = a.evaluate("addDays(ymd(new Date()), 40).slice(0, 7)")
-        a.evaluate(f"""document.querySelector('details[data-keep="mois-{mo}"]').open = true""")
+        m.click(f"[data-mrep-tous='{ev}']")
+        wait_sent(m, n + 1)
+        ops = apply(a, b, m)
+        assert sorted(o["joueur"] for o in ops) == sorted(todo) and {o["etat"] for o in ops} == {"present"}
+        assert m.locator(".gestion .pst-etat.wait").count() == 0 and "0 pas encore renseigné" in m.inner_text("main .gestion")
+        # un envoi : 40 saisies au plus, comme le dépôt ; au-delà, plusieurs envois
         n = len(sent)
-        a.click(f"[data-rep-mois='{mo}']")
-        wait_sent(a, n + 1)
-        ops = apply(a)
-        assert ops[0]["etat"] == "present" and len(ops[0]["evs"]) >= 4 and all(e[2:9] == mo or e.startswith("M-") for e in ops[0]["evs"])
-        assert "tout est répondu" in a.inner_text(f"""details[data-keep="mois-{mo}"] summary""")
-        # avant le début des présences (config.yml, presences.debut), rien n'est demandé
-        assert a.evaluate("""(() => { const k = D.presences.debut, d = addDays(ymd(new Date()), 3); D.presences.debut = d;
-          const ok = events(ymd(new Date()), addDays(d, 10)).every(e => e.day >= d) && presStart() === d; D.presences.debut = k; return ok; })()""")
+        m.evaluate(f"""(() => {{ const l = []; for(let i = 0; i < 45; i++) l.push(dispoOp({json.dumps(k3)}, ["M-99" + i], "present"));
+          setCnOutbox(l); return sendCN(); }})()""")
+        wait_sent(m, n + 2)
+        assert [len(o) for o in (cn.check(json.loads(s["body"]["inputs"]["prop"]), PHRASE) for s in sent[-2:])] == [40, 5]
+        apply(a, b, m, k=2)
 
-        # 3. un joueur ne voit que ses réponses : ni celles des autres, ni leur nombre ; en consultation, la
-        # feuille proposée ne tient compte que de la sienne
-        b.evaluate("""(() => { D.agenda.push({id: "9901", date: addDays(ymd(new Date()), 10) + "T20:30", adversaire: D.saison.matchs[0].adversaire,
-          domicile: true, joueurs: []}); S.tab = "presences"; render(false); })()""")
-        assert b.evaluate(f"playerSays(byCle({json.dumps(k1)}), {{id: '9901', date: addDays(ymd(new Date()), 10)}})") == "attente"
-        assert "mariage" not in b.inner_text("main") and "ont dit venir" not in b.inner_text("main") and "Joueur 05" not in b.inner_text("main")
-        m0 = b.evaluate("PLAN[0].m.id")
-        mine = b.evaluate(f"""(() => {{ const e = "M-" + {json.dumps(m0)};
-          PRESJ.ops.push({{id: "t1", t: "dispo", joueur: {json.dumps(k1)}, evs: [e], etat: "absent", motif: "malade", le: new Date().toISOString()}},
-                         {{id: "t2", t: "dispo", joueur: {json.dumps(k2)}, evs: [e], etat: "absent", motif: "vacances", le: new Date().toISOString()}});
-          DECL = null; const r = planning()[0];
-          return [availOf(byCle({json.dumps(k1)}), r.m), availOf(byCle({json.dumps(k2)}), r.m), r.sel.some(p => p.cle === {json.dumps(k2)})]; }})()""")
-        assert mine == ["d", "a", False], mine
+        # 4. les joueurs ne voient pas leurs présences ; l'entraîneur, si : en planification, sans onglet Présences
+        assert a.evaluate(f"playerSays(byCle({json.dumps(k1)}), PLAN[0].m)") == "attente"
+        assert b.evaluate(f"availOf(byCle({json.dumps(k2)}), PLAN[0].m)") == "d" and "absent" not in b.inner_text("main .moi-statut")
+        assert m.evaluate(f"availOf(byCle({json.dumps(k2)}), PLAN[0].m)") == "a"
+        c = device("#entraineur&presences")
+        assert c.locator(".qui").count() == 0 and not tab_visible(c) and c.evaluate("S.tab") == "planif"
+        assert c.evaluate("primaryTabs()") == ["planif", "semaine", "convoc", "joueurs"]
+        c.evaluate(setup)
+        assert c.evaluate(f"availOf(byCle({json.dumps(k2)}), PLAN[0].m)") == "a"
+        assert "absent annoncé (✏️ Autre : mariage de son frère)" in c.get_attribute(f".plan button.cell[data-cell='{mid}|{k2}']", "title")
+        # tous annoncés présents : la feuille se fait parmi eux
+        assert c.evaluate("PLAN[0].sel.length") == 12 and c.evaluate("PLAN[0].sel.every(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'present')")
+        # l'entraîneur publie un blessé et un rendez-vous : celui qui tient les présences n'y touchera pas
+        hurt = c.evaluate(f"""(() => {{ S.blesse = {{{json.dumps(k3)}: {{de: PLAN[1].m.date, a: null}}}}; S.rdv[PLAN[0].m.id] = "19:45"; save(); render(true);
+          localStorage.setItem("hbpsm:jeton", "jeton-de-test"); return publishChoices().then(() => String(PLAN[0].m.id)); }})()""")
+        coach = publish_choices(a, b, c, m)
+        assert coach["rdv"] == {hurt: "19:45"} and k3 in coach["blesses"] and coach["matchs"] == {}
 
-        # 4. l'entraîneur voit tout : les réponses, leurs motifs, et bouge la feuille d'un geste
-        c = device("#entraineur")
-        assert c.locator(".qui").count() == 0
-        c.evaluate("S.tab = 'presences'; render(false)")
-        assert "Les matchs" in c.inner_text("main") and "Les entraînements" in c.inner_text("main")
-        board = c.evaluate(f"""(() => {{ const m = PLAN[0].m, e = "M-" + m.id, gk = D.joueurs.filter(isGK), fld = D.joueurs.filter(p => !isGK(p));
-          const says = (p, etat, motif) => PRESJ.ops.push({{id: "c" + p.cle, t: "dispo", joueur: p.cle, evs: [e], etat, motif: motif || "", texte: "",
-                                                            le: new Date().toISOString()}});
-          gk.forEach(p => says(p, "present")); fld.slice(0, 10).forEach(p => says(p, "present")); says(fld[10], "absent", "malade");
-          DECL = null; render(true); const r = PLAN[0], quiet = fld[11];
-          return {{n: r.sel.length, all: r.sel.every(p => statusOf(p.cle, evMatch(m)).etat === "present"), quiet: quiet.cle,
-                   out: availOf(quiet, m), nr: noAnswerOut(quiet, m), sick: fld[10].cle}}; }})()""")
-        assert board["n"] == 12 and board["all"] and board["out"] == "a" and board["nr"], board
-        assert "Malade" in c.inner_text(".board") and "Sans réponse" in c.inner_text(".board")
-        c.click(f".board [data-sel$='|{board['quiet']}|in']")
-        assert c.evaluate(f"PLAN[0].sel.some(p => p.cle === {json.dumps(board['quiet'])})") and c.evaluate("PLAN[0].sel.length") == 12
-        c.click(f".board [data-sel$='|{board['quiet']}|out']")
-        assert not c.evaluate(f"PLAN[0].sel.some(p => p.cle === {json.dumps(board['quiet'])})")
-        # en planification, la case dit pourquoi
-        c.evaluate("S.tab = 'planif'; render(false)")
-        assert "il l'a dit (🤒 Malade)" in c.get_attribute(f".plan button.cell[data-cell='{m0}|{board['sick']}']", "title")
-        # pas assez de réponses : comme avant, parmi tous les disponibles
-        c.evaluate("PRESJ.ops = PRESJ.ops.filter(o => !String(o.id).startsWith('c')); render(true)")
-        assert c.evaluate(f"availOf(byCle({json.dumps(board['sick'])}), PLAN[0].m)") == "d"
-        # une séance et un match annulés par l'entraîneur : publiés avec ses choix, vus de tous ; plus de réponse
-        # attendue, ni amende, ni vote, ni planification ; les réponses déjà données restent gardées
-        day = c.evaluate("events(addDays(ymd(new Date()), 1), addDays(ymd(new Date()), 8)).find(e => e.type === 'e').day")
-        m_off = str(c.evaluate("PLAN[1].m.id"))
-        off = sorted([f"E-{day}", f"M-{m_off}"])
-        c.evaluate("S.tab = 'presences'; render(false)")
-        assert c.locator(".cal [data-annule]").count() > 20   # tout le calendrier de la saison
-        c.locator(f"[data-annule='E-{day}']").first.dispatch_event("click")   # dans le tiroir de la séance
-        c.locator(f"[data-annule='M-{m_off}']").first.dispatch_event("click")
-        assert c.evaluate("statusPending()") and c.evaluate("annuleesNow()") == off
-        assert c.evaluate(f"PLAN.every(r => String(r.m.id) !== {json.dumps(m_off)})")   # hors planification
-        assert "Annulé par l'entraîneur" in c.inner_text(".annules")
-        assert c.evaluate("[...document.querySelectorAll('.cal li.off')].length") == 2 and "rétablir" in c.evaluate("[...document.querySelectorAll('.cal')].map(e => e.textContent).join(' ')")
-        c.evaluate("localStorage.setItem('hbpsm:jeton', 'jeton-de-test')")
-        before = len(sent)
-        c.click("[data-publier-blessures]")
-        wait_sent(c, before + 1)
-        assert sent[-1]["url"].endswith("/actions/workflows/choix.yml/dispatches")
-        assert choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)["annulees"] == off
-        monkeypatch.setenv("HBPSM_CHOIX", sent[-1]["body"]["inputs"]["choix"])
-        assert choix.main() == 0   # ce que fait le workflow « Choix de l'entraîneur »
-        a.evaluate(f"""(() => {{ PRESJ.ops.push({{id: "garde", t: "dispo", joueur: {json.dumps(k1)}, evs: ["M-{m_off}"], etat: "present",
-          le: new Date().toISOString()}}); DECL = null; return fetchChoices().then(() => {{ S.tab = "presences"; render(false); }}); }})()""")
-        a.wait_for_function(f"() => annuleId('M-{m_off}') && annuleId('E-{day}')", timeout=10000)
-        kept = a.evaluate(f"""(() => {{ const m = agendaList().find(x => String(x.id) === {json.dumps(m_off)}), e = evMatch(m);
-          return {{etat: statusOf({json.dumps(k1)}, e).etat, annule: e.annule, vote: ballot(Object.assign({{}}, m, {{bp: 1, bc: 0}}), new Date(Date.now() + 864e5 * 40)),
-                   plan: PLAN.some(r => String(r.m.id) === {json.dumps(m_off)}), todo: notYet(e, {json.dumps(k1)})}}; }})()""")
-        assert kept == {"etat": "present", "annule": True, "vote": None, "plan": False, "todo": False}, kept
-        assert "Annulé par l'entraîneur" in a.inner_text("main") and "votre réponse est gardée" in a.inner_text("main")
+        # 5. la sélection de l'entraîneur, saisie par celui qui tient les présences, publiée comme ses choix
+        m.evaluate("render(true)")
+        assert "pas encore saisie" in m.inner_text(".sel-gest") and m.locator("[data-msel]").count() == 14
+        m.click(f"[data-msug='{mid}']")
+        draft = m.evaluate(f"selOf({json.dumps(mid)})")
+        assert len(draft) == 12 and "pas encore publiée" in m.inner_text(".sel-gest")
+        assert "1 changement pas encore publié" in m.inner_text("main")
+        # un joueur retiré, un autre retenu à sa place
+        out_of = next(k for k in draft if k != k1 and not m.evaluate(f"isGK(byCle({json.dumps(k)}))"))
+        back = next(k for k in squad if k not in draft and k != k2 and not m.evaluate(f"isGK(byCle({json.dumps(k)}))"))
+        m.click(f"[data-msel='{mid}|{out_of}']")
+        m.click(f"[data-msel='{mid}|{back}']")
+        draft = m.evaluate(f"selOf({json.dumps(mid)})")
+        assert back in draft and "absent" not in m.inner_text(".sel-gest")
+        # retenir un joueur annoncé absent : signalé (l'entraîneur verrait la feuille « à revoir »)
+        m.click(f"[data-msel='{mid}|{k2}']")
+        assert "Retenu mais absent : Joueur 06" in m.inner_text(".sel-gest")
+        m.click(f"[data-msel='{mid}|{k2}']")
+        assert len(draft) == 12 and out_of not in draft and "retenu" in m.inner_text(f".rep:has([data-msel='{mid}|{draft[0]}'])")
+        # la première fois, le jeton de publication
+        n = len(sent)
+        m.click(".sel-gest [data-mpub]")
+        m.wait_for_selector("#sjeton")
+        assert len(sent) == n
+        m.fill("#sjeton", "jeton-de-test")
+        m.click("[data-sjeton]")
+        wait_sent(m, n + 1)
+        assert m.evaluate("localStorage.getItem('hbpsm:jeton-selection')") == "jeton-de-test" and m.evaluate("stored(TOKEN)") is None
+        pub = publish_choices(a, b, c, m)
+        assert sorted(pub["matchs"][mid]["joueurs"]) == sorted(draft) and pub["rdv"] == coach["rdv"] and pub["blesses"] == coach["blesses"]
+        m.wait_for_function(f"() => !(String({json.dumps(mid)}) in gest().sel) && gestPending() === 0", timeout=10000)
+        assert "publiée" in m.inner_text(".sel-gest") and "pas encore publié" not in m.inner_text("main")
+        # vue de tous comme le choix de l'entraîneur
+        a.wait_for_function("() => PLAN[0].etat === 'choix'", timeout=10000)
         a.evaluate("S.tab = 'moi'; render(false)")
+        assert ("retenu par l'entraîneur" in a.inner_text(".matchcard .moi-statut")) == (k1 in draft)
+        assert c.evaluate("PLAN[0].etat") == "publiee" and sorted(c.evaluate("PLAN[0].sel.map(p => p.cle)")) == sorted(draft)
+
+        # 6. un match annulé par celui qui tient les présences : publié, vu de tous ; rétabli, tout revient
+        n = len(sent)
+        m.click(".gestion [data-gannule]")
+        wait_sent(m, n + 1)
+        assert m.evaluate(f"annuleId('M-{mid}')") and "match annulé" in m.inner_text(".gestion")
+        pub = publish_choices(a, b, c, m)
+        assert pub["annulees"] == [f"M-{mid}"] and pub["rdv"] == coach["rdv"]
+        a.wait_for_function(f"() => annuleId('M-{mid}') && PLAN.every(r => String(r.m.id) !== {json.dumps(mid)})", timeout=10000)
         assert "Annulé par l'entraîneur" in a.inner_text("main")
-        # rétabli : tout revient, réponses comprises
-        c.locator(f".cal [data-annule='M-{m_off}']").dispatch_event("click")
-        assert c.evaluate(f"PLAN.some(r => String(r.m.id) === {json.dumps(m_off)})") and c.evaluate("annuleesNow()") == [f"E-{day}"]
+        n = len(sent)
+        m.click(".gestion [data-gannule]")
+        wait_sent(m, n + 1)
+        assert publish_choices(a, b, c, m)["annulees"] == []
+        a.wait_for_function(f"() => !annuleId('M-{mid}')", timeout=10000)
 
-        # 5. sans réponse à temps : l'amende du règlement, proposée aux trésoriers ; à l'heure, rien ; en retard, dit
-        fines = c.evaluate(f"""(() => {{ const today = ymd(new Date()); D.presences.amendes_depuis = addDays(today, -12); D.presences.debut = "";
-          const past = events(addDays(today, -12), today).filter(e => e.type === "e" && deadline(e) < new Date());
-          const [e1, e2] = past, k = {json.dumps(k1)};
-          PRESJ.ops.push({{id: "f1", t: "dispo", joueur: k, evs: [e1.id], etat: "absent", motif: "blesse", le: new Date(deadline(e1) - 3600e3).toISOString()}},
-                         {{id: "f2", t: "dispo", joueur: k, evs: [e2.id], etat: "present", le: new Date(deadline(e2).getTime() + 3600e3).toISOString()}});
-          DECL = null; const F = presenceFines(ledger()).filter(f => f.joueur === k && f.regle === "e_sporteasy");
-          return {{ids: F.map(f => f.id), e1: e1.id, e2: e2.id, motif: (F.find(f => f.id.includes(e2.id)) || {{}}).motif || "",
-                   regle: [...new Set(F.map(f => f.regle))], n: past.length}}; }})()""")
-        assert fines["n"] >= 2 and len(fines["ids"]) == fines["n"] - 1, fines
-        assert not any(fines["e1"] in i for i in fines["ids"]) and "en retard" in fines["motif"] and fines["regle"] == ["e_sporteasy"]
-        assert "mariage" not in json.dumps(fines) and "blesse" not in json.dumps(fines)
+        # 7. sur un autre appareil, sans son code : pas d'onglet ; avec, si
+        m2 = device()
+        m2.click(f".qui [data-qui='{km}']")
+        n = len(sent)
+        m2.click("[data-qui-ok]")
+        wait_sent(m2, n + 1)
+        apply(a, b, m, m2)
+        assert not tab_visible(m2) and "y tenir les présences" in m2.inner_text(".code-perso")
+        m2.fill("#code-saisie", code_m)
+        n = len(sent)
+        m2.click("[data-code-ok]")
+        wait_sent(m2, n + 1)
+        apply(a, b, m, m2)
+        m2.wait_for_function("() => !document.querySelector('nav.tabs [data-tab=presences]').hidden", timeout=10000)
 
-        # 6. l'homme du match : les joueurs de la feuille votent pendant 48 h, pas pour eux-mêmes
+        # 8. l'homme du match : les joueurs de la feuille votent pendant 48 h, pas pour eux-mêmes
         ago = a.evaluate("""(() => { const d = new Date(Date.now() - 3 * 3600e3), two = n => String(n).padStart(2, "0");
           return ymd(d) + "T" + two(d.getHours()) + ":" + two(d.getMinutes()); })()""")
         hdm = json.dumps(dict(id="9902", date=ago, provisoire=False, adversaire="Equipe Fictive", domicile=False,
@@ -1499,18 +1523,13 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         for pg in (a, b, c):
             pg.evaluate(f"D.presences.vote_depuis = ''; D.agenda.push({hdm}); render(true)")
         a.evaluate("S.tab = 'moi'; render(false)")
-        # Ma semaine : ses présences des deux semaines qui viennent, répondues comprises, avec sa réponse
-        assert "Mes présences" in a.inner_text("main") and a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).length") == a.locator("main .reps .rep").count()
-        assert ("✓ présent" in a.inner_text("main .reps")) == a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).some(e => statusOf(stored(MOI), e).etat === 'present')")
-        # en lecture seule : on répond et on change dans Présences
-        assert a.locator("main .reps [data-rep], main .reps [data-rep-abs]").count() == 0 and a.locator("main .reps [data-tab=presences]").count() == 1
+        b.evaluate("S.tab = 'moi'; render(false)")
         assert a.locator(".vote [data-vote]").count() == 2 and a.locator(f".vote [data-vote='9902|{k1}']").count() == 0
         n = len(sent)
         a.click(f".vote [data-vote='9902|{k2}']")
         wait_sent(a, n + 1)
         n = len(sent)
         assert [(o["t"], o["match"], o["pour"]) for o in apply(a, b, c)] == [("vote", "9902", k2)]
-        b.evaluate("S.tab = 'presences'; render(false)")
         b.click(f".vote [data-vote='9902|{k1}']")
         wait_sent(b, n + 1)
         apply(a, b, c)
@@ -1521,14 +1540,14 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
                   fines: motmFines(ledger(), later).map(f => [f.regle, f.joueur, f.montant])}; })()""")
         assert res["elus"] == [k2] and res["top"] == 2 and res["votants"] == 3, res
         assert "Joueur 06" in res["card"] and "2 voix sur 3" in res["card"] and res["fines"] == [["m_mvp", k2, 2]]
-        # sans feuille lue, ce sont les joueurs retenus et publiés par l'entraîneur qui votent
+        # sans feuille lue, ce sont les joueurs de la sélection publiée qui votent
         assert c.evaluate(f"""(() => {{ const keep = CHOIX; CHOIX = {{matchs: {{"9903": {{joueurs: [{json.dumps(k1)}, {json.dumps(k3)}]}}}}}};
           const el = electors({{id: "9903", joueurs: []}}); CHOIX = keep; return el; }})()""") == [k1, k3]
 
         # téléphone : rien ne déborde
-        for pg in (a, c):
+        for pg, tab in ((m, "presences"), (a, "moi")):
             pg.set_viewport_size({"width": 360, "height": 780})
-            pg.evaluate("S.tab = 'presences'; render(false)")
+            pg.evaluate(f"S.tab = '{tab}'; render(false)")
             assert pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
         browser.close()
     server.shutdown()

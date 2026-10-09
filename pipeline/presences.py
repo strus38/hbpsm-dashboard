@@ -1,13 +1,13 @@
-"""Présences aux entraînements et aux matchs, et vote de l'homme du match (demande de l'auteur, 09/10/2026).
+"""Présences aux matchs, et vote de l'homme du match (demandes de l'auteur, 09/10/2026).
 
-Chaque joueur dit sur la page s'il vient, au plus tard 4 jours avant, 21 h (config.yml, `presences`) :
-présent, ou absent avec un motif (malade, blessé, vacances, ou autre avec un mot obligatoire). Ses
-réponses, le joueur qu'il a dit être sur son appareil (« Vous êtes ») et son vote pour l'homme du match
-partent chiffrés au dépôt à part des propositions d'amendes (strus38/hbpsm-cn, même jeton, même
-workflow), dans le journal presences.enc. La page en tire tout : statuts, feuille proposée, amendes
-proposées aux trésoriers, vote. La collecte n'y lit que le nombre de présents annoncés à la prochaine
-séance, pour la séance exportée vers HANDBALL-training (effectifJoueurs, effectifGardiens) : des
-nombres, jamais un nom.
+Un seul joueur les tient, celui qui a le rôle « présences » dans l'effectif (config.yml, `presences`) :
+pour chaque match, il dit sur la page qui vient, ou qui est absent avec un motif (malade, blessé,
+vacances, ou autre avec un mot obligatoire). Ces réponses, le joueur que chacun a dit être sur son
+appareil (« Vous êtes ») et les votes pour l'homme du match partent chiffrés au dépôt à part des
+propositions d'amendes (strus38/hbpsm-cn, même jeton, même workflow), dans le journal presences.enc. La
+page en tire tout : statuts, feuille proposée, vote. Tant que les entraînements étaient suivis
+(`entrainements`), la collecte y lisait le nombre de présents annoncés à la prochaine séance, pour la
+séance exportée vers HANDBALL-training (effectifJoueurs, effectifGardiens) : des nombres, jamais un nom.
 
 Repères des séances et des matchs : « E-AAAA-MM-JJ » (entraînement de ce jour), « M-<rencontre> ».
 """

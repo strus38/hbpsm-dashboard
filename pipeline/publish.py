@@ -120,7 +120,9 @@ def restore():
 def roster():
     """Une ligne par joueur : « Prénom Nom », suivi si besoin de « ,POSTE », de « ,non »
     (indisponible) ou « ,dépannage » (joue seulement s'il manque des joueurs), de « ,trésorier »
-    (tient la caisse noire) ou « ,hors caisse » (n'y participe pas), de sa tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
+    (tient la caisse noire) ou « ,hors caisse » (n'y participe pas), « présences » dans la même colonne pour celui qui
+    tient les présences aux matchs et la sélection de l'entraîneur (« ,trésorier présences » avec les deux rôles), de sa
+    tranche d'âge de 5 ans à partir de 18 ans : « ,18-22 », « ,23-27 »…
     (âge atteint dans l'année où la saison commence ; jamais l'année de naissance), du jour de son anniversaire « ,MM-JJ »
     (sans l'année) et, s'il ne reste pas toute la saison, du dernier mois ou jour où il est disponible
     « ,AAAA-MM » ou « ,AAAA-MM-JJ », et de l'avis de l'auteur, 1 à 5 étoiles « ,4 » (jamais affiché). Une
@@ -251,10 +253,12 @@ def seal(today=None):
     config = load_config()
     data = analyze(today)
     scratch = ROOT / "raw" / "export"
-    # l'effectif annoncé de la prochaine séance : les réponses de présence des joueurs (dépôt hbpsm-cn) ; les
-    # séances et matchs annulés par l'entraîneur (choix.enc) : séance suivante, match marqué annulé au calendrier
+    # l'effectif annoncé de la prochaine séance : les réponses de présence (dépôt hbpsm-cn), tant que les entraînements
+    # sont suivis (presences.entrainements) ; les séances et matchs annulés (choix.enc) : séance suivante, match marqué
+    # annulé au calendrier
     cancelled = published_cancellations()
-    _, seance = build_exports(data, scratch, today, presences.journal(config, secret), cancelled)
+    trainings = (config.get("presences") or {}).get("entrainements", True)
+    _, seance = build_exports(data, scratch, today, presences.journal(config, secret) if trainings else [], cancelled)
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()

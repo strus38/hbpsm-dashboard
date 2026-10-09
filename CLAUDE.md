@@ -469,7 +469,8 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   (8 essais, délai au hasard) ; la page renvoie d'elle-même ce qui n'est pas en ligne après deux minutes (`CN_RETRY`,
   deux fois au plus).
 - Navigation et statistiques (demande de l'auteur, 08/10/2026, tout en un) : sur téléphone, 4 onglets selon le mode
-  (`PRIMARY` : entraîneur planif, semaine, convoc, joueurs ; joueur moi, semaine, saison, caisse), les autres sous
+  (`primaryTabs` : entraîneur planif, semaine, convoc, joueurs ; joueur moi, semaine, saison, caisse ; celui qui tient
+  les présences moi, presences, semaine, caisse ; revu à chaque rendu, `applyTabs`), les autres sous
   « Plus » (`plusMenu`, classe `sec`, ordre `--o`). Ouverture : planification pour l'entraîneur, « Ma semaine » pour un
   joueur dont « hbpsm:moi » est rangé ; un onglet dans l'adresse l'emporte (`TAB_IDS`, `TAB_ALIAS`, `HASH_TAB` :
   `#caisse`, `#entraineur&convoc`…), puis le retour après mise à jour. L'adresse n'est jamais réécrite au changement
@@ -573,6 +574,28 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `moi`, `dispo`, `vote` (-> presences.enc, 20 000 au plus), ajoute `recu` ; workflow « Envoi d'un joueur »
   (`git add -- *.enc`). Page : `CFG.presences`, `fetchPresences` (copie « hbpsm:presences »), même boîte d'envoi
   que les propositions (`cnOutbox`, `sendCN`).
+- Présences tenues par un seul joueur (demandes de l'auteur, 09/10/2026, le soir ; remplace en partie l'entrée
+  précédente) : « cacher le menu Présences à tous sauf » lui, qui met la présence de tous les joueurs aux matchs (pas
+  aux entraînements) et les joueurs sélectionnés par l'entraîneur ; garder le code personnel pour s'identifier, cacher
+  aux joueurs le bilan de leurs présences. Lui : rôle « présences » en 4e colonne de l'effectif (roster.csv et le
+  secret, JAMAIS son nom dans le dépôt ; `gere_presences` -> `D.presences.gestion`), reconnu sur l'appareil par son
+  code (`isManager` : « hbpsm:moi » dans la liste ET `myCodeFor`) ; `GESTION` revu à chaque rendu. Onglet caché à tous
+  les autres, l'entraîneur compris (`applyTabs`, `button[hidden]` ; demandé dans l'adresse : Ma semaine ou la
+  planification). Sa vue (`viewPresences` -> `gestionBlock`) : les 8 prochains matchs (`comingMatches`, annulés
+  compris), pour chaque joueur Présent / Absent (motif, `motifPart`) et « Présent : les N pas encore renseignés »
+  (`unset`) ; ops `dispo` au nom du joueur, depuis son appareil (`declare(qui, evs, …)`, `dispoOp`, schéma hbpsm-cn
+  inchangé). Sélection de l'entraîneur pour les matchs de la planification (`msel`, « Reprendre la suggestion »,
+  « Tout retirer », 16 au plus, joueur retenu mais absent signalé) et match annulé / rétabli (`gannule`) : gardés
+  sur l'appareil (« hbpsm:gestion » {sel, annule}, `gest`, `gestPending`, `forgetGest` à la relecture des choix),
+  publiés par `publishGestion` : relit choix.enc puis le republie avec ses seules sélections et annulations, les
+  blessés, absents et rendez-vous de l'entraîneur gardés tels quels (mêmes ids gardés que `publishChoices`) ;
+  jeton de publication dans « hbpsm:jeton-selection » (`pubToken`, sinon « hbpsm:jeton » ; pas celui des
+  trésoriers, pour ne pas ouvrir la saisie de la caisse). Joueurs : plus de « Mes présences » ni de réponse ;
+  Ma semaine garde le code et le vote (`votesBlock`) ; `playerSays` ne lit les réponses que pour l'entraîneur et lui
+  (`seesAll`), `restricts` aussi. Entraînements : `presences.entrainements: false` (`events` sans séance ; collecte :
+  plus d'effectif annoncé, `seal`). Plus d'`amendes_depuis` : ni amende « pas de réponse », ni « sans
+  justification » (`statusOf`). `sendCN` envoie par paquets de 40 (`CN_MAX`, `MAX_OPS` de hbpsm-cn). Retirés :
+  `answerRow`, `monthsBlock`, `periodBlock`, `todoBlock`, `boardBlock`, `moveSel`, `trainingsBlock`, `seasonBlock`.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

@@ -164,17 +164,18 @@ entrainement:
   categorie_age: "+18 ans"
   # jours d'entraînement : 0 = lundi ... 6 = dimanche
   jours: [1, 4]
-# Présences (demande de l'auteur, 09/10/2026) : chacun dit sur la page s'il vient à chaque entraînement et à chaque
-# match, au plus tard `delai_jours` avant, à `heure_limite` (règlement de la caisse noire) ; absent : malade, blessé,
-# vacances ou autre (un mot obligatoire). Sans réponse à temps : absent sans justification, et l'amende du règlement
-# (e_sporteasy, m_sporteasy) proposée aux trésoriers pour les séances et les matchs à partir de `amendes_depuis`.
-# Les réponses partent au dépôt des propositions (presences.enc). L'homme du match est élu par les joueurs de la
-# feuille pendant `vote_heures` après le match.
+# Présences (demandes de l'auteur, 09/10/2026) : un seul joueur les tient, celui qui a le rôle « présences » dans
+# l'effectif (jamais dans le dépôt) ; lui seul voit l'onglet. Match par match, il dit qui vient (absent : malade,
+# blessé, vacances ou autre, un mot obligatoire) et saisit la sélection de l'entraîneur, publiée comme ses choix. Les
+# joueurs ne répondent plus et ne voient pas leurs présences. Les entraînements ne sont plus suivis (`entrainements`).
+# Les réponses partent au dépôt des propositions (presences.enc). Sans `amendes_depuis` (une date), aucune amende
+# « pas de réponse » n'est proposée (e_sporteasy, m_sporteasy : à la main par les trésoriers). L'homme du match est
+# élu par les joueurs de la feuille pendant `vote_heures` après le match.
 presences:
-  debut: "2026-10-12"            # premiers entraînements et matchs où l'on répond (demande de l'auteur, 09/10/2026)
+  debut: "2026-10-12"            # premiers matchs où l'on répond (demande de l'auteur, 09/10/2026)
   fin: "2027-06-30"              # on répond à l'avance jusque-là : tout le calendrier de la saison
+  entrainements: false           # matchs seulement (demande de l'auteur, 09/10/2026)
   vote_depuis: "2026-10-10"      # premier match où l'homme du match est élu
   delai_jours: 4
   heure_limite: "21:00"
-  amendes_depuis: "2026-10-16"
   vote_heures: 48

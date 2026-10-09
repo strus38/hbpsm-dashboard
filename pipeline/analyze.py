@@ -588,6 +588,8 @@ def load_roster():
                                                         tresorier="TRESORIER" in norm(row.get("role") or ""),
                                                         # ne participe pas à la caisse noire (ni cotisation, ni amende)
                                                         hors_caisse="HORS CAISSE" in norm(row.get("role") or ""),
+                                                        # tient les présences aux matchs et saisit la sélection de l'entraîneur
+                                                        gere_presences="PRESENCES" in norm(row.get("role") or ""),
                                                         age=age_class(row.get("age")),
                                                         jusqu_au=until(row.get("jusqu_au")),
                                                         avis=opinion(row.get("avis")))
@@ -1642,7 +1644,9 @@ def analyze(today=None, roster=None):
         # présences et homme du match (demande de l'auteur, 09/10/2026) : les matchs du club, les jours
         # d'entraînement et les délais de réponse ; les réponses elles-mêmes sont lues par la page
         agenda=club_agenda(every_fixture, every_match, config, roster),
-        presences=dict(config.get("presences") or {}, jours=(config.get("entrainement") or {}).get("jours") or [1, 4]),
+        presences=dict(config.get("presences") or {}, jours=(config.get("entrainement") or {}).get("jours") or [1, 4],
+                       # qui les tient (rôle « présences » de l'effectif) : seul à voir l'onglet, reconnu par son code
+                       gestion=sorted("R:" + k for k, r in roster.items() if r.get("gere_presences"))),
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
         chances=chances, trajectoire=trajet,

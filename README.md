@@ -37,7 +37,8 @@ une phrase courte se devine par essais successifs.
    poste facultatif, « ARG/ARD » pour deux postes ; disponibilité « non » pour un joueur absent
    longtemps, « dépannage » pour un joueur qui ne joue que s'il manque du monde ; puis
    « trésorier » en 4e colonne pour ceux qui tiennent la caisse noire (« hors caisse » pour un joueur
-   qui n'y participe pas), la tranche d'âge en 5e (5 ans
+   qui n'y participe pas ; « présences » pour celui qui tient les présences aux matchs et la sélection
+   de l'entraîneur, « trésorier présences » avec les deux rôles), la tranche d'âge en 5e (5 ans
    à partir de 18 ans : « 18-22 », « 23-27 »… ; jamais l'année de naissance),
    l'anniversaire « MM-JJ » en 6e et, pour un joueur qui ne reste pas toute la saison, le dernier
    mois « AAAA-MM » ou jour « AAAA-MM-JJ » où il est disponible en 7e).
@@ -445,45 +446,44 @@ toucher au tableau de bord. Secrets : `HBPSM_JETON_CN` ici, `HBPSM_CLE` dans les
 
 ## Présences et homme du match
 
-Onglet « Présences » (et « Mes présences » dans Ma semaine : les deux semaines qui viennent, répondues ou non, en lecture seule ; on répond et on change dans Présences). À sa première ouverture, la page demande
-« Qui êtes-vous ? » : chacun choisit son nom une fois sur son appareil. Ce choix part au dépôt
-`strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est signalé (« C'est bien moi » ou
-« Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est déclaré comme lui. On peut
-toujours se redéclarer (« changer ») : l'équipe règle les doublons entre elle. Le premier appareil d'un
-joueur reçoit un **code personnel** (Ma semaine, « 🔑 Votre code personnel ») : sur un autre téléphone ou
-ordinateur, le joueur choisit son nom puis donne ce code, et il est reconnu sans doublon signalé. Seule
-une empreinte du code (PBKDF2) part au journal, jamais le code ; aucun secret GitHub n'est nécessaire.
+À sa première ouverture, la page demande « Qui êtes-vous ? » : chacun choisit son nom une fois sur son
+appareil. Ce choix part au dépôt `strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est
+signalé (« C'est bien moi » ou « Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est
+déclaré comme lui. On peut toujours se redéclarer (« changer ») : l'équipe règle les doublons entre elle.
+Le premier appareil d'un joueur reçoit un **code personnel** (Ma semaine, « 🔑 Votre code personnel ») :
+sur un autre téléphone ou ordinateur, le joueur choisit son nom puis donne ce code, et il est reconnu
+sans doublon signalé. Seule une empreinte du code (PBKDF2) part au journal, jamais le code ; aucun secret
+GitHub n'est nécessaire. Ce nom sert au vote de l'homme du match et aux propositions d'amendes.
 
-- Chacun répond pour chaque entraînement (jours de `entrainement.jours`) et chaque match du club,
-  au plus tard 4 jours avant, 21 h (`presences` dans `config.yml`) : « Présent », ou « Absent » avec
-  un motif (malade, blessé, vacances, autre ; « autre » demande un mot). Les présences commencent le
-  12/10/2026 (`debut`) ; tout le calendrier de la saison est ouvert (`fin`), mois par mois, pour répondre
-  à l'avance, avec « Présent à tout ce qui reste sans réponse » pour un mois. « Absent plusieurs jours »
-  couvre d'un coup les séances et les matchs d'une période.
-- Seul l'entraîneur voit les réponses des autres ; un joueur ne voit que les siennes, ni les réponses
-  ni le nombre de présents des autres (demande de l'auteur, 09/10/2026). Le journal est chiffré avec
-  la phrase du club : comme le mode entraîneur, c'est un usage, pas un verrou.
-- Feuille proposée (entraîneur) : un joueur qui a dit ne pas venir sort ; si assez de joueurs ont dit
-  venir (10 joueurs de champ et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon,
-  comme avant, parmi tous les disponibles. Un clic de l'entraîneur prime sur la réponse. En
-  consultation, la suggestion ne tient compte que de la réponse de celui qui regarde.
-- L'entraîneur voit, match par match, la feuille, ceux qui ont dit venir, ceux qui n'ont pas répondu
-  et les absents avec leur motif, et retient ou retire d'un bouton ; puis il valide la feuille. Pour
-  chaque entraînement : joueurs de champ et gardiens annoncés, absents, sans réponse.
-- L'entraîneur annule (ou rétablit) n'importe quel entraînement ou match de la saison (« Le calendrier de
-  la saison », ou « Annuler ce match »). Publié avec ses choix, c'est vu de tous (Présences, Ma semaine,
-  Semaine, calendrier des matchs marqué annulé). Plus de réponse attendue, ni amende, ni vote, ni
-  planification ; les réponses déjà données sont gardées : rétabli, tout revient. Une séance annulée
-  n'est pas exportée vers HANDBALL-training (la suivante l'est). La séance exportée vers HANDBALL-training porte le
-  nombre de joueurs de champ et de gardiens annoncés (`effectifJoueurs`, `effectifGardiens`).
-- Sans réponse à temps : « absent – sans justification » et l'amende du règlement (1 € entraînement,
-  2 € match) proposée aux trésoriers, pour les séances et les matchs à partir de `amendes_depuis`.
-- Homme du match : les joueurs de la feuille (lue, sinon celle publiée par l'entraîneur) votent
-  pendant 48 h après le match, pas pour eux-mêmes ; le résultat est visible de tous (Présences, bilan
-  de la Semaine) et l'amende « MVP » (2 €) proposée aux trésoriers.
+Un seul joueur tient les présences (demandes de l'auteur, 09/10/2026) : celui qui a « présences » dans
+la 4e colonne de l'effectif (`HBPSM_EFFECTIF` et `roster.csv`, jamais le dépôt). L'onglet « Présences »
+n'apparaît qu'à lui, sur un appareil où il a dit qui il est et qui a son code personnel ; il est caché à
+tous les autres, entraîneur compris.
+
+- Matchs seulement (`entrainements: false` dans `config.yml`) : pour chacun des prochains matchs, il dit
+  qui vient (« Présent », ou « Présent : les N pas encore renseignés » d'un coup) et qui est absent, avec
+  un motif (malade, blessé, vacances, autre ; « autre » demande un mot).
+- Il saisit la **sélection de l'entraîneur** pour les matchs de la planification (« Retenir » à côté de
+  chaque joueur, ou « Reprendre la suggestion »), puis la publie : elle part comme les choix de
+  l'entraîneur (`choix.yml`, `publie/choix.enc`, avec le jeton de publication collé une fois sur son
+  appareil), sans toucher à ce que l'entraîneur a publié (blessés, absents, rendez-vous). Tout le monde
+  la voit comme « Choix de l'entraîneur » (Planification, Semaine, Convocation, Ma semaine). Un joueur
+  retenu mais annoncé absent est signalé.
+- Il annule (ou rétablit) un match (reporté, forfait…) : publié de même, vu de tous (Ma semaine,
+  Semaine, calendrier des matchs marqué annulé) ; plus de planification ni de vote.
+- Les joueurs ne voient pas leurs présences, ni celles des autres ; l'entraîneur les voit dans la
+  planification : un absent annoncé sort ; si assez de joueurs sont annoncés présents (10 joueurs de champ
+  et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon, comme avant, parmi tous les
+  disponibles. Un clic de l'entraîneur prime. Le journal est chiffré avec la phrase du club : comme le
+  mode entraîneur, c'est un usage, pas un verrou.
+- Plus d'amende « pas de réponse » proposée automatiquement (pas de `amendes_depuis` dans
+  `config.yml`) : les trésoriers les mettent à la main s'il le faut.
+- Homme du match : les joueurs de la feuille (lue, sinon la sélection publiée) votent dans Ma semaine
+  pendant 48 h après le match, pas pour eux-mêmes ; le résultat est visible de tous (Ma semaine, bilan de
+  la Semaine) et l'amende « MVP » (2 €) proposée aux trésoriers.
 
 Tout part par le même jeton et le même workflow que les propositions d'amendes, dans un journal à part,
-`presences.enc`.
+`presences.enc` (40 saisies au plus par envoi : au-delà, la page en fait plusieurs).
 
 ## Lien avec l'application de préparation des entraînements
 
