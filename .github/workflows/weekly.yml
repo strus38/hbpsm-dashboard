@@ -88,7 +88,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "Collecte du $(date -u +%F)"
-          git push || (git pull --rebase && git push)  # les choix de l'entraîneur ont pu être publiés entre-temps
+          # les choix de l'entraîneur ou une saisie de la caisse ont pu être publiés entre-temps (d'autres fichiers) :
+          # on se replace dessus et on réessaie
+          for essai in 1 2 3 4 5 6; do
+            git push && break
+            [ "$essai" = 6 ] && exit 1
+            sleep $((essai * 3))
+            git pull --rebase
+          done
 
       - name: Préparer la page pour GitHub Pages (la page seule, sans aucune donnée)
         run: |

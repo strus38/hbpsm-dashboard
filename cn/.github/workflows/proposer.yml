@@ -14,7 +14,9 @@
 #
 # Pas de file d'attente (09/10/2026) : GitHub n'en garde qu'un en attente, et le suivant l'annulait
 # (trois joueurs à la même seconde : un envoi perdu jusqu'à la prochaine ouverture de sa page). Les
-# envois passent donc en parallèle et se départagent au push, avec plus d'essais et un délai au hasard.
+# envois passent donc en parallèle et se départagent au push, avec plus d'essais (12) et un délai au hasard : vérifié
+# avec une équipe entière qui envoie à la même seconde (test_envois_paralleles du tableau de bord). Un envoi qui
+# n'aboutirait pas reste sur l'appareil, qui le renvoie de lui-même.
 name: Envoi d'un joueur
 
 on:
@@ -51,14 +53,14 @@ jobs:
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for essai in 1 2 3 4 5 6 7 8; do
+          for essai in $(seq 1 12); do
             git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
             python propositions.py
             git add -- *.enc
             git diff --cached --quiet && exit 0
             git commit -q -m "Envoi d'un joueur"
             git push -q origin "HEAD:$BRANCHE" && exit 0
-            echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/8)"
+            echo "Journal modifié entre-temps : nouvel essai sur le dernier état ($essai/12)"
             sleep $((essai * 2 + RANDOM % 6))
           done
           exit 1

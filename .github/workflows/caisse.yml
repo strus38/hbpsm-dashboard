@@ -11,6 +11,10 @@
 # lancement, donc d'un registre sans le premier envoi, et butait sur un conflit au push (fichier
 # chiffré, impossible à fusionner). On part donc toujours du dernier état de la branche et, si le
 # push est refusé, on reprend ce dernier état et on y réapplique les saisies (sans doublon).
+#
+# Pas de file d'attente (09/10/2026) : GitHub n'y garde qu'un lancement en attente et le suivant l'annule (trois
+# saisies rapprochées : une restait en route). Les lancements passent en parallèle et se départagent au push
+# (12 essais, délai au hasard) ; la page renvoie d'elle-même ce qui n'est pas en ligne.
 name: Caisse noire
 
 on:
@@ -22,10 +26,6 @@ on:
 
 permissions:
   contents: write
-
-concurrency:
-  group: caisse
-  cancel-in-progress: false
 
 jobs:
   publier:
@@ -53,7 +53,7 @@ jobs:
         run: |
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for essai in 1 2 3 4 5; do
+          for essai in $(seq 1 12); do
             git fetch -q origin "$BRANCHE" && git reset -q --hard FETCH_HEAD
             python -m pipeline.caisse import
             if [ -n "$HBPSM_CAISSE" ]; then python -m pipeline.caisse; fi
@@ -61,7 +61,7 @@ jobs:
             git diff --cached --quiet && exit 0
             git commit -q -m "Caisse noire"
             git push -q origin "HEAD:$BRANCHE" && exit 0
-            echo "Registre modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
-            sleep $((essai * 5))
+            echo "Registre modifié entre-temps : nouvel essai sur le dernier état ($essai/12)"
+            sleep $((essai * 2 + RANDOM % 6))
           done
           exit 1

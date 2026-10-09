@@ -30,7 +30,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (56 tests au 09/10/2026, `python -m pytest -q`, deux minutes environ) sur un faux site et de fausses
+Testé (58 tests au 10/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -464,10 +464,18 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   `caisse.yml`, `choix.yml`, `cn/…/proposer.yml` partent du dernier état de la branche (`ref: github.ref`)
   et, si le push est refusé, reprennent ce dernier état et y réappliquent l'entrée (5 essais ; sans doublon
   pour les journaux, l'envoi le plus récent gagne pour les choix). La collecte part aussi du dernier état.
-  `proposer.yml` (hbpsm-cn) sans file d'attente depuis le 09/10/2026 : GitHub n'y garde qu'un envoi en attente et
-  le suivant l'annulait (trois joueurs à la même seconde, un envoi annulé) ; envois en parallèle, départagés au push
-  (8 essais, délai au hasard) ; la page renvoie d'elle-même ce qui n'est pas en ligne après deux minutes (`CN_RETRY`,
-  deux fois au plus).
+  `proposer.yml` (hbpsm-cn) et `caisse.yml` sans file d'attente depuis le 09/10/2026 : GitHub n'y garde qu'un envoi en
+  attente et le suivant l'annulait (trois joueurs à la même seconde, un envoi annulé) ; envois en parallèle, départagés
+  au push (12 essais, délai au hasard). `choix.yml` garde sa file : c'est un instantané complet, le plus récent gagne,
+  et un lancement en attente remplacé l'est par un plus complet. Collecte : jusqu'à 6 `git pull --rebase` + push.
+  Aucune perte (demande de l'auteur, 09/10/2026, vérifiée par `test_envois_paralleles` : le script même des workflows,
+  13 lancements simultanés et 6 saisies de trésoriers sur un vrai dépôt git, tout arrive une fois) : chaque envoi reste
+  dans la boîte de l'appareil tant qu'il n'est pas lu en ligne ; paquets acceptés par GitHub (`packets` : 40 envois
+  joueurs / 100 saisies caisse, ~20 000 caractères ; l'entrée d'un workflow tient 65 535 caractères, une variable
+  d'environnement Windows 32 767) ; un envoi à la fois par page (`CN_SENDING`, `CAISSE_SENDING`, ce qui arrive pendant
+  repart juste après) ; renvoi automatique (deux minutes après, deux fois ; puis à chaque `check` via `resendPending` ;
+  caisse aussi au démarrage) ; un envoi malformé est écarté sans emporter les autres (`propositions.check`,
+  `caisse.validate(strict=False)` ; la reprise `import` reste stricte).
 - Navigation et statistiques (demande de l'auteur, 08/10/2026, tout en un) : sur téléphone, 4 onglets selon le mode
   (`primaryTabs` : entraîneur planif, semaine, convoc, joueurs ; joueur moi, semaine, saison, caisse ; celui qui tient
   les présences moi, presences, semaine, caisse ; revu à chaque rendu, `applyTabs`), les autres sous
@@ -594,7 +602,7 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   Ma semaine garde le code et le vote (`votesBlock`) ; `playerSays` ne lit les réponses que pour l'entraîneur et lui
   (`seesAll`), `restricts` aussi. Entraînements : `presences.entrainements: false` (`events` sans séance ; collecte :
   plus d'effectif annoncé, `seal`). Plus d'`amendes_depuis` : ni amende « pas de réponse », ni « sans
-  justification » (`statusOf`). `sendCN` envoie par paquets de 40 (`CN_MAX`, `MAX_OPS` de hbpsm-cn). Retirés :
+  justification » (`statusOf`). `sendCN` envoie par paquets de 40 (`CN_MAX`, `MAX_OPS` de hbpsm-cn) et ~20 000 caractères au plus (`packets`, voir « Envois rapprochés »). Retirés :
   `answerRow`, `monthsBlock`, `periodBlock`, `todoBlock`, `boardBlock`, `moveSel`, `trainingsBlock`, `seasonBlock`.
 - Mémoire des choix de l'entraîneur (demande de l'auteur, 09/10/2026 : « garde mémoire la différence entre tes
   propositions et celle du coach pour mieux comprendre ses choix ») : chaque feuille publiée porte `suggestion`, la

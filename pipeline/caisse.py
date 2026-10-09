@@ -166,15 +166,18 @@ def check(envelope, secret):
     forme attendue ; VaultError sinon. Rien n'en est jamais affiché."""
     if not isinstance(envelope, dict) or int(envelope.get("iterations") or 0) != vault.ITERATIONS:
         raise vault.VaultError("Caisse refusée : coffre de forme inattendue.")
-    return validate(vault.decrypt(envelope, secret))
+    return validate(vault.decrypt(envelope, secret), strict=False)
 
 
-def validate(data):
-    """Des saisies de la forme attendue (format, version, chaque opération) ; VaultError sinon."""
+def validate(data, strict=True):
+    """Des saisies de la forme attendue (format, version, chaque opération) ; VaultError sinon. strict=False (envois
+    des pages) : une saisie malformée est écartée et les autres gardées, sinon elle bloquerait à jamais tout ce que
+    l'appareil envoie avec elle ; VaultError seulement si aucune n'est bonne."""
     ops = data.get("ops") if isinstance(data, dict) else None
     if data.get("format") != "hbpsm-caisse-ops" or data.get("v") != 1 or not isinstance(ops, list) or not 0 < len(ops) <= 200:
         raise vault.VaultError("Caisse refusée : contenu de forme inattendue.")
     text = lambda v, n=200: isinstance(v, str) and len(v) <= n
+    good = []
     for op in ops:
         ok = isinstance(op, dict) and op.get("t") in KINDS and text(op.get("id"), 80) and op.get("id") \
             and text(op.get("par") or "", 120) and text(op.get("le") or "", 40) and text(op.get("note") or "", 300)
@@ -187,9 +190,15 @@ def validate(data):
             ok = text(op.get("cible"), 80) and op.get("cible")
         if ok and op["t"] == "refus":
             ok = text(op.get("auto"), 200) and op.get("auto")
-        if not ok:
+        if ok:
+            good.append(op)
+        elif strict:
             raise vault.VaultError("Caisse refusée : saisie de forme inattendue.")
-    return ops
+    if not good:
+        raise vault.VaultError("Caisse refusée : saisie de forme inattendue.")
+    if len(good) < len(ops):
+        print(f"::warning::{len(ops) - len(good)} saisie(s) de forme inattendue écartée(s), {len(good)} gardée(s)")
+    return good
 
 
 def main():

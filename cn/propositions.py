@@ -65,16 +65,21 @@ def _ok(op):
 
 
 def check(envelope, secret):
-    """Les envois reçus, déchiffrés et vérifiés ; VaultError sinon (rien n'est affiché)."""
+    """Les envois reçus, déchiffrés et vérifiés ; VaultError si le coffre n'est pas du club ou si aucun envoi n'est
+    de la forme attendue (rien n'est affiché). Un envoi malformé est écarté, les autres sont gardés : sinon il
+    bloquerait à jamais tout ce que l'appareil envoie avec lui."""
     if not isinstance(envelope, dict) or int(envelope.get("iterations") or 0) != vault.ITERATIONS:
         raise vault.VaultError("Envoi refusé : coffre de forme inattendue.")
     data = vault.decrypt(envelope, secret)   # refuse un coffre chiffré avec une autre phrase
     ops = data.get("ops") if isinstance(data, dict) else None
     if data.get("format") != "hbpsm-cn" or data.get("v") != 1 or not isinstance(ops, list) or not 0 < len(ops) <= MAX_OPS:
         raise vault.VaultError("Envoi refusé : contenu de forme inattendue.")
-    if not all(_ok(op) for op in ops):
+    good = [op for op in ops if _ok(op)]
+    if not good:
         raise vault.VaultError("Envoi refusé : saisie de forme inattendue.")
-    return ops
+    if len(good) < len(ops):
+        print(f"::warning::{len(ops) - len(good)} envoi(s) de forme inattendue écarté(s), {len(good)} gardé(s)")
+    return good
 
 
 def _append(path, ops, secret, fmt, limit, now):

@@ -1147,6 +1147,10 @@ def test_depot_des_presences(tmp_path, monkeypatch):
         send([bad])
         with pytest.raises(cn.vault.VaultError):
             cn.main(book)
+    # un envoi malformé n'emporte pas les autres du même paquet
+    send([dict(oui, id="d:12", evs=["E-2026-10-23"]), dict(non, id="d:13", motif="")])
+    assert cn.main(book) == 0
+    assert [o["id"] for o in cn.vault.decrypt(json.loads(pres.read_text("utf-8")), PHRASE)["ops"]][-1] == "d:12"
     # ce que lit la collecte : les présents d'une séance, joueurs de champ et gardiens, jamais un nom
     joueurs = [dict(cle="R:EXEMPLE ISIDORE", poste="ARG", gardien=False), dict(cle="R:MODELE JEAN", poste="GB", gardien=True),
                dict(cle="R:ESSAI ZEPHYRIN", poste="PIV", gardien=False)]
@@ -1563,6 +1567,29 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert c.evaluate(f"""(() => {{ const keep = CHOIX; CHOIX = {{matchs: {{"9903": {{joueurs: [{json.dumps(k1)}, {json.dumps(k3)}]}}}}}};
           const el = electors({{id: "9903", joueurs: []}}); CHOIX = keep; return el; }})()""") == [k1, k3]
 
+        # une boîte d'envoi trop pleine (des envois bloqués longtemps, réseau d'entreprise) part en paquets que GitHub
+        # accepte (65 535 caractères au plus par entrée, 40 envois au plus pour le dépôt), sans rien perdre ; une
+        # vérification (toutes les dix minutes, retour au premier plan) relance ce qui attend
+        n = len(sent)
+        a.evaluate("""(() => { const me = stored(MOI), le = new Date().toISOString(), evs = Array.from({length: 60}, (_, i) => "E-2027-0" + (1 + i % 9) + "-1" + (i % 10));
+          setCnOutbox([...cnOutbox(), ...Array.from({length: 95}, (_, i) => ({id: "lot:" + i, t: "dispo", joueur: me, evs, etat: "present", motif: "", texte: "",
+            app: deviceId(), le}))]); CN_PUB = "erreur"; })()""")
+        relance = a.evaluate("""(async () => { const keep = resendPending; let n = 0; resendPending = () => { n++; keep(); };
+          await check(); resendPending = keep; return n; })()""")
+        assert relance == 1
+        a.wait_for_function("() => !CN_SENDING && CN_PUB === 'envoyee'", timeout=30000)
+        packs = sent[n:]
+        assert len(packs) >= 3 and all(len(p["body"]["inputs"]["prop"]) < 32000 for p in packs)   # GitHub : 65 535
+        got = [cn.check(json.loads(p["body"]["inputs"]["prop"]), PHRASE) for p in packs]
+        assert all(len(g) <= 40 for g in got)
+        assert sorted(o["id"] for g in got for o in g if o["id"].startswith("lot:")) == sorted(f"lot:{i}" for i in range(95))
+        for p in packs:   # chaque paquet : un lancement du workflow ; la page voit tout en ligne, sa boîte se vide
+            monkeypatch.setenv("HBPSM_PROP", p["body"]["inputs"]["prop"])
+            assert cn.main(out / "propositions.enc") == 0
+        a.evaluate("fetchPresences().then(() => render(true))")
+        a.wait_for_function("() => cnOutbox().length === 0", timeout=10000)
+        assert sum(1 for o in a.evaluate("PRESJ.ops") if o["id"].startswith("lot:")) == 95
+
         # téléphone : rien ne déborde
         for pg, tab in ((m, "presences"), (a, "moi")):
             pg.set_viewport_size({"width": 360, "height": 780})
@@ -1610,6 +1637,112 @@ def test_memoire_des_choix(sandbox, monkeypatch):
     assert [e["id"] for e in got] == ["1", upcoming["id"]]   # la mémoire garde aussi les matchs d'avant
     assert (got[-1]["retenue"], got[-1]["proposee"]) == (sorted([a, b]), sorted([a, c]))
     assert json.loads((sandbox / "data" / "selections.json").read_text("utf-8"))["matchs"][upcoming["id"]]["adversaire"] == upcoming["adversaire"]
+
+
+def test_envois_paralleles(tmp_path, monkeypatch):
+    """Toute l'équipe envoie à la même seconde (demande de l'auteur, 09/10/2026 : « qu'aucune information ne soit perdue
+    en aucun cas ») : le script même des workflows (proposer.yml du dépôt à part, caisse.yml des trésoriers) tourne en
+    parallèle sur un vrai dépôt git ; les lancements se départagent au push. Un lancement qui n'aboutirait pas laisse
+    l'envoi sur l'appareil, qui le renvoie : à la fin, chaque envoi est au journal, une seule fois. Un appareil qui renvoie
+    la même chose pendant que le premier lancement tourne ne crée pas de doublon ; un envoi malformé n'emporte pas les
+    autres."""
+    import shutil
+    import subprocess
+    import yaml
+    bash, git = shutil.which("bash"), shutil.which("git")
+    if not bash or not git:
+        pytest.skip("bash et git nécessaires")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("vault_cn_paralleles", ROOT_DIR / "cn" / "vault.py")
+    cn_vault = importlib.util.module_from_spec(spec); spec.loader.exec_module(cn_vault)   # chiffrement réel, comme en ligne
+    env0 = dict(os.environ, HBPSM_CLE=PHRASE, BRANCHE="main", GIT_TERMINAL_PROMPT="0",
+                PATH=str(pathlib.Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""))
+    for k in ("HBPSM_PROP", "HBPSM_CAISSE", "HBPSM_CAISSE_IMPORT"):
+        env0.pop(k, None)
+
+    def run(*args, cwd):
+        subprocess.run([git, *args], cwd=cwd, check=True, capture_output=True, env=env0)
+
+    # le dépôt « distant », avec le code du dépôt à part et celui de la caisse
+    origin = tmp_path / "origin.git"
+    run("init", "-q", "--bare", "-b", "main", str(origin), cwd=tmp_path)
+    seed = tmp_path / "seed"
+    run("clone", "-q", str(origin), str(seed), cwd=tmp_path)
+    for f in ("propositions.py", "vault.py"):
+        shutil.copy(ROOT_DIR / "cn" / f, seed / f)
+    shutil.copytree(ROOT_DIR / "pipeline", seed / "pipeline", ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copy(ROOT_DIR / "config.yml", seed / "config.yml")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "add", "-A", cwd=seed)
+    run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "départ", cwd=seed)
+    run("push", "-q", "origin", "HEAD:main", cwd=seed)
+
+    def script(path, job):   # le script du workflow, tel quel ; ses attentes au dixième (même rythme, plus court)
+        steps = yaml.safe_load(path.read_text("utf-8"))["jobs"][job]["steps"]
+        body = next(s["run"] for s in steps if "for essai" in (s.get("run") or ""))
+        return 'sleep(){ local n=$1; command sleep "$((n/10)).$((n%10))"; }\n' + body
+
+    def wave(jobs, body):   # tous les lancements en même temps ; renvoie ceux qui n'ont pas abouti
+        procs = []
+        for i, extra in jobs:
+            work = tmp_path / f"run-{len(list(tmp_path.glob('run-*')))}"
+            run("clone", "-q", str(origin), str(work), cwd=tmp_path)
+            procs.append((i, extra, subprocess.Popen([bash, "-c", body], cwd=work, env=dict(env0, **extra),
+                                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)))
+        failed = []
+        for i, extra, pr in procs:
+            out = pr.communicate(timeout=600)[0].decode("utf-8", "replace")
+            if pr.returncode:
+                failed.append((i, extra))
+            assert "Traceback" not in out, out
+        return failed
+
+    def journal(name):   # relu depuis un clone neuf du dépôt « distant »
+        final = tmp_path / f"final-{len(list(tmp_path.glob('final-*')))}"
+        run("clone", "-q", str(origin), str(final), cwd=tmp_path)
+        path = final / name
+        return cn_vault.decrypt(json.loads(path.read_text("utf-8")), PHRASE)["ops"] if path.exists() else []
+
+    # 1. douze joueurs répondent à la même seconde ; l'un renvoie le même paquet pendant que le premier tourne ;
+    # un autre envoie un paquet où une saisie est malformée
+    now = "2026-10-09T18:00:00.000Z"
+    sent, jobs = [], []
+    for i in range(12):
+        ops = [dict(id=f"d:{i}", t="dispo", joueur=f"R:JOUEUR {i}", evs=["E-2026-10-13", "M-42"], etat="present", motif="", texte="",
+                    app=f"appareil-{i}", le=now),
+               dict(id=f"moi:{i}", t="moi", joueur=f"R:JOUEUR {i}", app=f"appareil-{i}", le=now, cle_h="0f" * 32)]
+        if i == 5:
+            ops.append(dict(id="mal", t="dispo", joueur="R:JOUEUR 5", evs=[], etat="absent", motif="", le=now))   # malformé
+        sent += [o["id"] for o in ops if o["id"] != "mal"]
+        jobs.append((i, dict(HBPSM_PROP=json.dumps(cn_vault.encrypt(dict(format="hbpsm-cn", v=1, ops=ops), PHRASE)))))
+    jobs.append((3, jobs[3][1]))   # le même paquet, renvoyé par l'appareil 3
+    body = script(ROOT_DIR / "cn" / ".github" / "workflows" / "proposer.yml", "ajouter")
+    pending, waves = jobs, 0
+    while pending and waves < 4:   # ce qui n'a pas abouti : l'appareil le renvoie
+        pending, waves = wave(pending, body), waves + 1
+    assert not pending, f"{len(pending)} envoi(s) jamais arrivés"
+    print(f"[parallèle] {len(jobs)} lancements simultanés : tout est arrivé en {waves} vague(s)")
+    ids = [o["id"] for o in journal("presences.enc")]
+    assert sorted(ids) == sorted(sent) and len(ids) == len(set(ids)), (len(ids), len(sent))
+    assert all(o.get("recu") for o in journal("presences.enc"))
+
+    # 2. six saisies de trésoriers à la même seconde (registre de la caisse)
+    from pipeline import vault as pvault
+    fines, jobs = [], []
+    for i in range(6):
+        ops = [dict(id=f"c:{i}", t="paiement", joueur=f"R:JOUEUR {i}", montant=2, par="R:TRESORIER", le=now, note="")]
+        fines += [o["id"] for o in ops]
+        jobs.append((i, dict(HBPSM_CAISSE=json.dumps(pvault.encrypt(dict(format="hbpsm-caisse-ops", v=1, ops=ops), PHRASE)))))
+    body = script(ROOT_DIR / ".github" / "workflows" / "caisse.yml", "publier")
+    pending, waves = jobs, 0
+    while pending and waves < 4:
+        pending, waves = wave(pending, body), waves + 1
+    assert not pending
+    final = tmp_path / f"final-{len(list(tmp_path.glob('final-*')))}"
+    run("clone", "-q", str(origin), str(final), cwd=tmp_path)
+    book = pvault.decrypt(json.loads((final / "publie" / "caisse.enc").read_text("utf-8")), PHRASE)["ops"]
+    assert sorted(o["id"] for o in book) == sorted(fines)
+    # et les réponses des joueurs n'ont pas bougé entre-temps
+    assert sorted(o["id"] for o in journal("presences.enc")) == sorted(sent)
 
 
 def test_debut_de_saison(sandbox):
@@ -1867,6 +2000,12 @@ def test_caisse_registre(sandbox, monkeypatch):
         send(bad)
         with pytest.raises(vault.VaultError):
             caisse.main()
+    # une saisie malformée n'emporte pas les autres du même envoi (sinon l'appareil serait bloqué à jamais)
+    send([dict(fine, id="a5"), dict(fine, id="a6", regle="inventee")])
+    assert caisse.main() == 0
+    assert [o["id"] for o in vault.decrypt(json.loads((sandbox / "publie" / "caisse.enc").read_text("utf-8")), PHRASE)["ops"]] == ["a1", "p1", "a5"]
+    with pytest.raises(vault.VaultError):   # la reprise d'un état tenu ailleurs reste stricte
+        caisse.validate(dict(format="hbpsm-caisse-ops", v=1, ops=[dict(fine, id="a7"), dict(fine, id="a8", regle="inventee")]))
     send([dict(fine, id="a4")], "une autre phrase bien longue")
     with pytest.raises(vault.VaultError):
         caisse.main()
@@ -1877,7 +2016,7 @@ def test_caisse_registre(sandbox, monkeypatch):
     monkeypatch.setenv("HBPSM_CAISSE_IMPORT", json.dumps(reprise))
     assert caisse.import_main() == 0 and caisse.import_main() == 0
     book = vault.decrypt(json.loads((sandbox / "publie" / "caisse.enc").read_text("utf-8")), PHRASE)
-    assert [o["id"] for o in book["ops"]] == ["a1", "p1", "imp:1", "imp:2"]
+    assert [o["id"] for o in book["ops"]] == ["a1", "p1", "a5", "imp:1", "imp:2"]
     monkeypatch.setenv("HBPSM_CAISSE_IMPORT", json.dumps(dict(reprise, ops=[dict(fine, id="imp:3", regle="inventee")])))
     with pytest.raises(vault.VaultError):
         caisse.import_main()

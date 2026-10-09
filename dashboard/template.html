@@ -2587,25 +2587,53 @@ async function fetchCN(){   // vrai si le journal des propositions a changé
   setCnOutbox(cnOutbox().filter(o => !known.has(o.id)));   // en ligne : plus rien à envoyer
   return true;
 }
-const CN_MAX = 40;
+// Rien ne se perd (vérifié le 09/10/2026 avec toute une équipe qui envoie à la même seconde) : chaque envoi reste dans la
+// boîte de l'appareil tant qu'il n'est pas lu en ligne ; il part en paquets que GitHub accepte (au plus n envois et
+// environ 20 000 caractères : l'entrée d'un workflow tient 65 535 caractères, le chiffrement allonge d'un tiers ; une
+// boîte trop pleine, après des envois bloqués, aurait sinon été refusée à jamais) ; un seul envoi à la fois par page,
+// les nouveautés arrivées pendant ce temps partent juste après ; ce qui n'est pas en ligne repart de lui-même (deux
+// minutes après, puis à chaque vérification et à chaque ouverture). Le dépôt ne compte jamais deux fois le même envoi.
+function packets(list, n){
+  const out = [];
+  let cur = [], size = 0;
+  for(const o of list){
+    const s = JSON.stringify(o).length;
+    if(cur.length && (cur.length >= n || size + s > 20000)){ out.push(cur); cur = []; size = 0; }
+    cur.push(o); size += s;
+  }
+  if(cur.length) out.push(cur);
+  return out;
+}
+async function dispatch(depot, workflow, branche, token, input, env){
+  return fetch("https://api.github.com/repos/" + depot + "/actions/workflows/" + workflow + "/dispatches", {
+    method: "POST", body: JSON.stringify({ref: branche || "main", inputs: {[input]: JSON.stringify(env)}}),
+    headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
+}
+const CN_MAX = 40;   // comme le dépôt hbpsm-cn (propositions.py, MAX_OPS)
+let CN_SENDING = false, CN_AGAIN = false;
 async function sendCN(){
+  if(CN_SENDING){ CN_AGAIN = true; return; }   // un envoi à la fois ; celui-ci repart juste après
   const box = cnOutbox(), phrase = stored(PASS), token = cnToken();
   if(!box.length) return;
-  if(!token || !CFG.cn_depot || !phrase){ CN_PUB = "erreur"; render(true); return; }
-  CN_PUB = "envoi"; render(true);
-  try {   // 40 saisies au plus par envoi, comme le dépôt (propositions.py, MAX_OPS) : « tous présents » en fait une par joueur
-    for(let i = 0; i < box.length && CN_PUB === "envoi"; i += CN_MAX){
-      const env = await sealVault({format: "hbpsm-cn", v: 1, ops: box.slice(i, i + CN_MAX)}, phrase);
-      const r = await fetch("https://api.github.com/repos/" + CFG.cn_depot + "/actions/workflows/" + (CFG.cn_workflow || "proposer.yml") + "/dispatches", {
-        method: "POST", body: JSON.stringify({ref: CFG.cn_branche || "main", inputs: {prop: JSON.stringify(env)}}),
-        headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
+  if(!token || !CFG.cn_depot || !phrase){ CN_PUB = "erreur"; CN_CODE = 0; render(true); return; }
+  CN_SENDING = true; CN_PUB = "envoi"; render(true);
+  try {
+    for(const ops of packets(box, CN_MAX)){
+      const r = await dispatch(CFG.cn_depot, CFG.cn_workflow || "proposer.yml", CFG.cn_branche, token, "prop", await sealVault({format: "hbpsm-cn", v: 1, ops}, phrase));
       CN_CODE = r.status;
-      if(r.status !== 204) CN_PUB = "erreur";
+      if(r.status !== 204){ CN_PUB = "erreur"; break; }
+      CN_PUB = "envoyee";
     }
-    if(CN_PUB === "envoi") CN_PUB = "envoyee";
   } catch (e) { CN_PUB = "erreur"; CN_CODE = 0; }
+  CN_SENDING = false;
   render(true);
   if(CN_PUB === "envoyee") watchCN();
+  if(CN_AGAIN){ CN_AGAIN = false; sendCN(); }
+}
+// à chaque vérification (dix minutes, retour au premier plan, retour de la connexion) : ce qui attend encore repart
+function resendPending(){
+  if(cnOutbox().length && !CN_SENDING && !["envoi", "envoyee"].includes(CN_PUB)) sendCN();
+  if(outbox().length && canWrite() && !CAISSE_SENDING && !["envoi", "envoyee", "refuse", "jeton"].includes(CPUB)) flushCaisse();
 }
 // pas en ligne au bout de deux minutes (un envoi perdu en route) : renvoyé de lui-même, deux fois au plus ;
 // le dépôt ne compte jamais deux fois le même envoi
@@ -2622,29 +2650,34 @@ function watchCN(){   // la mise en ligne prend une minute ou deux : un coup d'�
     else if(n >= 16){ CN_PUB = "lent"; render(true); clearInterval(CN_POLL); }
   }, 15000);
 }
-async function flushCaisse(){
+let CAISSE_SENDING = false, CAISSE_AGAIN = false, CAISSE_RETRY = 0;
+async function flushCaisse(){   // comme les envois des joueurs : en paquets, un à la fois, sans rien perdre
+  if(CAISSE_SENDING){ CAISSE_AGAIN = true; return; }
   const box = outbox(), token = stored(TOKEN), phrase = stored(PASS);
   if(!box.length) return;
   if(!token){ CPUB = "jeton"; render(true); return; }
   if(!CFG.depot || !phrase){ CPUB = "erreur"; render(true); return; }
-  CPUB = "envoi"; render(true);
+  CAISSE_SENDING = true; CPUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format: "hbpsm-caisse-ops", v: 1, ops: box}, phrase);
-    const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/caisse.yml/dispatches", {
-      method: "POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {ops: JSON.stringify(env)}}),
-      headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
-    CPUB = r.status === 204 ? "envoyee" : [401, 403, 404].includes(r.status) ? "refuse" : "erreur";
+    for(const ops of packets(box, 100)){
+      const r = await dispatch(CFG.depot, "caisse.yml", CFG.branche, token, "ops", await sealVault({format: "hbpsm-caisse-ops", v: 1, ops}, phrase));
+      if(r.status !== 204){ CPUB = [401, 403, 404].includes(r.status) ? "refuse" : "erreur"; break; }
+      CPUB = "envoyee";
+    }
   } catch (e) { CPUB = "erreur"; }
+  CAISSE_SENDING = false;
   render(true);
   if(CPUB === "envoyee") watchCaisse();
+  if(CAISSE_AGAIN){ CAISSE_AGAIN = false; flushCaisse(); }
 }
-function watchCaisse(){   // la mise en ligne prend une minute ou deux
+function watchCaisse(){   // la mise en ligne prend une minute ou deux ; ce qui tarde repart de lui-même (deux fois)
   clearInterval(CPOLL);
   let n = 0;
   CPOLL = setInterval(async () => {
     n++;
     if(await fetchCaisse()) render(true);
-    if(!outbox().length){ CPUB = ""; render(true); clearInterval(CPOLL); }
+    if(!outbox().length){ CPUB = ""; CAISSE_RETRY = 0; render(true); clearInterval(CPOLL); }
+    else if(n === 8 && CAISSE_RETRY < 2){ CAISSE_RETRY++; clearInterval(CPOLL); CPUB = ""; flushCaisse(); }
     else if(n >= 16){ CPUB = "lent"; render(true); clearInterval(CPOLL); }
   }, 15000);
 }
@@ -3816,6 +3849,7 @@ async function check(){
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(await fetchCN()) render(true);        // une proposition d'amende d'un joueur
     if(await fetchPresences()) render(true); // une réponse de présence, un « Vous êtes », un vote
+    resendPending();                          // ce qui attend encore sur cet appareil repart
     if(await fetchSante()) render(true);     // une alerte de santé (site, feuilles, jetons)
     if(m.maj && m.maj !== GENERE){
       const env = await fetchVault();
@@ -3875,7 +3909,7 @@ async function start(phrase){
   render(false);
   status();
   fetchChoices().then(changed => { if(changed) render(true); });
-  fetchCaisse().then(changed => { if(changed) render(true); });
+  fetchCaisse().then(changed => { if(changed) render(true); if(outbox().length && canWrite()) flushCaisse(); });   // saisies restées en route
   fetchCN().then(changed => { if(changed) render(true); if(cnOutbox().length) sendCN(); });
   fetchPresences().then(changed => { if(changed) render(true); ensureClaim(); });   // « Vous êtes » choisi avant : partagé
   fetchSante().then(changed => { if(changed) render(true); });   // une proposition restée en route : renvoyée
