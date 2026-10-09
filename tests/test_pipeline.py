@@ -1502,6 +1502,8 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         # Ma semaine : ses présences des deux semaines qui viennent, répondues comprises, avec sa réponse
         assert "Mes présences" in a.inner_text("main") and a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).length") == a.locator("main .reps .rep").count()
         assert ("✓ présent" in a.inner_text("main .reps")) == a.evaluate("events(ymd(new Date()), addDays(ymd(new Date()), 13)).some(e => statusOf(stored(MOI), e).etat === 'present')")
+        # en lecture seule : on répond et on change dans Présences
+        assert a.locator("main .reps [data-rep], main .reps [data-rep-abs]").count() == 0 and a.locator("main .reps [data-tab=presences]").count() == 1
         assert a.locator(".vote [data-vote]").count() == 2 and a.locator(f".vote [data-vote='9902|{k1}']").count() == 0
         n = len(sent)
         a.click(f".vote [data-vote='9902|{k2}']")
