@@ -1,9 +1,11 @@
 """Tests de la chaîne. Lancer : python -m pytest -q"""
 import datetime as dt
 import functools
+import hashlib
 import http.server
 import json
 import os
+import re
 import threading
 
 import pytest
@@ -1119,7 +1121,7 @@ def test_depot_des_presences(tmp_path, monkeypatch):
     cn = cn_module(monkeypatch, "propositions_cn_pres")
     monkeypatch.setenv("HBPSM_CLE", PHRASE)
     send = lambda ops: monkeypatch.setenv("HBPSM_PROP", json.dumps(cn.vault.encrypt(dict(format="hbpsm-cn", v=1, ops=ops), PHRASE, 2000)))
-    moi = dict(id="moi:1", t="moi", joueur="R:EXEMPLE ISIDORE", app="appareil-1", le="2026-10-09T10:00:00.000Z")
+    moi = dict(id="moi:1", t="moi", joueur="R:EXEMPLE ISIDORE", app="appareil-1", le="2026-10-09T10:00:00.000Z", cle_h="0f" * 32)
     oui = dict(id="d:1", t="dispo", joueur="R:EXEMPLE ISIDORE", evs=["E-2026-10-16", "M-42"], etat="present", motif="", texte="",
                app="appareil-1", le="2026-10-09T10:01:00.000Z")
     non = dict(oui, id="d:2", evs=["E-2026-10-20"], etat="absent", motif="autre", texte="mariage")
@@ -1138,7 +1140,8 @@ def test_depot_des_presences(tmp_path, monkeypatch):
                 dict(non, id="d:6", motif="fatigue"),                # motif inconnu
                 dict(oui, id="d:7", evs=["E-2026-10-16"] * 61),      # trop de séances d'un coup
                 dict(oui, id="d:8", etat="peut-etre"),
-                dict(vote, id="vote:2", pour=""), dict(moi, id="moi:2", nom="en clair")):
+                dict(vote, id="vote:2", pour=""), dict(moi, id="moi:2", nom="en clair"),
+                dict(moi, id="moi:3", cle_h="K7PQ-4XMA"), dict(moi, id="moi:4", cle_h="a" * 65)):   # jamais le code en clair
         send([bad])
         with pytest.raises(cn.vault.VaultError):
             cn.main(book)
@@ -1286,21 +1289,42 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         a.click(f".qui [data-qui='{k1}']")
         wait_sent(a, 1)
         assert a.evaluate("stored(MOI)") == k1 and a.evaluate("S.tab") == "moi" and a.locator(".qui").count() == 0
-        assert [(o["t"], o["joueur"]) for o in apply(a)] == [("moi", k1)] and not (out / "propositions.enc").exists()
-        # un autre appareil prend le même nom : signalé ; il confirme, puis se redéclare sous le sien
+        claim = apply(a)
+        assert [(o["t"], o["joueur"]) for o in claim] == [("moi", k1)] and not (out / "propositions.enc").exists()
+        # le premier appareil reçoit un code personnel, affiché dans Ma semaine ; seule son empreinte part au journal
+        a.wait_for_selector(".code-val")
+        code = a.inner_text(".code-val")
+        assert re.fullmatch(r"[A-Z2-9]{4}-[A-Z2-9]{4}", code) and len(claim[0]["cle_h"]) == 64 and code not in json.dumps(claim)
+        assert claim[0]["cle_h"] == hashlib.pbkdf2_hmac("sha256", code.replace("-", "").encode(), f"hbpsm-code:{k1}".encode(), 100000).hex()
+        # un autre appareil prend le même nom : signalé ; un mauvais code est refusé ; sans code, « C'est bien moi » se voit
         b = device()
         assert "déjà pris" in b.inner_text(f".qui [data-qui='{k1}']")
         b.click(f".qui [data-qui='{k1}']")
-        assert "déjà été choisi sur un autre appareil" in b.inner_text(".qui")
+        assert "déjà été choisi sur un autre appareil" in b.inner_text(".qui") and b.locator("#qui-code").count() == 1
+        b.fill("#qui-code", "ZZZZ-ZZZZ")
+        b.click("[data-qui-code]")
+        b.wait_for_selector(".qui .cstop")
+        assert "pas le code" in b.inner_text(".qui .cstop") and len(sent) == 1
         b.click("[data-qui-ok]")
         wait_sent(b, 2)
         apply(a, b)
         assert "Un autre appareil s'est aussi déclaré comme Joueur 05" in a.inner_text("main")
-        b.click("[data-qui-open]")
-        b.click(f".qui [data-qui='{k2}']")
+        # avec son code, il est reconnu : plus de doublon signalé, le code s'affiche aussi sur ce nouvel appareil
+        b.fill("#code-saisie", code.lower().replace("-", " "))
+        b.click("[data-code-ok]")
         wait_sent(b, 3)
         apply(a, b)
+        assert "Un autre appareil" not in a.inner_text("main") and "Un autre appareil" not in b.inner_text("main")
+        b.wait_for_selector(".code-val")
+        assert b.inner_text(".code-val") == code
+        # il se redéclare sous un autre nom (libre) : un nouveau code, pour ce nom-là
+        b.click("[data-qui-open]")
+        b.click(f".qui [data-qui='{k2}']")
+        wait_sent(b, 4)
+        apply(a, b)
         assert b.evaluate("stored(MOI)") == k2 and "Un autre appareil" not in a.inner_text("main")
+        b.wait_for_selector(".code-val")
+        assert b.inner_text(".code-val") != code
 
         # 2. les réponses : présent d'un geste ; absent avec un motif, « autre » avec un mot obligatoire
         ev = a.evaluate("events(addDays(ymd(new Date()), 6), addDays(ymd(new Date()), 13)).find(e => e.type === 'e').id")
@@ -1308,16 +1332,18 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
           D.agenda.push({id: "9901", date: d + "T20:30", provisoire: false, adversaire: adv, domicile: true, joueurs: []});
           S.tab = "presences"; render(false); })()""")
         assert "Mes réponses" in a.inner_text("main") and "ont dit venir" not in a.inner_text("main")
+        n = len(sent)
         a.click(f"[data-rep='{ev}']")
-        wait_sent(a, 4)
+        wait_sent(a, n + 1)
         assert [(o["t"], o["etat"], o["evs"]) for o in apply(a)] == [("dispo", "present", [ev])]
         a.click("[data-rep-abs='M-9901']")
         a.click("[data-motif=autre]")
         assert a.locator("[data-rep-envoi]").is_disabled()
         a.fill("#pf-texte", "mariage de mon frère")
         assert a.locator("[data-rep-envoi]").is_enabled()
+        n = len(sent)
         a.click("[data-rep-envoi]")
-        wait_sent(a, 5)
+        wait_sent(a, n + 1)
         ops = apply(a)
         assert [(o["etat"], o["motif"], o["texte"], o["evs"]) for o in ops] == [("absent", "autre", "mariage de mon frère", ["M-9901"])]
         assert a.evaluate(f"statusOf({json.dumps(k1)}, {{id: '{ev}', day: '{ev[2:]}'}}).etat") == "present"

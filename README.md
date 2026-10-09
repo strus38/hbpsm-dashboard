@@ -449,7 +449,10 @@ Onglet « Présences » (et « À répondre » dans Ma semaine). À sa première
 « Qui êtes-vous ? » : chacun choisit son nom une fois sur son appareil. Ce choix part au dépôt
 `strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est signalé (« C'est bien moi » ou
 « Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est déclaré comme lui. On peut
-toujours se redéclarer (« changer ») : l'équipe règle les doublons entre elle.
+toujours se redéclarer (« changer ») : l'équipe règle les doublons entre elle. Le premier appareil d'un
+joueur reçoit un **code personnel** (Ma semaine, « 🔑 Votre code personnel ») : sur un autre téléphone ou
+ordinateur, le joueur choisit son nom puis donne ce code, et il est reconnu sans doublon signalé. Seule
+une empreinte du code (PBKDF2) part au journal, jamais le code ; aucun secret GitHub n'est nécessaire.
 
 - Chacun répond pour chaque entraînement (jours de `entrainement.jours`) et chaque match du club,
   au plus tard 4 jours avant, 21 h (`presences` dans `config.yml`) : « Présent », ou « Absent » avec

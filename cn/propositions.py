@@ -48,8 +48,10 @@ def _ok(op):
                 and (op.get("match") is None or _text(op.get("match"), 40))
                 and set(op) <= {"id", "t", "joueur", "regle", "n", "montant", "date", "note", "par", "le", "match"})
     who = _text(op.get("joueur"), 120) and op.get("joueur") and _text(op.get("app") or "", 64)
-    if t == "moi":   # « Vous êtes » : ce joueur, sur cet appareil
-        return bool(who) and set(op) <= {"id", "t", "joueur", "app", "le"}
+    if t == "moi":   # « Vous êtes » : ce joueur, sur cet appareil ; cle_h : l'empreinte de son code personnel
+        h = op.get("cle_h") or ""
+        return (bool(who) and isinstance(h, str) and len(h) <= 64 and all(c in "0123456789abcdef" for c in h)
+                and set(op) <= {"id", "t", "joueur", "app", "le", "cle_h"})
     if t == "dispo":   # présent, ou absent avec un motif (« autre » : un mot obligatoire)
         evs, etat, motif, texte = op.get("evs"), op.get("etat"), op.get("motif") or "", op.get("texte") or ""
         return (bool(who) and isinstance(evs, list) and 0 < len(evs) <= MAX_EVENTS and all(_text(e, 40) and e for e in evs)

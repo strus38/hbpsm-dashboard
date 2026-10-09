@@ -510,7 +510,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   « hbpsm:moi-aucun » : pas joueur) ; chaque choix (`setMe`, un appareil = « hbpsm:appareil ») part en op `moi` ; un
   nom pris par un autre appareil (dernier choix de chaque appareil, `othersAs`) est signalé, « C'est bien moi » ou un
   autre nom ; l'appareil d'origine voit l'avertissement (`conflictNote`) ; « changer » rouvre le choix ; un choix
-  d'avant le 09/10 est partagé au démarrage (`ensureClaim`). Pas un verrou : l'équipe règle les doublons. Le
+  d'avant le 09/10 est partagé au démarrage (`ensureClaim`). Pas un verrou : l'équipe règle les doublons.
+  Code personnel (demande de l'auteur, 09/10/2026, sans secret GitHub) : le premier appareil d'un joueur (aucune
+  empreinte pour lui dans le journal) reçoit un code « XXXX-XXXX » (`newCode`, 32 signes sans 0/O/1/I), gardé dans
+  « hbpsm:codes » et affiché dans Ma semaine (`codeLine`) ; le « moi » porte `cle_h` = PBKDF2-SHA256(code sans tiret,
+  sel « hbpsm-code:<joueur> », 100 000 tours) en hexadécimal, jamais le code. Empreinte du joueur = celle du premier
+  « moi » qui en porte une (`ownerHash`). Un nom pris (`taken` : autre appareil non reconnu, ou empreinte sans le code
+  ici) propose le code (`#qui-code`, `checkCode`) ou « C'est bien moi (sans code) » ; un appareil sans code peut le donner
+  plus tard (`#code-saisie`). Doublon signalé (`othersAs`) seulement pour un appareil sans la bonne empreinte. Les
+  choix d'avant le code : le premier appareil qui rouvre la page reçoit le code du joueur (`ensureClaim`). Le
   sélecteur « Vous êtes » libre de la caisse a disparu (trésoriers : `#cme`, passe aussi par `setMe`).
   Réponses (`declare`, op `dispo` : `evs` = « E-AAAA-MM-JJ » séance, « M-<rencontre> » match, 60 au plus ; `etat`
   present / absent ; `motif` malade, blesse, vacances, autre ; `texte`, obligatoire pour « autre », choix de lecture
