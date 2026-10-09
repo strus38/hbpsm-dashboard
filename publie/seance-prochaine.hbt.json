@@ -1,14 +1,14 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-08T09:38:23.000Z",
+ "exporteLe": "2026-10-09T07:11:44.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-10-08",
+   "id": "tableau-de-bord-2026-10-09",
    "titre": "Préparer P16M DIV- SABLONS RHODIA SAINT MAURICE",
-   "date": "2026-10-09",
+   "date": "2026-10-13",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
    "objectifSeance": "Avant P16M DIV- SABLONS RHODIA SAINT MAURICE (journée 2, sam. 10 oct., à l’extérieur). Aucun écart marqué par rapport aux autres équipes : entretenir les acquis. Adversaire : 21,0 buts marqués et 29,0 encaissés par match ; à surveiller : n° 12 (6,0 buts/match), n° 7 (4,0 buts/match).",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-08T09:38:23.000Z",
-   "modifieLe": "2026-10-08T09:38:23.000Z"
+   "creeLe": "2026-10-09T07:11:44.000Z",
+   "modifieLe": "2026-10-09T07:11:44.000Z"
   }
  }
 }
