@@ -1325,6 +1325,19 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert b.evaluate("stored(MOI)") == k2 and "Un autre appareil" not in a.inner_text("main")
         b.wait_for_selector(".code-val")
         assert b.inner_text(".code-val") != code
+        # le code juste sous l'identité du joueur
+        assert a.evaluate("document.querySelector('.moi-qui').nextElementSibling.classList.contains('code-perso')")
+        # un ancien navigateur (choix d'avant le code, sans envoi depuis) n'est plus signalé ; s'il sert encore, si ;
+        # « ne plus le signaler » l'écarte sur cet appareil
+        old = a.evaluate(f"""(() => {{ const k = {json.dumps(k1)}, t0 = new Date(ownerSince(k) - 3600e3).toISOString();
+          PRESJ.ops.unshift({{id: "vieux", t: "moi", joueur: k, app: "ancien-navigateur", le: t0}}); DECL = null;
+          const avant = othersAs(k).length;
+          PRESJ.ops.push({{id: "rep-vieux", t: "dispo", joueur: k, app: "ancien-navigateur", evs: ["E-2030-01-01"], etat: "present",
+                          le: new Date().toISOString()}});
+          DECL = null; render(true); return [avant, othersAs(k).length]; }})()""")
+        assert old == [0, 1] and "sans votre code personnel" in a.inner_text(".moi-qui")
+        a.click("[data-ignore-app='ancien-navigateur']")
+        assert "Un autre appareil" not in a.inner_text("main")
 
         # 2. les réponses : présent d'un geste ; absent avec un motif, « autre » avec un mot obligatoire
         ev = a.evaluate("events(addDays(ymd(new Date()), 6), addDays(ymd(new Date()), 13)).find(e => e.type === 'e').id")

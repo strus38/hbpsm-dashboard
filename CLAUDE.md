@@ -517,8 +517,14 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   sel « hbpsm-code:<joueur> », 100 000 tours) en hexadécimal, jamais le code. Empreinte du joueur = celle du premier
   « moi » qui en porte une (`ownerHash`). Un nom pris (`taken` : autre appareil non reconnu, ou empreinte sans le code
   ici) propose le code (`#qui-code`, `checkCode`) ou « C'est bien moi (sans code) » ; un appareil sans code peut le donner
-  plus tard (`#code-saisie`). Doublon signalé (`othersAs`) seulement pour un appareil sans la bonne empreinte. Les
-  choix d'avant le code : le premier appareil qui rouvre la page reçoit le code du joueur (`ensureClaim`). Le
+  plus tard (`#code-saisie`). Doublon signalé (`othersAs`) seulement pour un appareil sans la bonne empreinte ET qui
+  sert encore (un envoi depuis la première empreinte du joueur, `ownerSince`, `lastSeen`) : un ancien navigateur oublié
+  (Safari et l'application installée sur iPhone ne partagent pas leurs données) n'alerte plus (retour de l'auteur,
+  09/10/2026 : « une fois le code rentré, un des 2 appareils m'alerte toujours ») ; l'alerte dit quand il a été vu,
+  « ne plus le signaler » l'écarte sur cet appareil (« hbpsm:ignores »). Journal des présences relu au retour au
+  premier plan (20 s au moins entre deux). Code juste sous l'identité (`meBlock` = `meLine` + `codeLine`, Ma semaine
+  et Présences). Les choix d'avant le code : le premier appareil qui rouvre la page reçoit le code du joueur
+  (`ensureClaim`). Le
   sélecteur « Vous êtes » libre de la caisse a disparu (trésoriers : `#cme`, passe aussi par `setMe`).
   Réponses (`declare`, op `dispo` : `evs` = « E-AAAA-MM-JJ » séance, « M-<rencontre> » match, 60 au plus ; `etat`
   present / absent ; `motif` malade, blesse, vacances, autre ; `texte`, obligatoire pour « autre », choix de lecture
