@@ -453,7 +453,9 @@ toujours se redéclarer (« changer ») : l'équipe règle les doublons entre el
 
 - Chacun répond pour chaque entraînement (jours de `entrainement.jours`) et chaque match du club,
   au plus tard 4 jours avant, 21 h (`presences` dans `config.yml`) : « Présent », ou « Absent » avec
-  un motif (malade, blessé, vacances, autre ; « autre » demande un mot). « Absent plusieurs jours »
+  un motif (malade, blessé, vacances, autre ; « autre » demande un mot). Les présences commencent le
+  12/10/2026 (`debut`) ; tout le calendrier de la saison est ouvert (`fin`), mois par mois, pour répondre
+  à l'avance, avec « Présent à tout ce qui reste sans réponse » pour un mois. « Absent plusieurs jours »
   couvre d'un coup les séances et les matchs d'une période.
 - Seul l'entraîneur voit les réponses des autres ; un joueur ne voit que les siennes, ni les réponses
   ni le nombre de présents des autres (demande de l'auteur, 09/10/2026). Le journal est chiffré avec

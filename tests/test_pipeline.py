@@ -1313,6 +1313,20 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         a.evaluate("PF.du = addDays(ymd(new Date()), 20); PF.au = addDays(ymd(new Date()), 26)")
         assert len(a.evaluate("periodEvents()")) >= 2
         a.click("[data-rep-annule]")
+        # tout le calendrier de la saison, mois par mois : « présent » d'un coup à ce qui reste sans réponse
+        a.evaluate("D.presences.fin = addDays(ymd(new Date()), 100); render(true)")
+        assert a.locator("details.mois").count() >= 4
+        mo = a.evaluate("addDays(ymd(new Date()), 40).slice(0, 7)")
+        a.evaluate(f"""document.querySelector('details[data-keep="mois-{mo}"]').open = true""")
+        n = len(sent)
+        a.click(f"[data-rep-mois='{mo}']")
+        wait_sent(a, n + 1)
+        ops = apply(a)
+        assert ops[0]["etat"] == "present" and len(ops[0]["evs"]) >= 4 and all(e[2:9] == mo or e.startswith("M-") for e in ops[0]["evs"])
+        assert "tout est répondu" in a.inner_text(f"""details[data-keep="mois-{mo}"] summary""")
+        # avant le début des présences (config.yml, presences.debut), rien n'est demandé
+        assert a.evaluate("""(() => { const k = D.presences.debut, d = addDays(ymd(new Date()), 3); D.presences.debut = d;
+          const ok = events(ymd(new Date()), addDays(d, 10)).every(e => e.day >= d) && presStart() === d; D.presences.debut = k; return ok; })()""")
 
         # 3. un joueur ne voit que ses réponses : ni celles des autres, ni leur nombre ; en consultation, la
         # feuille proposée ne tient compte que de la sienne
@@ -1365,7 +1379,7 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)["annulees"] == [day]
 
         # 5. sans réponse à temps : l'amende du règlement, proposée aux trésoriers ; à l'heure, rien ; en retard, dit
-        fines = c.evaluate(f"""(() => {{ const today = ymd(new Date()); D.presences.amendes_depuis = addDays(today, -12);
+        fines = c.evaluate(f"""(() => {{ const today = ymd(new Date()); D.presences.amendes_depuis = addDays(today, -12); D.presences.debut = "";
           const past = events(addDays(today, -12), today).filter(e => e.type === "e" && deadline(e) < new Date());
           const [e1, e2] = past, k = {json.dumps(k1)};
           PRESJ.ops.push({{id: "f1", t: "dispo", joueur: k, evs: [e1.id], etat: "absent", motif: "blesse", le: new Date(deadline(e1) - 3600e3).toISOString()}},
@@ -1382,10 +1396,10 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
           return ymd(d) + "T" + two(d.getHours()) + ":" + two(d.getMinutes()); })()""")
         hdm = json.dumps(dict(id="9902", date=ago, provisoire=False, adversaire="Equipe Fictive", domicile=False,
                               bp=30, bc=25, joueurs=[k1, k2, k3]))
-        # un match d'avant la mise en place du vote (config.yml, presences.debut) : pas de vote
-        assert c.evaluate(f"(() => {{ D.presences.debut = addDays(ymd(new Date()), 1); return ballot({hdm}) === null; }})()")
+        # un match d'avant la mise en place du vote (config.yml, presences.vote_depuis) : pas de vote
+        assert c.evaluate(f"(() => {{ D.presences.vote_depuis = addDays(ymd(new Date()), 1); return ballot({hdm}) === null; }})()")
         for pg in (a, b, c):
-            pg.evaluate(f"D.presences.debut = ''; D.agenda.push({hdm}); render(true)")
+            pg.evaluate(f"D.presences.vote_depuis = ''; D.agenda.push({hdm}); render(true)")
         a.evaluate("S.tab = 'moi'; render(false)")
         assert a.locator(".vote [data-vote]").count() == 2 and a.locator(f".vote [data-vote='9902|{k1}']").count() == 0
         n = len(sent)

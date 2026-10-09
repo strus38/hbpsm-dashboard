@@ -171,7 +171,9 @@ entrainement:
 # Les réponses partent au dépôt des propositions (presences.enc). L'homme du match est élu par les joueurs de la
 # feuille pendant `vote_heures` après le match.
 presences:
-  debut: "2026-10-10"            # premier match où l'homme du match est élu
+  debut: "2026-10-12"            # premiers entraînements et matchs où l'on répond (demande de l'auteur, 09/10/2026)
+  fin: "2027-06-30"              # on répond à l'avance jusque-là : tout le calendrier de la saison
+  vote_depuis: "2026-10-10"      # premier match où l'homme du match est élu
   delai_jours: 4
   heure_limite: "21:00"
   amendes_depuis: "2026-10-16"

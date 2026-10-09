@@ -511,7 +511,10 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   Réponses (`declare`, op `dispo` : `evs` = « E-AAAA-MM-JJ » séance, « M-<rencontre> » match, 60 au plus ; `etat`
   present / absent ; `motif` malade, blesse, vacances, autre ; `texte`, obligatoire pour « autre », choix de lecture
   de la demande) au plus tard `delai_jours` (4) avant, `heure_limite` (21:00) ; « Absent plusieurs jours »
-  (`periodBlock`). Statut (`statusOf`) : dernière réponse ; `retard` si la première est après la limite ; sans
+  (`periodBlock`). Début des présences le 12/10/2026 (`debut`, demande de l'auteur : « la semaine prochaine » ;
+  `events` ne renvoie rien avant) ; tout le calendrier de la saison ouvert pour répondre à l'avance (demande de
+  l'auteur, 09/10/2026 : `presStart` -> `presEnd` = `fin` (2027-06-30) ou le dernier match connu), mois par mois
+  (`monthsBlock`, deux premiers mois ouverts, « Présent à tout ce qui reste sans réponse » d'un mois, `data-rep-mois`). Statut (`statusOf`) : dernière réponse ; `retard` si la première est après la limite ; sans
   réponse, « attente », puis « sans » (absent – sans justification) une fois la limite passée, à partir de
   `amendes_depuis`. Heure d'un envoi (`opTime`, `presences.op_time`) : celle de l'appareil, sauf réception plus d'un
   jour après. CONFIDENTIALITÉ (demande de l'auteur, 09/10/2026) : seul l'entraîneur voit les réponses des autres ;
@@ -532,7 +535,7 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   feuille lue (`agenda[].joueurs`), sinon feuille publiée par l'entraîneur ; vote ouvert du coup d'envoi + 90 min
   pendant `vote_heures` (48) (horaire provisoire : dès que le score est connu, jusqu'au lendemain 22 h + 48 h),
   pas pour soi, le dernier vote compte ; résultat visible de tous (Présences, Ma semaine, bilan de la Semaine)
-  une fois clos, ex aequo tous élus ; `m_mvp` (2 €) proposé (`motmFines`) ; seulement à partir de `debut`
+  une fois clos, ex aequo tous élus ; `m_mvp` (2 €) proposé (`motmFines`) ; seulement à partir de `vote_depuis`
   (2026-10-10). Collecte : `analyze.club_agenda` -> `D.agenda` (matchs du club joués et à venir, sans forfait,
   joueurs de la feuille), `D.presences` (réglages et jours d'entraînement) ; `pipeline/presences.py` lit le journal
   (`journal`, adresse `url`) pour `effectifJoueurs` / `effectifGardiens` de la séance exportée (nombres seulement,
