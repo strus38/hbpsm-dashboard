@@ -466,8 +466,12 @@ toujours se redéclarer (« changer ») : l'équipe règle les doublons entre el
   consultation, la suggestion ne tient compte que de la réponse de celui qui regarde.
 - L'entraîneur voit, match par match, la feuille, ceux qui ont dit venir, ceux qui n'ont pas répondu
   et les absents avec leur motif, et retient ou retire d'un bouton ; puis il valide la feuille. Pour
-  chaque entraînement : joueurs de champ et gardiens annoncés, absents, sans réponse ; il peut
-  annuler une séance (publié avec ses choix). La séance exportée vers HANDBALL-training porte le
+  chaque entraînement : joueurs de champ et gardiens annoncés, absents, sans réponse.
+- L'entraîneur annule (ou rétablit) n'importe quel entraînement ou match de la saison (« Le calendrier de
+  la saison », ou « Annuler ce match »). Publié avec ses choix, c'est vu de tous (Présences, Ma semaine,
+  Semaine, calendrier des matchs marqué annulé). Plus de réponse attendue, ni amende, ni vote, ni
+  planification ; les réponses déjà données sont gardées : rétabli, tout revient. Une séance annulée
+  n'est pas exportée vers HANDBALL-training (la suivante l'est). La séance exportée vers HANDBALL-training porte le
   nombre de joueurs de champ et de gardiens annoncés (`effectifJoueurs`, `effectifGardiens`).
 - Sans réponse à temps : « absent – sans justification » et l'amende du règlement (1 € entraînement,
   2 € match) proposée aux trésoriers, pour les séances et les matchs à partir de `amendes_depuis`.

@@ -1388,6 +1388,19 @@ def published_choices():
         return {}
 
 
+def published_cancellations():
+    """Les entraînements et matchs annulés par l'entraîneur (publie/choix.enc, `annulees`), en repères
+    « E-AAAA-MM-JJ » et « M-<rencontre> » ; vide sans la phrase du club."""
+    path, secret = PUBLIE / "choix.enc", os.environ.get("HBPSM_CLE") or ""
+    if not path.exists() or not secret:
+        return set()
+    try:
+        off = (vault.decrypt(read_json(path), secret) or {}).get("annulees") or []
+    except (vault.VaultError, ValueError, KeyError, TypeError):
+        return set()
+    return {f"E-{x}" if len(str(x)) == 10 and str(x)[4] == "-" else str(x) for x in off}
+
+
 CHANCES = "chances.json"  # l'évolution des chances d'atteindre l'objectif (data/, repris de etat.enc)
 
 

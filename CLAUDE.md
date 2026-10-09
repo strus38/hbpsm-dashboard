@@ -531,8 +531,15 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   « sans rép. », `.cell.nr`) ; sinon l'algorithme d'avant. Un clic sur la case d'un absent par sa réponse le
   retient quand même (`dm` « d »). Tableau de l'entraîneur (`boardBlock`) : sur la feuille, ont dit venir, sans
   réponse, absents (motif, retard) ; « Retenir » / « Retirer » (`moveSel`, comme `cycleCell`) ; séances
-  (`trainingsBlock`) : joueurs de champ + gardiens annoncés, listes, « Pas d'entraînement ce jour-là » (`S.annule`,
-  publié dans choix.enc `annulees`, vérifié par `choix.check`). Amendes proposées aux trésoriers (`presenceFines`) :
+  (`trainingsBlock`) : joueurs de champ + gardiens annoncés, listes, « Pas d'entraînement ce jour-là ».
+  Annulations (demande de l'auteur, 09/10/2026 : séances ET matchs, vues de tous, sans toucher aux réponses) :
+  `S.annule` {repère: vrai/faux} (« E-AAAA-MM-JJ », « M-<rencontre> » ; anciennes clés « AAAA-MM-JJ » converties,
+  `annKey`), publié dans choix.enc `annulees` (`choix.ANNULE`), `annuleId` ; « Le calendrier de la saison »
+  (`seasonBlock`, annuler / rétablir) et « Annuler ce match » (`boardBlock`) ; vu de tous : `annulesNote` (Présences,
+  Ma semaine, Semaine), ligne grisée qui garde la réponse (`answerRow`) ; hors `horizon` (planification), pas de
+  vote (`ballot`), pas d'amende ; une absence sur une période couvre aussi l'annulé. Collecte :
+  `analyze.published_cancellations` -> séance exportée suivante (`next_training(skip=)`), `agenda.calendar(cancelled=)`
+  (« ANNULÉ · », STATUS:CANCELLED), dans l'empreinte du manifeste. Amendes proposées aux trésoriers (`presenceFines`) :
   `e_sporteasy` 1 €, `m_sporteasy` 2 € (règlement : « 4 jours avant » pour les deux, demande de l'auteur ; le texte
   d'avant disait 5 pour le match), id « regle:<repère>:<joueur> », seulement les participants de la caisse, jamais
   avant la lecture du journal. Homme du match (`ballot`, `voteCard`, `vote`, op `vote`) : électeurs = joueurs de la

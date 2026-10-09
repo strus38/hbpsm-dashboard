@@ -468,6 +468,8 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .pst-etat.wait{background:color-mix(in srgb,var(--accent) 25%,transparent)}
 .absform{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}.absform .cnote{box-sizing:border-box;background:var(--surface)}
 .absform input[type=date]{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
+.pst-etat.off{background:var(--rule);color:var(--muted)}
+.cal li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--rule)}.cal li.off>span{opacity:.6}
 .mois{border-top:1px solid var(--rule);padding:6px 0}.mois>summary{cursor:pointer;padding:6px 0}.mois .rep:first-of-type{border-top:0}
 .seance{padding:8px 0;border-top:1px solid var(--rule)}.seance:first-child{border-top:0}.seance summary{cursor:pointer}.seance.off{opacity:.6}
 .board-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;margin-top:10px}.board-col{min-width:0}
@@ -788,7 +790,7 @@ const GB_SUITE = 3;
 // l'autre, à un match près (demande de l'auteur, 05/10/2026) ; la classe d'âge n'est jamais affichée
 const PARTAGE_GB = 6;   // jusqu'à la 6e feuille du club lue   // un gardien ne fait pas plus de 3 matchs de suite sans sortir (demande de l'auteur, 05/10/2026)   // jamais deux fois de suite la même équipe : au moins 2 joueurs changent (demande de l'auteur, 05/10/2026)
 const horizon = () => {
-  const ms = (D.saison && D.saison.matchs) || [];
+  const ms = ((D.saison && D.saison.matchs) || []).filter(m => !annuleId("M-" + m.id));   // match annulé par l'entraîneur : hors planification
   if(ms.length) return ms.slice(0, HORIZON);
   return D.prochain ? [Object.assign({p_victoire:null, enjeu:null, cle:false, rang_adv:null}, D.prochain)] : [];
 };
@@ -1353,7 +1355,7 @@ function viewSemaine(){
     + '<span class="chipx">'+(m.domicile ? "🏠 à domicile" : "🚌 à l'extérieur")+'</span>'+subscribeMenu()+'</div>'
     + '<p class="mc-talk noprint"><button class="btn ghost" data-talk="'+esc(m.id)+'">🎙️ Mode causerie</button></p></header>' + roNote();
   if(D.meta.demo) h += '<p class="demo">Données fictives de démonstration.</p>';
-  h = bilanBlock() + h;
+  h = bilanBlock() + annulesNote() + h;
   h += '<div class="hero"><div class="hero-row">'+gauge(r.pAdj, "victoire estimée")
     + '<div class="kpis">'+(r.goalsAdj != null ? '<div><b class="num">'+butsTxt(r.goalsAdj)+'</b><span>écart attendu (buts), avec cette équipe</span></div>' : '')
     + '<div><b class="num">'+(m.rang_adv ? ord(m.rang_adv) : "–")+'</b><span>rang de l\'adversaire</span></div>'
@@ -1649,6 +1651,7 @@ function viewMoi(){
   let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meLine();
   h += installCard();
   if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, vos réponses aux entraînements et aux matchs, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  h += annulesNote();
   if(!COACH && p) h += todoBlock(me);
   const status = r => {
     if(!p) return ["", ""];
@@ -2948,12 +2951,25 @@ const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0
 const addDays = (day, n) => { const d = new Date(day + "T12:00"); d.setDate(d.getDate() + n); return ymd(d); };
 const agendaList = () => D.agenda || ((D.saison && D.saison.matchs) || []);
 // une séance annulée par l'entraîneur (vacances, gymnase fermé), publiée avec ses choix ; ce qu'il a saisi ici prime
-const annulee = day => COACH && S.annule && day in S.annule ? !!S.annule[day] : ((CHOIX && CHOIX.annulees) || []).includes(day);
+// Annulés par l'entraîneur (demande de l'auteur, 09/10/2026) : une séance ou un match, repérés « E-AAAA-MM-JJ » ou
+// « M-<rencontre> » (« AAAA-MM-JJ », publié au début : une séance). Vus de tous une fois publiés avec ses choix ; plus
+// de réponse attendue, ni amende, ni vote, ni planification ; les réponses déjà données sont gardées : rétabli, tout revient.
+const annKey = x => /^\d{4}-\d{2}-\d{2}$/.test(x) ? "E-" + x : String(x);
+if(S.annule) for(const k of Object.keys(S.annule)) if(annKey(k) !== k){ S.annule[annKey(k)] = S.annule[k]; delete S.annule[k]; }
+const annPub = () => ((CHOIX && CHOIX.annulees) || []).map(annKey);
+const annuleId = id => COACH && S.annule && id in S.annule ? !!S.annule[id] : annPub().includes(id);
+const annulee = day => annuleId("E-" + day);
 const recentDay = () => addDays(ymd(new Date()), -60);
-const annuleesNow = () => [...new Set([...((CHOIX && CHOIX.annulees) || []), ...Object.keys(S.annule || {})])].filter(d => d >= recentDay() && annulee(d)).sort();
-const annuleesPub = () => ((CHOIX && CHOIX.annulees) || []).filter(d => d >= recentDay()).slice().sort();
+const annDay = id => id.startsWith("E-") ? id.slice(2) : String((agendaList().find(m => "M-" + m.id === id) || {}).date || "9999").slice(0, 10);
+const annuleesNow = () => [...new Set([...annPub(), ...Object.keys(S.annule || {})])].filter(id => annDay(id) >= recentDay() && annuleId(id)).sort();
+const annuleesPub = () => [...new Set(annPub())].filter(id => annDay(id) >= recentDay()).sort();
 const evTraining = day => ({id: "E-" + day, type: "e", day, date: day, annule: annulee(day)});
-const evMatch = m => ({id: "M-" + m.id, type: "m", day: String(m.date || "").slice(0, 10), date: m.date, m});
+const evMatch = m => ({id: "M-" + m.id, type: "m", day: String(m.date || "").slice(0, 10), date: m.date, m, annule: annuleId("M-" + m.id)});
+// pour tous : ce qui est annulé dans les quatre semaines qui viennent
+function annulesNote(){
+  const today = ymd(new Date()), list = events(today, addDays(today, 27)).filter(e => e.annule);
+  return list.length ? '<p class="note annules">🚫 <b>Annulé par l\'entraîneur</b> : '+list.map(e => esc(e.type === "e" ? "entraînement du " + fmtDate(e.day)
+    : roundOf(e.m) + " contre " + teamShort(e.m.adversaire) + " (" + fmtDate(e.date, e.m.provisoire) + ")")).join(" · ")+'. Vos réponses restent gardées.</p>' : ""; }
 // rien n'est demandé avant le début des présences (config.yml, presences.debut) ; on répond à l'avance jusqu'à la
 // fin de la saison (presences.fin, ou le dernier match connu s'il est plus loin) : tout le calendrier, mois par mois
 const presStart = () => { const t = ymd(new Date()), d = PRESC().debut || ""; return d > t ? d : t; };
@@ -3070,7 +3086,9 @@ const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">
 function answerRow(e, me){
   const what = e.type === "e" ? "🏃 Entraînement" : (e.m.coupe ? "🏆 " : "🤾 ")+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire))+(e.m.domicile ? " · dom." : " · ext.");
   const when = esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire));
-  if(e.annule) return '<div class="rep off"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br><span class="small muted">pas d\'entraînement ce jour-là (annulé par l\'entraîneur)</span></span></div></div>';
+  if(e.annule){ const s = statusOf(me, e), kept = ["present", "absent"].includes(s.etat) ? ' · votre réponse est gardée : '+ETAT_P[s.etat][1] : '';
+    return '<div class="rep off"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br><span class="pst-etat off">🚫 '
+      + (e.type === "e" ? "pas d'entraînement : annulé par l'entraîneur" : "match annulé par l'entraîneur")+'</span><span class="small muted">'+kept+'</span></span></div></div>'; }
   const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = PF.ev === e.id;
   return '<div class="rep'+(open ? " open" : "")+'"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br>'
     + '<span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.retard ? ' · en retard' : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
@@ -3085,7 +3103,7 @@ function periodBlock(){
     + '<p class="small muted">Tous les entraînements et les matchs de ces jours-là.</p>'+motifPart()+'</div>';
 }
 const periodEvents = () => { const du = PF.du > presStart() ? PF.du : presStart();
-  return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).filter(e => !e.annule).map(e => e.id).slice(0, 60); };
+  return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).map(e => e.id).slice(0, 60); };
 function todoBlock(me){   // Ma semaine : le vote de l'homme du match, et ce qui attend encore sa réponse (deux semaines)
   const today = ymd(new Date()), list = events(today, addDays(today, 13)).filter(e => !e.annule && (statusOf(me, e).etat === "attente" || PF.ev === e.id));
   const votes = ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length));
@@ -3110,7 +3128,7 @@ const electors = m => { const sheet = (m.joueurs || []).filter(k => byCle(k));
   return pub ? (pub.joueurs || []).filter(k => String(k).startsWith("R:") && byCle(k)) : []; };
 function ballot(m, now = new Date()){
   const w = voteWindow(m);
-  if(!w) return null;
+  if(!w || annuleId("M-" + m.id)) return null;
   const el = electors(m), last = {}, count = {};
   for(const o of presOps()) if(o.t === "vote" && String(o.match) === String(m.id) && el.includes(o.joueur) && el.includes(o.pour)
     && o.pour !== o.joueur && opTime(o) <= w.fin.getTime()) last[o.joueur] = o;
@@ -3217,13 +3235,26 @@ function boardBlock(){
     + t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+(t.attente.length + t.sans.length)+' sans réponse <span class="muted">(réponses attendues avant le '+esc(dlText(e))+')</span></p>'
     + etatLine(r)+'<div class="board-cols">'+col("Sur la feuille", sel, "out", sel.length+"/"+r.size)+col("Ont dit venir", pres, "in", pres.length)
     + col("Sans réponse", none, "in", none.length)+col("Absents", abs, null, abs.length)+'</div>'
-    + '<p class="small muted">Retenir ou retirer change la feuille comme un clic dans la planification ; validez-la ensuite pour la publier.</p></div>';
+    + '<p class="small muted">Retenir ou retirer change la feuille comme un clic dans la planification ; validez-la ensuite pour la publier.</p>'
+    + '<p><button class="link" data-annule="M-'+esc(id)+'">Annuler ce match</button> <span class="small muted">(reporté, forfait… : vu de tous une fois publié ; les réponses sont gardées)</span></p></div>';
+}
+function seasonBlock(list){   // l'entraîneur : tout le calendrier, pour annuler ou rétablir une séance ou un match
+  const months = {};
+  for(const e of list) (months[e.day.slice(0, 7)] = months[e.day.slice(0, 7)] || []).push(e);
+  return sec("calendrier", "Calendrier")+'Le calendrier de la saison</h2><div class="panel"><p class="small muted">Annulez une séance (vacances, gymnase fermé) ou un match '
+    + '(reporté, forfait) : tout le monde le voit une fois publié, plus personne n\'a à y répondre, sans amende ; les réponses déjà données restent gardées.</p>'
+    + Object.entries(months).map(([mo, l]) => { const off = l.filter(e => e.annule).length;
+      return '<details class="mois"'+keep("cal-"+mo, false)+'><summary><b>'+esc(monthName(mo).replace(/^./, c => c.toUpperCase()))+'</b> <span class="small muted">'
+        + l.length+' rendez-vous'+(off ? ' · '+off+' annulé'+(off > 1 ? "s" : "") : '')+'</span></summary><ul class="plain cal">'
+        + l.map(e => '<li class="'+(e.annule ? "off" : "")+'"><span>'+(e.type === "e" ? "🏃 Entraînement" : "🤾 "+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire)))
+          + ' <span class="small muted">'+esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire))+'</span>'+(e.annule ? ' <span class="pst-etat off">🚫 annulé</span>' : '')+'</span>'
+          + '<button class="link" data-annule="'+esc(e.id)+'">'+(e.annule ? "rétablir" : "annuler")+'</button></li>').join("")+'</ul></details>'; }).join("")+'</div>';
 }
 function trainingsBlock(list){
   if(!list.length) return "";
   const names = l => l.map(p => esc(p.nom)+(isGK(p) ? ' <small class="pst">GB</small>' : '')).join(", ");
   return sec("seances", "Entraînements")+'Les entraînements</h2><div class="panel">'+list.map(e => {
-    if(e.annule) return '<div class="seance off"><b>'+esc(fmtDate(e.day))+'</b> <span class="small muted">pas d\'entraînement (annulé)</span> <button class="link" data-annule="'+e.day+'">rétablir</button></div>';
+    if(e.annule) return '<div class="seance off"><b>'+esc(fmtDate(e.day))+'</b> <span class="small muted">pas d\'entraînement (annulé)</span> <button class="link" data-annule="'+e.id+'">rétablir</button></div>';
     const t = tally(e), gk = t.present.filter(isGK).length, n = t.present.length, s = t.attente.length + t.sans.length;
     return '<details class="seance"'+keep("s-"+e.day, false)+'><summary><b>'+esc(fmtDate(e.day))+'</b> · <b>'+(n - gk)+'</b> joueur'+(n - gk > 1 ? "s" : "")+' de champ + <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")
       + ' <span class="small muted">· '+t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+s+' sans réponse</span></summary>'
@@ -3231,7 +3262,7 @@ function trainingsBlock(list){
       + (t.absent.length ? '<p class="small"><b>Absents</b> : '+t.absent.map(p => { const x = statusOf(p.cle, e);
           return esc(p.nom)+' <span class="muted">('+esc(motifTxt(x))+(x.retard ? ', en retard' : '')+')</span>'; }).join(", ")+'</p>' : '')
       + (s ? '<p class="small"><b>Sans réponse</b> : '+names([...t.attente, ...t.sans])+(t.sans.length ? ' <span class="muted">(délai passé : absents sans justification)</span>' : '')+'</p>' : '')
-      + '<p><button class="link" data-annule="'+e.day+'">Pas d\'entraînement ce jour-là</button></p></details>';
+      + '<p><button class="link" data-annule="'+e.id+'">Pas d\'entraînement ce jour-là</button></p></details>';
   }).join("")+'</div>';
 }
 function viewPresences(){
@@ -3242,8 +3273,8 @@ function viewPresences(){
   const hdm = votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, COACH ? "" : me)).join("") : "";
   if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
       + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
-    + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + hdm);
-  h += meLine() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
+    + annulesNote() + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + seasonBlock(season) + hdm);
+  h += meLine() + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
   if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
   return withJumps(h + '<div class="panel reps"><p class="small muted">Tout le calendrier de la saison : répondez à l\'avance, mois par mois. '
     + 'Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>' + periodBlock() + monthsBlock(season, me) + '</div>');
@@ -3361,7 +3392,7 @@ document.addEventListener("click", ev => {
   else if(t.dataset.vote){ const [mid, c] = t.dataset.vote.split("|"); vote(mid, c); }
   else if(t.dataset.presm){ S.presM = t.dataset.presm; save(); render(true); }
   else if(t.dataset.sel && COACH){ const [id, cle, how] = t.dataset.sel.split("|"); moveSel(id, cle, how === "in"); save(); render(true); }
-  else if(t.dataset.annule && COACH){ S.annule = S.annule || {}; S.annule[t.dataset.annule] = !annulee(t.dataset.annule); save(); render(true); }
+  else if(t.dataset.annule && COACH){ S.annule = S.annule || {}; S.annule[t.dataset.annule] = !annuleId(t.dataset.annule); save(); render(true); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }

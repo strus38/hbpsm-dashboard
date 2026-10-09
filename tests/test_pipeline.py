@@ -1182,10 +1182,25 @@ def test_presences_dans_la_collecte(sandbox, monkeypatch):
     good = dict(format="hbpsm-choix", v=1, matchs={}, annulees=["2026-10-27", "2026-10-30"])
     monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(good, PHRASE, 2000)))
     assert choix.main() == 0
-    for bad in (dict(good, annulees="2026-10-27"), dict(good, annulees=["27/10"])):
+    assert an.published_cancellations() == {"E-2026-10-27", "E-2026-10-30"}   # dates du début : des séances
+    good = dict(good, annulees=["E-2026-10-27", "M-2734133"])
+    monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(good, PHRASE, 2000)))
+    assert choix.main() == 0 and an.published_cancellations() == {"E-2026-10-27", "M-2734133"}
+    for bad in (dict(good, annulees="2026-10-27"), dict(good, annulees=["27/10"]), dict(good, annulees=["M-1; rm -rf"])):
         monkeypatch.setenv("HBPSM_CHOIX", json.dumps(vault.encrypt(bad, PHRASE, 2000)))
         with pytest.raises(vault.VaultError):
             choix.main()
+    # une séance annulée n'est pas exportée : la suivante ; un match annulé reste au calendrier public, marqué annulé
+    _, f2 = build_exports(d, sandbox / "docs", today="2026-10-05", answers=ops, cancelled={"E-2026-10-06"})
+    assert f2["contenu"]["seance"]["date"] == "2026-10-09"
+    from pipeline import agenda
+    fx = json.loads((sandbox / "data" / "fixtures.json").read_text("utf-8"))
+    nxt = next(f for f in fx if f.get("score_home") is None and "MARCELLIN" in (f["home"] + f["away"]))
+    lines = agenda.calendar(fx, common.load_config(), "", {f"M-{nxt['id']}"})
+    ev = lines[lines.index(f"UID:hbpsm-{nxt['id']}@hbpsm-dashboard"):]
+    ev = ev[:ev.index("END:VEVENT")]
+    assert "STATUS:CANCELLED" in ev and any(l.startswith("SUMMARY:ANNULÉ") for l in ev) and "STATUS:TENTATIVE" not in ev
+    assert sum("STATUS:CANCELLED" in l for l in agenda.calendar(fx, common.load_config())) == 0
 
 
 def test_presences_dans_la_page(sandbox, monkeypatch):
@@ -1366,17 +1381,40 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         # pas assez de réponses : comme avant, parmi tous les disponibles
         c.evaluate("PRESJ.ops = PRESJ.ops.filter(o => !String(o.id).startsWith('c')); render(true)")
         assert c.evaluate(f"availOf(byCle({json.dumps(board['sick'])}), PLAN[0].m)") == "d"
-        # une séance annulée : publiée avec les choix ; plus personne n'y répond
+        # une séance et un match annulés par l'entraîneur : publiés avec ses choix, vus de tous ; plus de réponse
+        # attendue, ni amende, ni vote, ni planification ; les réponses déjà données restent gardées
         day = c.evaluate("events(addDays(ymd(new Date()), 1), addDays(ymd(new Date()), 8)).find(e => e.type === 'e').day")
+        m_off = str(c.evaluate("PLAN[1].m.id"))
+        off = sorted([f"E-{day}", f"M-{m_off}"])
         c.evaluate("S.tab = 'presences'; render(false)")
-        c.locator(f"[data-annule='{day}']").dispatch_event("click")   # dans le tiroir de la séance
-        assert c.evaluate("statusPending()") and c.evaluate(f"annuleesNow()") == [day]
+        assert c.locator(".cal [data-annule]").count() > 20   # tout le calendrier de la saison
+        c.locator(f"[data-annule='E-{day}']").first.dispatch_event("click")   # dans le tiroir de la séance
+        c.locator(f"[data-annule='M-{m_off}']").first.dispatch_event("click")
+        assert c.evaluate("statusPending()") and c.evaluate("annuleesNow()") == off
+        assert c.evaluate(f"PLAN.every(r => String(r.m.id) !== {json.dumps(m_off)})")   # hors planification
+        assert "Annulé par l'entraîneur" in c.inner_text(".annules")
+        assert c.evaluate("[...document.querySelectorAll('.cal li.off')].length") == 2 and "rétablir" in c.evaluate("[...document.querySelectorAll('.cal')].map(e => e.textContent).join(' ')")
         c.evaluate("localStorage.setItem('hbpsm:jeton', 'jeton-de-test')")
         before = len(sent)
         c.click("[data-publier-blessures]")
         wait_sent(c, before + 1)
         assert sent[-1]["url"].endswith("/actions/workflows/choix.yml/dispatches")
-        assert choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)["annulees"] == [day]
+        assert choix.check(json.loads(sent[-1]["body"]["inputs"]["choix"]), PHRASE)["annulees"] == off
+        monkeypatch.setenv("HBPSM_CHOIX", sent[-1]["body"]["inputs"]["choix"])
+        assert choix.main() == 0   # ce que fait le workflow « Choix de l'entraîneur »
+        a.evaluate(f"""(() => {{ PRESJ.ops.push({{id: "garde", t: "dispo", joueur: {json.dumps(k1)}, evs: ["M-{m_off}"], etat: "present",
+          le: new Date().toISOString()}}); DECL = null; return fetchChoices().then(() => {{ S.tab = "presences"; render(false); }}); }})()""")
+        a.wait_for_function(f"() => annuleId('M-{m_off}') && annuleId('E-{day}')", timeout=10000)
+        kept = a.evaluate(f"""(() => {{ const m = agendaList().find(x => String(x.id) === {json.dumps(m_off)}), e = evMatch(m);
+          return {{etat: statusOf({json.dumps(k1)}, e).etat, annule: e.annule, vote: ballot(Object.assign({{}}, m, {{bp: 1, bc: 0}}), new Date(Date.now() + 864e5 * 40)),
+                   plan: PLAN.some(r => String(r.m.id) === {json.dumps(m_off)}), todo: notYet(e, {json.dumps(k1)})}}; }})()""")
+        assert kept == {"etat": "present", "annule": True, "vote": None, "plan": False, "todo": False}, kept
+        assert "Annulé par l'entraîneur" in a.inner_text("main") and "votre réponse est gardée" in a.inner_text("main")
+        a.evaluate("S.tab = 'moi'; render(false)")
+        assert "Annulé par l'entraîneur" in a.inner_text("main")
+        # rétabli : tout revient, réponses comprises
+        c.locator(f".cal [data-annule='M-{m_off}']").dispatch_event("click")
+        assert c.evaluate(f"PLAN.some(r => String(r.m.id) === {json.dumps(m_off)})") and c.evaluate("annuleesNow()") == [f"E-{day}"]
 
         # 5. sans réponse à temps : l'amende du règlement, proposée aux trésoriers ; à l'heure, rien ; en retard, dit
         fines = c.evaluate(f"""(() => {{ const today = ymd(new Date()); D.presences.amendes_depuis = addDays(today, -12); D.presences.debut = "";

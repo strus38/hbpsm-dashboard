@@ -32,7 +32,7 @@ import sys
 import time
 
 from . import agenda, collect, presences, vault
-from .analyze import analyze
+from .analyze import analyze, published_cancellations
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
 from .export_training import build_exports
@@ -251,14 +251,16 @@ def seal(today=None):
     config = load_config()
     data = analyze(today)
     scratch = ROOT / "raw" / "export"
-    # l'effectif annoncé de la prochaine séance : les réponses de présence des joueurs (dépôt hbpsm-cn)
-    _, seance = build_exports(data, scratch, today, presences.journal(config, secret))
+    # l'effectif annoncé de la prochaine séance : les réponses de présence des joueurs (dépôt hbpsm-cn) ; les
+    # séances et matchs annulés par l'entraîneur (choix.enc) : séance suivante, match marqué annulé au calendrier
+    cancelled = published_cancellations()
+    _, seance = build_exports(data, scratch, today, presences.journal(config, secret), cancelled)
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()
     hist_digest = hashlib.sha256(json.dumps(hist, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     jeton = hashlib.sha256((os.environ.get("HBPSM_JETON_CN") or "").encode("utf-8")).hexdigest()[:12]   # un jeton posé : republier
-    effectif = [seance["contenu"]["seance"][k] for k in ("effectifJoueurs", "effectifGardiens")]   # de nouveaux présents : republier
+    effectif = [seance["contenu"]["seance"][k] for k in ("effectifJoueurs", "effectifGardiens")] + sorted(cancelled)   # republier
     digest = hashlib.sha256(json.dumps([state, roster_text, app_version(), code_version(), hist_digest, jeton, effectif], sort_keys=True,
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
@@ -267,7 +269,7 @@ def seal(today=None):
     public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
     public_board = json.dumps(public_summary(data), ensure_ascii=False, indent=1)
     names = known_names(state, roster_text, history_state())
-    calendar = agenda.calendar(state["fixtures.json"] or [], config, pages_url(config))
+    calendar = agenda.calendar(state["fixtures.json"] or [], config, pages_url(config), cancelled)
     check_public(public_seance, names)  # avant d'écrire quoi que ce soit
     check_public(public_board, names)
     check_public(" ".join(calendar), names)

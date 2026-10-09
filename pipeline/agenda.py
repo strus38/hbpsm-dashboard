@@ -76,8 +76,9 @@ def fold(line):
     return "\r\n".join(out)
 
 
-def calendar(fixtures, config, page=""):
-    """Les lignes du calendrier ; DTSTAMP en attente (STAMP), posé à l'écriture."""
+def calendar(fixtures, config, page="", cancelled=()):
+    """Les lignes du calendrier ; DTSTAMP en attente (STAMP), posé à l'écriture. cancelled : repères des matchs
+    annulés par l'entraîneur (« M-<rencontre> ») : gardés, marqués annulés (STATUS:CANCELLED)."""
     gone = {norm(t) for t in config.get("forfaits") or []}
     league = competition_label(config.get("competition"))
     club = config["club"]["nom_affiche"]
@@ -96,11 +97,16 @@ def calendar(fixtures, config, page=""):
         tbd = bool(f.get("date_provisoire")) or len(f["date"]) <= 10
         title = (f"{home} {f['score_home']}-{f['score_away']} {away}" if played else f"{home} – {away}") + f" · {what}"
         day = dt.date.fromisoformat(f["date"][:10])
-        if tbd and not played:
+        off = f"M-{f.get('id')}" in cancelled and not played
+        if off:
+            title = "ANNULÉ · " + title
+        elif tbd and not played:
             title += " (horaire à confirmer)"
         about = [f"{f['coupe']}, {tour_label(f.get('tour'))}" if f.get("coupe")
                  else f"{league}, poule {f.get('poule')}, journée {f.get('journee') or '?'}",
                  "À domicile" if dom else "À l'extérieur"]
+        if off:
+            about.append("Match annulé par l'entraîneur.")
         if played:
             about.append(f"Résultat : {home} {f['score_home']}-{f['score_away']} {away}")
         elif tbd:
@@ -112,12 +118,14 @@ def calendar(fixtures, config, page=""):
         lines += ["BEGIN:VEVENT", f"UID:hbpsm-{f.get('id')}@hbpsm-dashboard", STAMP]
         if tbd:
             lines += [f"DTSTART;VALUE=DATE:{day:%Y%m%d}", f"DTEND;VALUE=DATE:{day + dt.timedelta(days=2):%Y%m%d}"]
-            if not played:
+            if not played and not off:
                 lines.append("STATUS:TENTATIVE")
         else:
             start = dt.datetime.fromisoformat(f["date"][:16])
             lines += [f"DTSTART;TZID=Europe/Paris:{start:%Y%m%dT%H%M%S}",
                       f"DTEND;TZID=Europe/Paris:{start + dt.timedelta(minutes=DUREE):%Y%m%dT%H%M%S}"]
+        if off:
+            lines.append("STATUS:CANCELLED")
         lines.append(f"SUMMARY:{text(title)}")
         if where(f.get("salle")):
             lines.append(f"LOCATION:{text(where(f.get('salle')))}")

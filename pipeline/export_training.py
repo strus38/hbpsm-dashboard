@@ -30,11 +30,12 @@ def date_fr(iso):
     return f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]}"
 
 
-def next_training(today, days):
+def next_training(today, days, skip=()):
+    """Le prochain jour d'entraînement après today ; skip : séances annulées par l'entraîneur (« E-AAAA-MM-JJ »)."""
     d = dt.date.fromisoformat(today)
-    for i in range(1, 8):
+    for i in range(1, 60):
         cand = d + dt.timedelta(days=i)
-        if cand.weekday() in days:
+        if cand.weekday() in days and f"E-{cand.isoformat()}" not in skip:
             return cand.isoformat()
     return (d + dt.timedelta(days=1)).isoformat()
 
@@ -63,8 +64,9 @@ def objective_text(data):
     return " ".join(parts)
 
 
-def build_exports(data=None, out_dir=DOCS, today=None, answers=()):
-    """answers : les envois du journal des présences (pipeline/presences.py), pour l'effectif de la séance."""
+def build_exports(data=None, out_dir=DOCS, today=None, answers=(), cancelled=()):
+    """answers : les envois du journal des présences (pipeline/presences.py), pour l'effectif de la séance ;
+    cancelled : séances et matchs annulés par l'entraîneur (une séance annulée n'est pas exportée)."""
     data = data or read_json(out_dir / "data.json") or analyze()
     config = load_config()
     conf = config.get("entrainement") or {}
@@ -79,7 +81,7 @@ def build_exports(data=None, out_dir=DOCS, today=None, answers=()):
         saison={k: v for k, v in (data.get("saison") or {}).items() if k != "matchs"} or None)
     write_json(out_dir / "entrainement.json", brief)
     titre = f"Préparer {nxt['adversaire']}" if nxt else "Séance de la semaine"
-    day = next_training(today, conf.get("jours") or [1, 4])
+    day = next_training(today, conf.get("jours") or [1, 4], set(cancelled))
     field, keepers = presences.training_counts(answers or [], day, data.get("joueurs") or [])
     seance = dict(
         id=f"tableau-de-bord-{today}", titre=titre[:80], date=day,
