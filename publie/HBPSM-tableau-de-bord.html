@@ -466,8 +466,9 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .pst-etat{display:inline-block;margin:4px 0 0;padding:2px 9px;border-radius:99px;font-weight:600;font-size:.86rem;background:rgba(127,127,127,.15)}
 .pst-etat.ok{background:color-mix(in srgb,var(--win) 22%,transparent)}.pst-etat.no{background:color-mix(in srgb,var(--loss) 22%,transparent)}
 .pst-etat.wait{background:color-mix(in srgb,var(--accent) 25%,transparent)}
-.absform{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}
+.absform{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}.absform .cnote{box-sizing:border-box;background:var(--surface)}
 .absform input[type=date]{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
+.mois{border-top:1px solid var(--rule);padding:6px 0}.mois>summary{cursor:pointer;padding:6px 0}.mois .rep:first-of-type{border-top:0}
 .seance{padding:8px 0;border-top:1px solid var(--rule)}.seance:first-child{border-top:0}.seance summary{cursor:pointer}.seance.off{opacity:.6}
 .board-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;margin-top:10px}.board-col{min-width:0}
 .board-col li>span,.rep-l>span{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
@@ -645,7 +646,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "57d746be01ca", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "1e2389c43769", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -2949,7 +2950,12 @@ const annuleesNow = () => [...new Set([...((CHOIX && CHOIX.annulees) || []), ...
 const annuleesPub = () => ((CHOIX && CHOIX.annulees) || []).filter(d => d >= recentDay()).slice().sort();
 const evTraining = day => ({id: "E-" + day, type: "e", day, date: day, annule: annulee(day)});
 const evMatch = m => ({id: "M-" + m.id, type: "m", day: String(m.date || "").slice(0, 10), date: m.date, m});
-function events(from, to){   // de from à to inclus, dans l'ordre
+// rien n'est demandé avant le début des présences (config.yml, presences.debut) ; on répond à l'avance jusqu'à la
+// fin de la saison (presences.fin, ou le dernier match connu s'il est plus loin) : tout le calendrier, mois par mois
+const presStart = () => { const t = ymd(new Date()), d = PRESC().debut || ""; return d > t ? d : t; };
+const presEnd = () => [addDays(ymd(new Date()), 27), PRESC().fin || "", ...agendaList().map(m => String(m.date || "").slice(0, 10))].sort().pop();
+function events(from, to){   // de from à to inclus, dans l'ordre (jamais avant le début des présences)
+  if(PRESC().debut && from < PRESC().debut) from = PRESC().debut;
   const days = PRESC().jours || [1, 4], out = [];
   for(let d = from; d <= to; d = addDays(d, 1)) if(days.includes((new Date(d + "T12:00").getDay() + 6) % 7)) out.push(evTraining(d));
   for(const m of agendaList()){ const e = evMatch(m); if(e.day && e.day >= from && e.day <= to) out.push(e); }
@@ -3071,10 +3077,10 @@ function answerRow(e, me){
 }
 function periodBlock(){
   if(PF.ev !== "periode") return '<p class="small"><button class="link" data-periode="1">Absent plusieurs jours (vacances, blessure…) ?</button></p>';
-  return '<div class="absform"><p class="small"><b>Absent du</b> <input type="date" id="pf-du" value="'+esc(PF.du)+'"> <b>au</b> <input type="date" id="pf-au" value="'+esc(PF.au)+'"></p>'
+  return '<div class="absform"><p class="small"><b>Absent du</b> <input type="date" id="pf-du" min="'+presStart()+'" max="'+presEnd()+'" value="'+esc(PF.du)+'"> <b>au</b> <input type="date" id="pf-au" min="'+presStart()+'" max="'+presEnd()+'" value="'+esc(PF.au)+'"></p>'
     + '<p class="small muted">Tous les entraînements et les matchs de ces jours-là.</p>'+motifPart()+'</div>';
 }
-const periodEvents = () => { const today = ymd(new Date()), du = PF.du > today ? PF.du : today;
+const periodEvents = () => { const du = PF.du > presStart() ? PF.du : presStart();
   return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).filter(e => !e.annule).map(e => e.id).slice(0, 60); };
 function todoBlock(me){   // Ma semaine : le vote de l'homme du match, et ce qui attend encore sa réponse (deux semaines)
   const today = ymd(new Date()), list = events(today, addDays(today, 13)).filter(e => !e.annule && (statusOf(me, e).etat === "attente" || PF.ev === e.id));
@@ -3087,7 +3093,7 @@ function todoBlock(me){   // Ma semaine : le vote de l'homme du match, et ce qui
 // l'homme du match : élu par les joueurs de la feuille (lue, sinon celle que l'entraîneur a publiée), pendant 48 h
 function voteWindow(m){
   const H = PRESC().vote_heures ?? 48, day = String(m.date || "").slice(0, 10);
-  if(!day || day < (PRESC().debut || "")) return null;
+  if(!day || day < (PRESC().vote_depuis || "")) return null;
   let debut;
   if(String(m.date).length > 10 && !m.provisoire) debut = new Date(new Date(m.date).getTime() + MATCH_MIN * 60000);
   else if(m.bp != null) debut = new Date(day + "T22:00");   // horaire jamais fixé : dès que le score est connu
@@ -3226,6 +3232,7 @@ function trainingsBlock(list){
 }
 function viewPresences(){
   const me = stored(MOI) || "", today = ymd(new Date()), coming = events(today, addDays(today, 27)), votes = ballots();
+  const season = events(presStart(), presEnd());   // tout le calendrier : chacun répond à l'avance
   let h = '<header class="top"><p class="when">Réponse au plus tard '+(PRESC().delai_jours ?? 4)+' jours avant, '+limiteTxt()
     + ' ; sans réponse, absent sans justification</p><h1>Présences</h1></header>' + sendLine();
   const hdm = votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, COACH ? "" : me)).join("") : "";
@@ -3234,8 +3241,19 @@ function viewPresences(){
     + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + hdm);
   h += meLine() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
   if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
-  return withJumps(h + '<div class="panel reps"><p class="small muted">Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>'
-    + coming.map(e => answerRow(e, me)).join("") + periodBlock() + '</div>');
+  return withJumps(h + '<div class="panel reps"><p class="small muted">Tout le calendrier de la saison : répondez à l\'avance, mois par mois. '
+    + 'Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>' + periodBlock() + monthsBlock(season, me) + '</div>');
+}
+// le calendrier mois par mois : les deux premiers ouverts, « présent » d'un coup pour ce qui reste sans réponse
+const notYet = (e, me) => !e.annule && e.day >= ymd(new Date()) && statusOf(me, e).etat === "attente";
+function monthsBlock(list, me){
+  const months = {};
+  for(const e of list) (months[e.day.slice(0, 7)] = months[e.day.slice(0, 7)] || []).push(e);
+  return Object.entries(months).map(([mo, l], i) => { const todo = l.filter(e => notYet(e, me));
+    return '<details class="mois"'+keep("mois-"+mo, i < 2 || l.some(e => e.id === PF.ev))+'><summary><b>'+esc(monthName(mo).replace(/^./, c => c.toUpperCase()))+'</b> '
+      + '<span class="small muted">'+l.filter(e => !e.annule).length+' rendez-vous · '+(todo.length ? todo.length+' sans réponse' : 'tout est répondu ✓')+'</span></summary>'
+      + (todo.length > 1 ? '<p class="small"><button class="link" data-rep-mois="'+mo+'">Présent à tout ce qui reste sans réponse en '+esc(monthName(mo).split(" ")[0])+'</button></p>' : '')
+      + l.map(e => answerRow(e, me)).join("")+'</details>'; }).join("");
 }
 // la séance à importer dans HANDBALL-training, avec ceux qui ont dit venir à l'instant (entraîneur)
 function seanceWithCounts(){
@@ -3328,7 +3346,10 @@ document.addEventListener("click", ev => {
   // présences : sa réponse, son motif, une période ; le vote ; la feuille et les séances de l'entraîneur
   else if(t.dataset.rep){ declare([t.dataset.rep], "present"); }
   else if(t.dataset.repAbs){ PF = {ev: t.dataset.repAbs, motif: "", texte: "", du: "", au: ""}; render(true); }
-  else if(t.dataset.periode){ const d = ymd(new Date()); PF = {ev: "periode", motif: "", texte: "", du: d, au: d}; render(true); }
+  else if(t.dataset.periode){ const d = presStart(); PF = {ev: "periode", motif: "", texte: "", du: d, au: d}; render(true); }
+  else if(t.dataset.repMois){ const me = stored(MOI), mo = t.dataset.repMois;
+    const evs = events(mo + "-01", mo + "-31").filter(e => notYet(e, me)).map(e => e.id);
+    if(evs.length) declare(evs, "present"); }
   else if(t.dataset.motif){ PF.motif = t.dataset.motif; render(true); }
   else if(t.dataset.repAnnule){ PF = {ev: null, motif: "", texte: "", du: "", au: ""}; render(true); }
   else if(t.dataset.repEnvoi && motifOK()){ const evs = PF.ev === "periode" ? periodEvents() : [PF.ev];
