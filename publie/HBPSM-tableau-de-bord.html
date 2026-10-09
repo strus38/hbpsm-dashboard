@@ -652,7 +652,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "3f62c5cdaf9a", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "e250b223c991", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -3160,19 +3160,19 @@ const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">
   + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif && PF.motif !== "autre" ? "Un mot pour l'entraîneur (facultatif)" : "Votre justification")+'" value="'+esc(PF.texte)+'">'
   + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer mon absence</button><button class="link" data-rep-annule="1">Annuler</button></div>'
   + '<p class="small cstop" id="pf-hint">'+esc(motifHint())+'</p>';
-function answerRow(e, me){
+function answerRow(e, me, lecture){   // lecture : sa réponse seulement, sans boutons (Ma semaine)
   const what = e.type === "e" ? "🏃 Entraînement" : (e.m.coupe ? "🏆 " : "🤾 ")+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire))+(e.m.domicile ? " · dom." : " · ext.");
   const when = esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire));
   if(e.annule){ const s = statusOf(me, e), kept = ["present", "absent"].includes(s.etat) ? ' · votre réponse est gardée : '+ETAT_P[s.etat][1] : '';
     return '<div class="rep off"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br><span class="pst-etat off">🚫 '
       + (e.type === "e" ? "pas d'entraînement : annulé par l'entraîneur" : "match annulé par l'entraîneur")+'</span><span class="small muted">'+kept+'</span></span></div></div>'; }
-  const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = PF.ev === e.id;
+  const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = !lecture && PF.ev === e.id;
   return '<div class="rep'+(open ? " open" : "")+'"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br>'
     + '<span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.retard ? ' · en retard' : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
     + (s.etat === "absent" && s.texte ? '<span class="small muted">« '+esc(s.texte)+' »</span> ' : '')   // sa propre justification
     + '<span class="small muted">'+(late ? 'délai passé ('+esc(dlText(e))+')' : 'avant le '+esc(dlText(e)))+'</span></span>'
-    + '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-rep="'+esc(e.id)+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
-    + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-rep-abs="'+esc(e.id)+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button></span></div>'
+    + (lecture ? '' : '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-rep="'+esc(e.id)+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
+      + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-rep-abs="'+esc(e.id)+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button></span>')+'</div>'
     + (open ? '<div class="absform">'+motifPart()+'</div>' : '')+'</div>';
 }
 function periodBlock(){
@@ -3182,15 +3182,15 @@ function periodBlock(){
 }
 const periodEvents = () => { const du = PF.du > presStart() ? PF.du : presStart();
   return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).map(e => e.id).slice(0, 60); };
-// Ma semaine : le vote de l'homme du match, puis ses présences des deux semaines qui viennent, répondues ou non, chacune
-// avec sa réponse et de quoi la changer (demande de l'auteur, 09/10/2026 : voir mes présences, pas seulement ce qui reste)
+// Ma semaine : le vote de l'homme du match, puis ses présences des deux semaines qui viennent, répondues ou non, avec sa
+// réponse (demande de l'auteur, 09/10/2026 : voir mes présences) ; en lecture seule : on répond et on change dans Présences
 function todoBlock(me){
   const today = ymd(new Date()), list = events(today, addDays(today, 13)), todo = list.filter(e => notYet(e, me)).length;
   const votes = ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length));
   return votes.map(b => voteCard(b, me)).join("") + '<h2>Mes présences</h2><div class="panel reps">'
     + '<p class="small muted">Les deux semaines qui viennent · '+(todo ? '<b class="todo">'+todo+' sans réponse</b>' : '✓ tout est répondu')+'</p>'
-    + (list.length ? list.map(e => answerRow(e, me)).join("") : '<p class="small muted">Ni entraînement ni match ces deux semaines.</p>')
-    + '<p class="small"><button class="link" data-tab="presences">Toute la saison</button></p></div>';
+    + (list.length ? list.map(e => answerRow(e, me, true)).join("") : '<p class="small muted">Ni entraînement ni match ces deux semaines.</p>')
+    + '<div class="edit"><button class="btn" data-tab="presences">'+(todo ? 'Répondre' : 'Changer une réponse')+' dans Présences</button></div></div>';
 }
 
 // l'homme du match : élu par les joueurs de la feuille (lue, sinon celle que l'entraîneur a publiée), pendant 48 h
