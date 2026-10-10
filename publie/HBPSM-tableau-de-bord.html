@@ -69,6 +69,15 @@ p{margin:0 0 8px}
 .club span{font-size:.86rem;color:var(--structure-100)}
 .club .etat{margin-left:auto;font-size:.78rem}
 .demo a{color:var(--on-accent)}
+/* ce qui a changé depuis la dernière visite (D.nouveautes) */
+.nouv{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent-trait);border-radius:8px;padding:10px 12px;margin:12px 0 0}
+.nouv-h{display:flex;gap:4px 10px;align-items:baseline;flex-wrap:wrap}
+.nouv-h b{font-family:var(--display);font-size:1.05rem;color:var(--heading)}
+.nouv-h .btn{margin:0 0 0 auto;padding:5px 12px}
+.nouv ul{list-style:none;margin:6px 0 0;padding:0}
+.nouv li{margin:4px 0;font-size:.92rem}
+.nouv li.live{font-weight:600}
+.nouv li .link{margin-left:6px}
 header.top{padding:18px 0 6px}
 header.top .when{font-family:var(--display);font-weight:600;font-size:1.15rem;color:var(--muted)}
 .demo{background:var(--accent);color:var(--on-accent);padding:8px 12px;border-radius:6px;margin:12px 0 0;font-weight:600;font-size:.9rem}
@@ -644,7 +653,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "2325d60fa5be", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "b316d6aaf575", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1834,16 +1843,21 @@ function ecartsData(){
     e.retenue = c.joueurs;
     if((c.suggestion || []).length) e.proposee = c.suggestion;
   }
-  return list.filter(e => (e.proposee || []).length && (e.retenue || []).length)
-    .map(e => Object.assign(e, {plus: e.retenue.filter(c => !e.proposee.includes(c)), moins: e.proposee.filter(c => !e.retenue.includes(c))}))
+  // la proposition jointe à la feuille publiée, sinon la dernière calculée avant le coup d'envoi (auto) ; le choix de
+  // l'entraîneur : sa feuille publiée, sinon la feuille du match
+  return list.map(e => Object.assign(e, {sug: (e.proposee || []).length ? e.proposee : e.auto || [],
+                                         coach: (e.retenue || []).length ? e.retenue : e.feuille || [], publiee: !!(e.retenue || []).length}))
+    .filter(e => e.sug.length && e.coach.length)
+    .map(e => Object.assign(e, {plus: e.coach.filter(c => !e.sug.includes(c)), moins: e.sug.filter(c => !e.coach.includes(c))}))
     .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
 }
 function ecartsBlock(){
   if(!seesAll()) return "";
   const list = ecartsData(), nom = c => esc(memberName(c)), noms = l => l.map(nom).join(", ");
-  if(!list.length) return '<p class="small muted">Pas encore de feuille de l\'entraîneur à comparer : dès qu\'une est publiée, la proposition du tableau de bord est gardée à côté, match après match.</p>';
+  if(!list.length) return ((D.pronostics || {}).influence || {}).n ? influenceBlock()
+    : '<p class="small muted">Pas encore de choix de l\'entraîneur à comparer : la proposition du tableau de bord est gardée pour chaque match, puis mise à côté de sa feuille publiée ou, à défaut, de la feuille du match.</p>';
   const per = {}, add = (c, k) => { (per[c] = per[c] || {cle: c, plus: 0, moins: 0, prop: 0, ret: 0})[k]++; };
-  for(const e of list){ e.proposee.forEach(c => add(c, "prop")); e.retenue.forEach(c => add(c, "ret")); e.plus.forEach(c => add(c, "plus")); e.moins.forEach(c => add(c, "moins")); }
+  for(const e of list){ e.sug.forEach(c => add(c, "prop")); e.coach.forEach(c => add(c, "ret")); e.plus.forEach(c => add(c, "plus")); e.moins.forEach(c => add(c, "moins")); }
   const n = list.reduce((a, e) => a + e.plus.length, 0), mean = l => { const v = l.map(byCle).filter(p => p && rated(p)).map(p => p.scores.equilibre);
     return v.length ? Math.round(v.reduce((a, x) => a + x, 0) / v.length) : null; };
   const ins = list.flatMap(e => e.plus), outs = list.flatMap(e => e.moins), mi = mean(ins), mo = mean(outs);
@@ -1853,8 +1867,9 @@ function ecartsBlock(){
     + ' par rapport à la proposition'+(list.length > 1 ? ' ('+fr((n / list.length).toFixed(1))+' par match)' : '')+'.'
     + (mi != null && mo != null ? ' Ceux qu\'il fait entrer ont une note moyenne de <b>'+mi+'</b>, ceux qu\'il écarte <b>'+mo+'</b>.' : '')
     + (n ? ' Postes : entrent '+esc(postes(ins))+' ; sortent '+esc(postes(outs))+'.' : '')+'</p><ul class="plain ecarts">'
-    + list.slice().reverse().map(e => { const f = e.feuille || [], horsFeuille = f.length ? e.retenue.filter(c => !f.includes(c)) : [], enPlus = f.length ? f.filter(c => !e.retenue.includes(c)) : [];
-      return '<li><b>'+esc(roundShort(e))+' · '+esc(teamShort(e.adversaire || ""))+'</b> <span class="small muted">'+esc(fmtDate(e.date))+'</span><br>'
+    + list.slice().reverse().map(e => { const f = e.publiee ? e.feuille || [] : [], horsFeuille = f.length ? e.coach.filter(c => !f.includes(c)) : [], enPlus = f.length ? f.filter(c => !e.coach.includes(c)) : [];
+      return '<li><b>'+esc(roundShort(e))+' · '+esc(teamShort(e.adversaire || ""))+'</b> <span class="small muted">'+esc(fmtDate(e.date))
+        + (e.publiee ? '' : ' · pas de feuille publiée : celle du match')+'</span><br>'
         + (e.plus.length ? '<span class="small"><span class="b-plus">+ '+noms(e.plus)+'</span> à la place de <span class="b-moins">− '+noms(e.moins)+'</span></span>'
           : '<span class="small muted">identique à la proposition</span>')
         + (horsFeuille.length || enPlus.length ? '<br><span class="small muted">Feuille du match : '+[horsFeuille.length ? 'retenu'+(horsFeuille.length > 1 ? 's' : '')+' mais absent'+(horsFeuille.length > 1 ? 's' : '')+' : '+noms(horsFeuille) : '',
@@ -1863,6 +1878,39 @@ function ecartsBlock(){
   if(tops.length) h += '<p class="small"><b>Joueur par joueur</b></p><ul class="plain ecarts">'+tops.map(x => '<li>'+nom(x.cle)+' <span class="small muted">'
     + [x.plus ? 'retenu '+x.plus+' fois sans être proposé' : '', x.moins ? 'proposé '+x.moins+' fois sans être retenu' : ''].filter(Boolean).join(' · ')
     + ' (proposé '+x.prop+', retenu '+x.ret+' sur '+list.length+')</span></li>').join("")+'</ul>';
+  return h + influenceBlock();
+}
+// Ce que ces choix ont donné (demande de l'auteur, 10/10/2026 : mesurer si les choix de l'entraîneur pèsent sur les
+// résultats) : D.pronostics.influence (pipeline/pronostic.py), match joué après match joué. Une tendance, jamais une preuve.
+function influenceBlock(){
+  const I = (D.pronostics || {}).influence || {};
+  if(!I.n) return '<p class="small"><b>Ce que ces choix ont donné</b></p><p class="small muted">Après chaque match joué, le score sera comparé '
+    + 'à ce que prévoyait le modèle avec la proposition du tableau de bord et avec l\'équipe de l\'entraîneur : le premier bilan viendra avec la feuille du prochain match.</p>';
+  const s = I.suivis || {}, e = I.ecartes || {}, b = v => v == null ? "–" : butsTxt(v, 1)+" "+butsMot(v);
+  const vnd = r => r ? ["V", "N", "D"].map(k => r[k] ? r[k]+" "+({V: "victoire", N: "nul", D: "défaite"})[k]+(r[k] > 1 ? "s" : "") : "").filter(Boolean).join(", ") : "";
+  let h = '<p class="small"><b>Ce que ces choix ont donné</b></p><p class="small">Sur '+I.n+' match'+(I.n > 1 ? "s" : "")+' joué'+(I.n > 1 ? "s" : "")+' : '
+    + (s.n ? 'proposition suivie '+s.n+' fois ('+vnd(s.resultats)+')' : 'proposition jamais suivie telle quelle')
+    + (e.n ? ', écartée '+e.n+' fois ('+vnd(e.resultats)+'), '+fr(I.changements)+' changement'+(I.changements >= 2 ? "s" : "")+' par match en moyenne' : '')+'.'
+    + (e.valeur != null ? ' Avant les matchs, le modèle estimait ses changements à <b>'+b(e.valeur)+'</b> par match (écart attendu avec son équipe moins avec la proposition).' : '')+'</p>';
+  if(I.diff != null){
+    const both = s.n_residu && e.n_residu, inside = I.marge == null || Math.abs(I.diff) <= I.marge;
+    h += '<p class="small">Une fois connus les présents des deux côtés, '
+      + (both ? 'l\'équipe a fait '+b(e.residu)+' face au prévu quand il s\'écartait de la proposition, '+b(s.residu)+' quand il la suivait : différence <b>'+b(I.diff)+'</b>'
+              : 'l\'équipe a fait <b>'+b(I.diff)+'</b> face au prévu')
+      + (I.marge != null ? ' (marge d\'erreur ± '+fr(I.marge)+')' : '')+'. '
+      + (inside ? 'Dans la marge d\'erreur : pas encore de quoi dire que ses choix pèsent sur les résultats ; il faut une dizaine de matchs, souvent plus, pour le voir.'
+         : I.diff > 0 ? 'Au-delà de la marge : ses choix semblent apporter ce que le modèle ne voit pas (forme du moment, adversaire, vestiaire).'
+         : 'Au-delà de la marge : quand il s\'écarte des propositions, l\'équipe fait moins bien que prévu.')+'</p>';
+  }
+  if(I.buts_plus != null) h += '<p class="small">Ceux qu\'il a fait entrer à la place des proposés ont marqué <b>'+I.buts_plus+'</b> but'+(I.buts_plus > 1 ? "s" : "")
+    + ' pour '+fr(r1(I.attendus_plus))+' attendus d\'après leurs moyennes.</p>';
+  h += '<ul class="plain ecarts">'+(I.matchs || []).slice().reverse().map(x => '<li><b>'+esc(roundShort(x))+' · '+esc(teamShort(x.adversaire || ""))+'</b> '
+    + '<span class="small muted">'+esc(fmtDate((x.date || "").slice(0, 10)))+(x.source === "feuille" ? ' · feuille du match' : '')+'</span><br><span class="small">'
+    + (x.changes ? x.changes+' changement'+(x.changes > 1 ? "s" : "") : 'proposition suivie')+' · écart attendu avec la proposition '+butsTxt(x.avec_proposee, 1)
+    + (x.avec_choix != null && x.changes ? ', avec son équipe '+butsTxt(x.avec_choix, 1) : '')+' · réel <b>'+butsTxt(x.reel)+'</b>'
+    + (x.residu != null ? ' · '+pronoGap(x.residu)+' avec les présents' : '')+'</span></li>').join("")+'</ul>'
+    + '<p class="small muted">Écart attendu : le pronostic du match, corrigé selon les joueurs alignés (buteurs et gardiens), comme pour la feuille proposée. '
+    + 'Ce n\'est pas une preuve : un match se joue aussi sur ce que la feuille ne dit pas.</p>';
   return h;
 }
 function cycleCell(id, cle){
@@ -2481,6 +2529,92 @@ const santeBanner = () => {
   const list = (SANTE.alertes || []).filter(a => COACH || canWrite() || !/^(jeton|rappel)/.test(String(a.code)));
   return list.length ? '<p class="demo sante">⚠️ '+list.map(a => esc(a.message)).join(" ")+'</p>' : "";
 };
+// Ce qui a changé (demande de l'auteur, 10/10/2026 : tout se recalcule à chaque nouvelle feuille, à chaque choix de
+// l'entraîneur avant le match et à tout ce qui améliore les pronostics, et chacun en est averti) : les passages de la
+// collecte et des recalculs (D.nouveautes, pipeline/nouveautes.py) que cet appareil n'a pas encore vus, plus ce que la
+// page voit passer avant le recalcul (LIVE : une feuille de l'entraîneur publiée à l'instant). « Vu » les range ; la
+// première fois, seul le dernier passage. Proposition du tableau de bord et bilan des choix : entraîneur et celui qui
+// tient les présences seulement (la proposition tient compte des présences de chacun).
+const NOUV_VU = "hbpsm:nouveautes-vu", NOUV_MAX = 6;
+const NOUV_PRIO = {choix: 0, resultat: 1, bilan: 2, chances: 3, rang: 4, prono: 5, match: 6, proposition: 7, influence: 8, poules: 9, notes: 10, modele: 11};
+let LIVE = [];
+const parisMs = v => { const t = Date.parse(String(v || "").replace(" ", "T")); return isNaN(t) ? 0 : t; };
+const nouvWhen = v => { const d = new Date(String(v || "").replace(" ", "T"));
+  return isNaN(d) ? String(v || "") : d.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"}) + " à " + hhmm(d); };
+const nouvMatch = x => esc(roundShort(x))+' '+(x.domicile ? "contre " : "à ")+esc(teamShort(x.adversaire || ""));
+const resWord = (a, b) => a > b ? "victoire" : a < b ? "défaite" : "nul";
+function nouvItem(x){   // [texte, onglet]
+  const names = l => (l || []).map(c => esc(memberName(c))).join(", ");
+  switch(x.t){
+    case "resultat": return [x.score ? '🏁 '+nouvMatch(x)+' : <b>'+x.bp+' – '+x.bc+'</b> ('+resWord(x.bp, x.bc)+')'
+        + (x.feuille ? ', feuille lue : notes, statistiques et pronostics recalculés' : ' ; la feuille n\'est pas encore lue')
+      : '📄 Feuille de '+nouvMatch(x)+' lue : notes, statistiques et pronostics recalculés', "semaine"];
+    case "poules": return ['📊 Nos poules : '+[x.resultats ? x.resultats+' résultat'+(x.resultats > 1 ? "s" : "") : '',
+        x.feuilles ? x.feuilles+' feuille'+(x.feuilles > 1 ? "s" : "")+' lue'+(x.feuilles > 1 ? "s" : "") : ''].filter(Boolean).join(", ")
+      + ' de plus : forces des adversaires recalculées', "adv"];
+    case "rang": return [(x.apres < x.avant ? '📈' : '📉')+' Classement : <b>'+ord(x.apres)+'</b> ('+ord(x.avant)+' avant)', "saison"];
+    case "chances": return ['🎯 Chances de '+esc(objectif(x.cible))+' : '+x.avant+' % → <b>'+x.apres+' %</b>', "saison"];
+    case "match": return ['🗓️ Nouveau match : '+esc(roundOf(x))+' '+(x.domicile ? "contre " : "à ")+esc(teamShort(x.adversaire || ""))
+      + (x.p != null ? ' (victoire estimée '+x.p+' %)' : ''), "saison"];
+    case "prono": return ['🔮 Pronostic '+nouvMatch(x)+' : '+[x.avant.ecart != null && x.apres.ecart != null ? 'écart '+butsTxt(x.avant.ecart, 1)+' → <b>'+butsTxt(x.apres.ecart, 1)+'</b>' : '',
+        x.avant.p != null && x.apres.p != null ? 'victoire '+x.avant.p+' % → <b>'+x.apres.p+' %</b>' : ''].filter(Boolean).join(", "), "adv"];
+    case "bilan": { const hit = x.ecart == null || !x.reel || !Math.round(x.ecart) ? "➖" : (x.reel > 0) === (x.ecart > 0) ? "✅" : "❌";
+      return [hit+' Pronostic '+nouvMatch(x)+' : prévu '+scoreOf(x.pour, x.contre)+', réel <b>'+x.bp+' – '+x.bc+'</b>', "saison"]; }
+    case "modele": return ['🧠 Le modèle a réappris'+(x.matchs ? ' sur '+x.matchs+' matchs' : '')+' : avantage du terrain, buteurs absents, gardiens', "saison"];
+    case "notes": return ['⭐ Notes de '+x.n+' joueur'+(x.n > 1 ? "s" : "")+' revues', "joueurs"];
+    case "choix": return ['📋 Feuille de l\'entraîneur '+({publiee: "publiée", modifiee: "modifiée", retiree: "retirée"})[x.etat]+' pour '+nouvMatch(x), "semaine"];
+    case "proposition": return ['🔄 Proposition du tableau de bord revue pour '+nouvMatch(x)+' : '
+      + [x.plus.length ? '<span class="b-plus">+ '+names(x.plus)+'</span>' : '', x.moins.length ? '<span class="b-moins">− '+names(x.moins)+'</span>' : ''].filter(Boolean).join(" "), "planif"];
+    case "influence": return ['⚖️ Choix de l\'entraîneur face aux propositions : '+x.n+' match'+(x.n > 1 ? "s" : "")+' mesuré'+(x.n > 1 ? "s" : ""), "planif"];
+  }
+  return null;
+}
+function nouvBanner(){
+  if(!D || !D.meta) return "";
+  const log = D.nouveautes || [], seen = stored(NOUV_VU) || "";
+  const fresh = seen ? log.filter(e => String(e.le) > seen) : log.slice(-1);
+  // du plus récent au plus ancien ; un même match (ou les chances, le rang) une seule fois : de l'état le plus ancien au plus récent
+  const items = [], at = {};
+  for(const e of fresh.slice().reverse()) for(const x of e.items || []){
+    if(x.prive && !seesAll()) continue;
+    const k = x.t + "|" + (x.id || "");
+    if(at[k] !== undefined){ if(x.avant !== undefined) items[at[k]] = Object.assign({}, items[at[k]], {avant: x.avant}); continue; }
+    at[k] = items.length; items.push(x);
+  }
+  // le plus important d'abord ; au-delà de NOUV_MAX, dans un tiroir
+  items.sort((a, b) => (NOUV_PRIO[a.t] ?? 99) - (NOUV_PRIO[b.t] ?? 99));
+  const lines = items.map(nouvItem).filter(Boolean);
+  if(!lines.length && !LIVE.length) return "";
+  const last = fresh[fresh.length - 1];
+  const head = last ? 'Mis à jour '+esc(nouvWhen(last.le))+(last.source === "recalcul" ? ', après les choix de l\'entraîneur' : '')
+    + (fresh.length > 1 ? ' <span class="small muted">('+fresh.length+' passages depuis votre dernière visite)</span>' : '') : 'En cours de mise à jour';
+  const live = LIVE.flatMap(n => n.notes).map(t => '<li class="live">'+esc(t)+'</li>');
+  if(live.length) live.push('<li class="small muted">Notes, propositions et pronostics se recalculent avec ces choix : à jour d\'ici quelques minutes.</li>');
+  const li = ([txt, tab]) => '<li>'+txt+(tab && tab !== S.tab ? ' <button class="link" data-tab="'+tab+'">voir</button>' : '')+'</li>';
+  const more = lines.length - NOUV_MAX;
+  return '<div class="nouv" role="status"><div class="nouv-h"><b>🔄 '+head+'</b><button class="btn ghost" data-nouv-vu="1">Vu</button></div><ul>'+live.join("")
+    + lines.slice(0, NOUV_MAX).map(li).join("")+'</ul>'
+    + (more > 0 ? '<details'+keep("nouv-plus", false)+'><summary class="small">'+more+' autre'+(more > 1 ? "s" : "")+' changement'+(more > 1 ? "s" : "")+'</summary><ul>'
+      + lines.slice(NOUV_MAX).map(li).join("")+'</ul></details>' : '')+'</div>';
+}
+// ce que l'entraîneur (ou celui qui tient les présences) vient de publier : dit tout de suite, en attendant le recalcul
+function liveChoix(a, b){
+  const am = (a && a.matchs) || {}, bm = (b && b.matchs) || {}, notes = [];
+  const lab = id => { const m = [...((D.saison || {}).matchs || []), ...agendaList()].find(x => String(x.id) === String(id));
+    return m ? roundShort(m)+" "+(m.domicile ? "contre " : "à ")+teamShort(m.adversaire || "") : "un match"; };
+  const same = (x, y) => JSON.stringify([...(x || [])].sort()) === JSON.stringify([...(y || [])].sort());
+  const coming = id => (PLAN || []).some(r => String(r.m.id) === String(id));
+  for(const [id, c] of Object.entries(bm)){
+    if(!am[id]) notes.push("📋 Feuille de l'entraîneur publiée pour " + lab(id));
+    else if(!same(am[id].joueurs, c.joueurs)) notes.push("📋 Feuille de l'entraîneur modifiée pour " + lab(id));
+  }
+  for(const id of Object.keys(am)) if(!bm[id] && coming(id)) notes.push("📋 Feuille de l'entraîneur retirée pour " + lab(id));
+  const js = (x, k) => JSON.stringify((x && x[k]) || null);
+  if(js(a, "blesses") !== js(b, "blesses") || js(a, "absents") !== js(b, "absents")) notes.push("🩹 Blessés et absents mis à jour par l'entraîneur");
+  if(js(a, "annulees") !== js(b, "annulees")) notes.push("🚫 Un match ou un entraînement annulé ou rétabli");
+  if(js(a, "rdv") !== js(b, "rdv")) notes.push("⏰ Rendez-vous mis à jour");
+  if(notes.length) LIVE.push({le: Date.now(), notes});
+}
 // le même envoi pour les propositions d'amendes, les réponses de présence, « Vous êtes » et les votes
 const CN_TXT = {envoi: "Envoi…", envoyee: "Envoyé : en ligne d'ici une à deux minutes.",
   erreur: "Envoi impossible pour l'instant (connexion ?) : c'est gardé sur cet appareil, réessayez.", lent: "La mise en ligne tarde : ce sera en ligne au prochain passage."};
@@ -3494,7 +3628,7 @@ function render(keepScroll){
   applyTabs();
   if(S.tab === "presences" && !GESTION) S.tab = !COACH && stored(MOI) ? "moi" : "planif";
   PLAN = planning();
-  document.getElementById("app").innerHTML = newer + santeBanner() + VIEWS[S.tab]() + quiBlock();
+  document.getElementById("app").innerHTML = newer + santeBanner() + nouvBanner() + VIEWS[S.tab]() + quiBlock();
   document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
   const more = document.querySelector("nav.tabs [data-plus]");
   if(more) more.classList.toggle("on", !primaryTabs().includes(S.tab));
@@ -3542,6 +3676,8 @@ document.addEventListener("click", ev => {
   const t = ev.target.closest("button"); if(!t) return;
   if(t.dataset.tab){ S.tab = t.dataset.tab; save(); render(false); }
   else if(t.dataset.plus){ plusMenu(document.getElementById("plus-menu").hidden); }
+  else if(t.dataset.nouvVu){ const log = D.nouveautes || []; LIVE = [];
+    try { if(log.length) localStorage.setItem(NOUV_VU, String(log[log.length - 1].le)); } catch (e) {} render(true); }
   else if(t.dataset.jump){ const el = document.getElementById(t.dataset.jump); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); }
   else if(t.dataset.toute){ TOUTE = !TOUTE; render(true); }
   else if(t.dataset.whyText){ showWhy(t.dataset.whyText); }
@@ -3725,7 +3861,9 @@ async function fetchChoices(){   // vrai si les choix publiés ont changé
   } catch (e) {}
   if(!env){ try { env = JSON.parse(stored(CHOIX_KEY) || "null"); } catch (e) {} }   // hors connexion : la dernière copie
   if(!env || env.donnees === CHOIX_SIG) return false;
+  const before = CHOIX_SIG ? CHOIX : undefined;   // au premier chargement, rien de « nouveau »
   try { CHOIX = await openVault(env, phrase); CHOIX_SIG = env.donnees; } catch (e) { return false; }
+  if(before !== undefined) liveChoix(before, CHOIX);
   forgetWithdrawn(); forgetGest();
   try { localStorage.setItem(CHOIX_KEY, JSON.stringify(env)); } catch (e) {}
   return true;
@@ -3860,6 +3998,7 @@ async function check(){
       if(box.genere !== GENERE){
         try { localStorage.setItem(VAULT, JSON.stringify(env)); } catch (e) {}
         show(box);
+        LIVE = LIVE.filter(n => n.le > parisMs(D.meta.genere));
         render(true);
       }
     }
