@@ -24,13 +24,25 @@ Le dépôt `strus38/hbpsm-dashboard` est PUBLIC et ne sert qu'à poser le code.
 - Les tests n'utilisent que des joueurs et des clubs inventés.
 - Avant tout commit : chercher les noms de l'effectif dans le diff.
 
+## Règle de travail permanente (demande de l'auteur, 10/10/2026)
+
+- Tout recalculer à chaque événement qui peut améliorer les pronostics : nouvelle feuille (collecte), choix de
+  l'entraîneur avant le match (recalcul lancé par `choix.yml`), et tout nouvel événement de ce genre qu'on
+  ajoutera (le brancher au recalcul, ou dire pourquoi on ne peut pas). Les scores attendus face aux adversaires
+  sont refaits à chaque passage.
+- Prévenir les utilisateurs par le bandeau « 🔄 Mis à jour » (`pipeline/nouveautes.py`) : toute nouvelle
+  statistique ou tout nouveau recalcul qui change ce qu'on montre y ajoute son type d'élément.
+- Garder chaque proposition du tableau de bord (`pipeline/selections.py`, `auto` et `proposee`) et la mettre
+  en face des choix de l'entraîneur et des résultats (`pronostic.influence`) ; lire ce bilan avant de toucher à
+  la rotation ou aux notes, et en parler à l'auteur.
+
 Secrets GitHub attendus : `HBPSM_CLE` (phrase secrète, 16 caractères au moins) et
 `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom »). En local, les passer en variables
 d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (58 tests au 10/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (62 tests au 10/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -614,6 +626,37 @@ seconde entre deux pages, ne pas relire une journée dont toutes les feuilles so
   l'entraîneur et celui qui tient les présences seulement (`seesAll`). AVANT de changer la rotation ou les notes, lire
   ces écarts (note moyenne et postes de ceux qui entrent et sortent, joueurs souvent ajoutés ou écartés) et en parler
   à l'auteur. Le 1er match concerné : J2 du 10/10/2026 à Sablons (sélection donnée par l'auteur le 09/10 au soir).
+- Tout recalculer, prévenir, mesurer (demande de l'auteur, 10/10/2026 : « toujours recalculer toutes les statistiques
+  lorsque les nouvelles feuilles de matchs apparaissent, lorsque le coach a fait sa sélection avant match… Alerte les
+  utilisateurs avec un bandeau… garder en mémoire tes suggestions et les comparer aux choix de l'entraîneur pour
+  mesurer si ces choix ont une influence sur les résultats ») :
+  - Recalcul : `weekly.yml` a l'entrée `recalcul` (booléen) qui saute la collecte et les saisons passées (rien
+    demandé à la fédération), commit « Recalcul du … », `HBPSM_RECALCUL` pour le bandeau. `choix.yml` (droit
+    `actions: write`) la lance après un push réussi de choix.enc, sauf si une collecte attend déjà (queued, pending,
+    waiting, requested : elle partira du dernier état ; en lancer une la remplacerait dans la file, groupe
+    `collecte`). Les présences (hbpsm-cn) ne peuvent pas la lancer (autre dépôt, sans jeton) : limite assumée.
+  - Proposition de chaque match : `pipeline/suggestions.py` ouvre la page sans écran (Playwright, Chrome du runner,
+    `launch` retombe sur Chromium ; `HBPSM_SUGGESTIONS=0` coupe, mis par le bac à sable des tests) sur les données
+    qu'on vient de calculer, `#entraineur`, `CHOIX` = choix.enc complet (`analyze.published_box`), `PRESJ` = journal
+    des présences ; toute requête autre que file: est refusée (logos de la fédération, polices) ; page dans un
+    dossier temporaire. `selections.record_auto` garde `auto` (+ `auto_le`, qui ne bouge qu'avec elle : sinon on
+    republierait chaque jour) jusqu'au coup d'envoi ; une entrée vit avec `auto` seul. Validation retirée : seules
+    `retenue`, `proposee`, `le` partent. Playwright est dans requirements.txt.
+  - Après le match (`pronostic.V` = 2, refait les bilans) : `reality` chiffre par `lineup` (part habituelle des
+    gardiens) `retenue`, `jouee` (notre feuille), `proposee` (+ `source` : publication ou collecte) et `choix`
+    (source publiee/feuille, `plus`, `moins`, `buts_plus`, `attendus_plus`) ; l'archive (`selections`) passe avant
+    les pronostics dans `analyze` (`chosen`). `pronostic.influence` -> `D.pronostics.influence` : `valeur` (avec son
+    équipe − avec la proposition), `residu` (réel − corrigé avec les présents), suivis / écartés, `diff`, `marge`
+    (1,96 × écart-type, `SD_MIN` 4, `SD_PRUDENT` 6 sous 3 matchs ; un seul groupe : face à zéro). Page :
+    `influenceBlock` au bas d'`ecartsBlock` ; `ecartsData` prend `proposee` sinon `auto`, `retenue` sinon `feuille`
+    (`publiee`). `club_agenda` porte `feuille` (feuille lue, même sans joueur de l'effectif).
+  - Bandeau : `publish.seal` déchiffre le hbpsm.enc d'avant (`previous_data`), `nouveautes.compare` (types : resultat,
+    poules, rang, chances, match, prono, bilan, modele, notes, choix, proposition et influence `prive`), `record`
+    (`data/nouveautes.json`, `STATE_FILES`, 40 lignes, pas deux fois la même) -> `D.nouveautes` ; `meta.instant`.
+    Page : `nouvBanner` après `santeBanner` (ce que l'appareil n'a pas vu, « hbpsm:nouveautes-vu » ; la première fois
+    le dernier passage ; `NOUV_PRIO`, 6 lignes puis tiroir ; privés pour `seesAll`), `nouvItem`, « Vu »
+    (`data-nouv-vu`) ; `liveChoix` dans `fetchChoices` (pas au premier chargement) -> `LIVE`, effacé quand arrivent
+    des données plus récentes (`parisMs(D.meta.genere)`).
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

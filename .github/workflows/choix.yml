@@ -8,6 +8,10 @@
 #
 # Comme pour la caisse noire : on part du dernier état de la branche (pas du commit du lancement)
 # et, si le push est refusé, on récrit le fichier sur le dernier état ; l'envoi le plus récent gagne.
+#
+# Puis tout se recalcule avec ces choix (demande de l'auteur, 10/10/2026) : la collecte quotidienne en mode
+# « recalcul », sans rien demander au site de la fédération. Si une collecte attend déjà son tour, elle partira du
+# dernier état et prendra ces choix : on n'en lance pas une autre (elle prendrait sa place dans la file).
 name: Choix de l'entraîneur
 
 on:
@@ -19,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # lancer le recalcul (workflow « Collecte quotidienne »)
 
 concurrency:
   group: choix
@@ -41,6 +46,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Vérifier et écrire les choix (toujours chiffrés), enregistrer dans le dépôt
+        id: ecrit
         env:
           HBPSM_CLE: ${{ secrets.HBPSM_CLE }}
           HBPSM_CHOIX: ${{ inputs.choix }}
@@ -54,8 +60,24 @@ jobs:
             git add publie/choix.enc
             git diff --cached --quiet && exit 0
             git commit -q -m "Choix de l'entraîneur"
-            git push -q origin "HEAD:$BRANCHE" && exit 0
+            if git push -q origin "HEAD:$BRANCHE"; then echo "publie=oui" >> "$GITHUB_OUTPUT"; exit 0; fi
             echo "Dépôt modifié entre-temps : nouvel essai sur le dernier état ($essai/5)"
             sleep $((essai * 5))
           done
           exit 1
+
+      - name: Tout recalculer avec ces choix (sans collecte sur le site de la fédération)
+        if: steps.ecrit.outputs.publie == 'oui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCHE: ${{ github.ref_name }}
+        run: |
+          # une collecte en attente (pas encore commencée) partira du dernier état : elle prendra ces choix
+          filtre='[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "requested")] | length'
+          attente=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow weekly.yml --limit 20 --json status -q "$filtre")
+          if [ "${attente:-0}" != "0" ]; then
+            echo "Une collecte attend déjà son tour : elle prendra ces choix."
+          else
+            gh workflow run weekly.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCHE" -f recalcul=true
+            echo "Recalcul lancé."
+          fi

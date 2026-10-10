@@ -255,7 +255,10 @@ l'effectif (colonne « trésorier »), jamais dans un fichier du dépôt.
 | Effectif | `python -m pipeline.publish roster` | `roster.csv` depuis le secret |
 | Collecte | `python -m pipeline.collect` | `data/fixtures.json`, `raw/fdme/*.pdf` |
 | Feuilles | `python -m pipeline.parse_fdme` | `data/matches/<id>.json` |
-| Publication | `python -m pipeline.publish seal` | `publie/` |
+| Publication | `python -m pipeline.publish seal` | `publie/` (avec la proposition de la page, `pipeline/suggestions.py`, et ce qui a changé, `pipeline/nouveautes.py`) |
+
+En mode recalcul (lancé par « Choix de l'entraîneur »), la collecte et les saisons passées sont sautées :
+reprise, effectif, feuilles déjà lues, publication.
 
 `data/`, `raw/`, `docs/` et `roster.csv` ne sont jamais versionnés. Pour un aperçu en clair sur
 sa propre machine : `python -m pipeline.build_dashboard` écrit `docs/index.html`.
@@ -496,6 +499,50 @@ tient ; jamais pour les joueurs) montre match par match qui l'entraîneur a fait
 puis joueur par joueur combien de fois il a été retenu sans être proposé ou proposé sans être retenu,
 avec la note moyenne et les postes de ceux qui entrent et qui sortent : de quoi comprendre ses choix
 avant de toucher à la rotation.
+
+Sans feuille publiée, la proposition est gardée quand même (demande de l'auteur, 10/10/2026) : à chaque
+collecte et à chaque recalcul, la page elle-même est ouverte sans écran avec les nouvelles données, en mode
+entraîneur, avec les choix publiés et le journal des présences, et donne la proposition de chaque match de la
+planification (`pipeline/suggestions.py` : Chrome du runner, aucun autre chargement que le fichier local, page
+écrite dans un dossier temporaire effacé aussitôt). La dernière avant le coup d'envoi l'emporte (`auto` dans
+`data/selections.json`) ; le choix de l'entraîneur est alors la feuille du match.
+
+**Ce que ces choix ont donné** (même tiroir) : après chaque match joué, `pipeline/pronostic.py` chiffre de la
+même façon (le pronostic corrigé selon les joueurs alignés) la proposition, l'équipe de l'entraîneur et celle
+qui a joué. Pour chaque match : ce que le modèle pensait de ses changements (écart attendu avec son équipe moins
+avec la proposition) et ce que l'équipe a fait de plus que prévu une fois connus les présents des deux côtés.
+Puis, matchs où il a suivi la proposition contre matchs où il s'en est écarté, la différence de ce dernier
+écart, avec sa marge d'erreur à 95 % (écart-type mesuré, 4 buts au moins, 6 tant qu'il y a moins de 3 matchs) :
+au-delà de la marge, ses choix semblent apporter ce que le modèle ne voit pas (ou l'inverse) ; en deçà, rien
+à conclure. Aussi : les buts marqués par ceux qu'il a fait entrer face à leurs moyennes. Une tendance qui ne
+devient lisible qu'après une dizaine de matchs, jamais une preuve.
+
+## Tout se recalcule, et chacun est prévenu
+
+Demande de l'auteur (10/10/2026) : recalculer toutes les statistiques à chaque nouvelle feuille, à chaque
+choix de l'entraîneur avant le match, et à tout ce qui peut améliorer les pronostics.
+
+- **Nouvelles feuilles** : la collecte quotidienne (du dimanche au vendredi) recalcule tout : notes, forces
+  des adversaires, modèle (terrain, buteurs absents, gardiens), pronostics, simulation de la saison,
+  propositions, bilans.
+- **Choix de l'entraîneur** (feuille validée, sélection de celui qui tient les présences, blessés, absents,
+  rendez-vous, annulations) : une fois `publie/choix.enc` écrit, « Choix de l'entraîneur » lance la collecte
+  en mode **recalcul** (`recalcul: true`) : tout le calcul, sans rien demander au site de la fédération. Si
+  une collecte attend déjà son tour, elle partira du dernier état et prendra ces choix : on n'en lance pas
+  une autre, qui prendrait sa place dans la file de GitHub.
+- **Bandeau « 🔄 Mis à jour »** : chaque passage qui change quelque chose (`pipeline/nouveautes.py`,
+  `data/nouveautes.json`) compare les nouvelles données aux précédentes : résultat et feuille d'un match du
+  club, feuilles et résultats de nos poules, classement, chances d'atteindre l'objectif, pronostics des
+  prochains matchs (un demi-but d'écart ou 3 points de victoire), bilan d'un pronostic, modèle réappris, notes
+  revues (2 points), feuille de l'entraîneur publiée, modifiée ou retirée ; et pour l'entraîneur et celui
+  qui tient les présences seulement, la proposition du tableau de bord qui change et le bilan de ses choix.
+  La page montre ce que l'appareil n'a pas vu (la première fois, le dernier passage), le plus important
+  d'abord, avec un lien vers l'onglet ; « Vu » le range. Dès qu'une feuille de l'entraîneur est en ligne, la
+  page le dit aussitôt, en attendant le recalcul.
+
+Limite : les réponses de présence (dépôt `hbpsm-cn`) ne relancent pas de recalcul, ce dépôt ne pouvant pas
+lancer les workflows de celui-ci ; la page les prend en compte dès qu'elle les lit, et la proposition gardée
+est celle jointe à la feuille publiée ou celle du passage suivant.
 
 ## Lien avec l'application de préparation des entraînements
 

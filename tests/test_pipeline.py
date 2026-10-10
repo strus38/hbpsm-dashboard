@@ -11,7 +11,7 @@ import threading
 import pytest
 
 from pipeline import analyze as an
-from pipeline import caisse, choix, collect, common, demo_data, parse_fdme, presences, pronostic, publish, sante, selections, vault
+from pipeline import caisse, choix, collect, common, demo_data, nouveautes, parse_fdme, presences, pronostic, publish, sante, selections, suggestions, vault
 from pipeline.build_dashboard import build, render
 from pipeline.export_training import build_exports
 import pathlib
@@ -45,13 +45,14 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def sandbox(tmp_path, monkeypatch):
     """Redirige data/, raw/ et docs/ vers un dossier temporaire."""
     data, raw = tmp_path / "data", tmp_path / "raw"
-    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante, pronostic, selections):
+    for mod in (common, an, collect, parse_fdme, publish, choix, caisse, sante, pronostic, selections, nouveautes):
         for name, val in (("DATA", data), ("MATCHES", data / "matches"), ("RAW", raw),
                           ("PUBLIE", tmp_path / "publie")):
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, val)
     monkeypatch.setattr(publish, "ROOT", tmp_path)
     monkeypatch.setattr(presences, "fetch", lambda address: None)   # jamais le vrai journal des présences
+    monkeypatch.setenv("HBPSM_SUGGESTIONS", "0")   # la page sans écran : seulement dans le test qui la vérifie
     monkeypatch.setattr(sante, "ROOT", tmp_path)
     monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
@@ -2568,3 +2569,179 @@ def test_feuilles_ralenties(sandbox, monkeypatch):
     monkeypatch.setattr(collect, "fetch", lambda url: (lambda x: (_ for _ in ()).throw(x) if isinstance(x, Exception) else x)(next(tries)))
     history.fetch_sheets(season, sandbox / "h.json", lambda t: False, budget=60)
     assert naps[0] == 5  # délai demandé respecté, puis reprise
+
+
+def test_choix_face_aux_propositions(sandbox, monkeypatch):
+    """Chaque proposition du tableau de bord est gardée, même sans feuille publiée, puis chiffrée après le match à côté
+    de l'équipe de l'entraîneur et de celle qui a joué : ce que le modèle pensait de ses changements, et ce qu'ils ont
+    donné (demande de l'auteur, 10/10/2026)."""
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    nxt = next(m for m in d["saison"]["matchs"] if not m.get("coupe"))
+    gk = [q["cle"] for q in d["joueurs"] if q["gardien"]]
+    field = [q["cle"] for q in d["joueurs"] if not q["gardien"]]
+    assert len(gk) >= 2 and len(field) >= 12
+    sugg, kept = gk[:2] + field[:10], gk[:2] + field[2:12]
+    # la page a proposé (collecte) ; jusqu'au coup d'envoi la dernière l'emporte, l'heure ne bouge qu'avec elle
+    selections.record_auto({nxt["id"]: field[:12]}, d["agenda"], "2026-10-04T06:00", "2026-2027")
+    selections.record_auto({nxt["id"]: sugg}, d["agenda"], "2026-10-05T06:00", "2026-2027")
+    assert selections.record_auto({nxt["id"]: sugg}, d["agenda"], "2026-10-06T06:00", "2026-2027")["matchs"][0]["auto_le"] == "2026-10-05T06:00"
+    after = selections.record_auto({nxt["id"]: field[:12]}, d["agenda"], "2026-10-10T21:00", "2026-2027")   # commencé : figée
+    assert after["matchs"][0]["auto"] == sorted(sugg)
+    # l'entraîneur publie une autre feuille, la proposition jointe ; le match est joué, la feuille lue
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(dict(format="hbpsm-choix", v=1, matchs={
+        nxt["id"]: dict(joueurs=kept, le="2026-10-09T21:00:00Z", suggestion=sugg)}), PHRASE, iterations=2000))
+    demo(sandbox, played_days=4)
+    d2 = an.analyze("2026-10-12")
+    a = next(x for x in d2["pronostics"]["matchs"] if x["id"] == nxt["id"])["apres"]
+    assert a["v"] == pronostic.V == 2 and a["proposee"]["source"] == "publication" and a["retenue"]["part"] > 0
+    assert a["choix"]["source"] == "publiee" and a["choix"]["plus"] == sorted(field[10:12]) and a["choix"]["moins"] == sorted(field[:2])
+    assert a["jouee"]["ecart"] == round(a["jouee"]["pour"] - a["jouee"]["contre"], 1)
+    inf = d2["pronostics"]["influence"]
+    row = inf["matchs"][0]
+    assert inf["n"] == 1 and row["changes"] == 2 and row["valeur"] == round(a["retenue"]["ecart"] - a["proposee"]["ecart"], 1)
+    assert row["residu"] == round(a["ecart"] - a["corrige"]["ecart"], 1) and (inf["ecartes"]["n"], inf["suivis"]["n"]) == (1, 0)
+    assert inf["diff"] == row["residu"] and inf["marge"] == round(1.96 * pronostic.SD_PRUDENT, 1)
+    # sans feuille publiée : la dernière proposition calculée face à la feuille du match
+    path = sandbox / "data" / "selections.json"
+    sel = json.loads(path.read_text("utf-8"))
+    for k in ("retenue", "proposee", "le"):
+        sel["matchs"][nxt["id"]].pop(k)
+    common.write_json(path, sel)
+    pr = json.loads((sandbox / "data" / "pronostics.json").read_text("utf-8"))
+    pr["matchs"][nxt["id"]]["apres"] = None
+    common.write_json(sandbox / "data" / "pronostics.json", pr)
+    (sandbox / "publie" / "choix.enc").unlink()
+    a = next(x for x in an.analyze("2026-10-13")["pronostics"]["matchs"] if x["id"] == nxt["id"])["apres"]
+    real = json.loads((sandbox / "data" / "matches" / f"{nxt['id']}.json").read_text("utf-8"))
+    side = "home" if real["home"]["name"] == demo_data.CLUB else "away"
+    sheet = {pronostic.player_key(pl) for pl in real["players"][side]}
+    assert a["proposee"]["source"] == "collecte" and a["choix"]["source"] == "feuille" and "retenue" not in a
+    assert a["choix"]["plus"] == sorted(sheet - set(sugg)) and a["choix"]["moins"] == sorted(set(sugg) - sheet)
+    # matchs où il a suivi la proposition contre matchs où il s'en est écarté
+    def item(changes, reel, corr):
+        return dict(id="x", apres=dict(ecart=reel, res="V" if reel > 0 else "D", corrige=dict(ecart=corr), retenue=dict(ecart=corr),
+                                       proposee=dict(ecart=corr + 1, source="collecte"),
+                                       choix=dict(source="publiee", plus=["a"] * changes, moins=[], buts_plus=None, attendus_plus=None)))
+    i = pronostic.influence([item(0, 2, 1), item(0, -1, 0), item(2, 5, 1), item(1, 3, 0)])
+    assert (i["suivis"]["residu"], i["ecartes"]["residu"], i["diff"], i["ecartes"]["valeur"]) == (0.0, 3.5, 3.5, -1.0)
+    assert i["marge"] == round(1.96 * pronostic.SD_MIN, 1) and i["suivis"]["resultats"] == dict(V=1, N=0, D=1)
+    assert pronostic.influence([]) == dict(n=0, matchs=[])
+
+
+def test_nouveautes_a_chaque_passage(sandbox, monkeypatch):
+    """Tout se recalcule à chaque nouvelle feuille et à chaque choix de l'entraîneur (demande de l'auteur, 10/10/2026) ;
+    chaque passage qui change quelque chose est gardé, pour le bandeau de la page ; rien de nouveau : rien d'ajouté,
+    rien de republié."""
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    monkeypatch.delenv("HBPSM_RECALCUL", raising=False)
+    box = lambda: vault.decrypt(json.loads((sandbox / "publie" / "hbpsm.enc").read_text("utf-8")), PHRASE)["data"]
+    demo(sandbox)
+    publish.seal("2026-10-04")
+    assert box()["nouveautes"] == []   # première publication : rien à comparer
+    demo(sandbox, played_days=4)        # le match suivant est joué et sa feuille lue, comme d'autres de nos poules
+    publish.seal("2026-10-12")
+    log = box()["nouveautes"]
+    assert len(log) == 1 and log[0]["source"] == "collecte" and {"resultat", "poules", "bilan"} <= {x["t"] for x in log[0]["items"]}
+    res = next(x for x in log[0]["items"] if x["t"] == "resultat")
+    assert res["score"] and res["feuille"] and res["bp"] is not None and res["adversaire"]
+    before = (sandbox / "publie" / "hbpsm.enc").read_text("utf-8")
+    publish.seal("2026-10-12")
+    assert (sandbox / "publie" / "hbpsm.enc").read_text("utf-8") == before
+    # une feuille publiée par l'entraîneur : le recalcul qu'elle lance le dit
+    d = box()
+    nxt = next(m for m in d["saison"]["matchs"] if not m.get("coupe"))
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(dict(format="hbpsm-choix", v=1, matchs={
+        nxt["id"]: dict(joueurs=[q["cle"] for q in d["joueurs"]][:12], le="2026-10-15T21:00:00Z")}), PHRASE, iterations=2000))
+    monkeypatch.setenv("HBPSM_RECALCUL", "1")
+    publish.seal("2026-10-12")
+    last = box()["nouveautes"][-1]
+    assert last["source"] == "recalcul" and [x["etat"] for x in last["items"] if x["t"] == "choix" and x["id"] == nxt["id"]] == ["publiee"]
+    assert nouveautes.NAME in publish.STATE_FILES and len(box()["nouveautes"]) == 2
+    # la proposition qui change (privée), la feuille retirée, le pronostic qui bouge ; pas deux fois la même ligne
+    prev = dict(meta=dict(club="C"), saison=dict(matchs=[dict(id="9", journee=5, adversaire="X", ecart=1.0, p_victoire=60)]),
+                selections=dict(matchs=[dict(id="9", journee=5, adversaire="X", auto=["a", "b"], retenue=["a"])]))
+    new = dict(meta=dict(club="C"), saison=dict(matchs=[dict(id="9", journee=5, adversaire="X", ecart=0.2, p_victoire=58)]),
+               selections=dict(matchs=[dict(id="9", journee=5, adversaire="X", auto=["a", "c"])]))
+    items = nouveautes.compare(prev, new)
+    assert [x["t"] for x in items] == ["prono", "proposition", "choix"]
+    assert items[1]["prive"] and (items[1]["plus"], items[1]["moins"]) == (["c"], ["b"]) and items[2]["etat"] == "retiree"
+    assert items[0]["avant"] == dict(ecart=1.0, p=60) and nouveautes.compare(None, new) == []
+    n = len(nouveautes.record(items, "collecte", "2026-10-20 07:00"))
+    assert len(nouveautes.record(items, "collecte", "2026-10-20 08:00")) == n
+
+
+def test_page_propose_et_previent(sandbox, monkeypatch):
+    """La collecte ouvre la page sans écran pour garder la proposition de chaque match à venir (sans rien charger
+    d'autre) ; la page montre en bandeau ce qui a changé, aussitôt ce que l'entraîneur publie, et le bilan de ses
+    choix à l'entraîneur seulement."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    monkeypatch.setenv("HBPSM_SUGGESTIONS", "1")
+    box = lambda: vault.decrypt(json.loads((sandbox / "publie" / "hbpsm.enc").read_text("utf-8")), PHRASE)["data"]
+    demo(sandbox)
+    publish.seal("2026-10-04")
+    d = box()
+    sel = json.loads((sandbox / "data" / "selections.json").read_text("utf-8"))["matchs"]
+    plan = d["saison"]["matchs"][:4]
+    assert set(sel) == {str(m["id"]) for m in plan} and all(len(sel[str(m["id"])]["auto"]) == (m.get("effectif") or 12) for m in plan)
+    assert {e["id"] for e in d["selections"]["matchs"]} == set(sel)
+    before = (sandbox / "publie" / "hbpsm.enc").read_text("utf-8")
+    publish.seal("2026-10-04")   # la même proposition : rien de republié
+    assert (sandbox / "publie" / "hbpsm.enc").read_text("utf-8") == before
+    demo(sandbox, played_days=4)
+    publish.seal("2026-10-12")
+    data = box()
+    assert data["pronostics"]["influence"]["n"] == 1 and data["pronostics"]["influence"]["matchs"][0]["source"] == "feuille"
+    data["nouveautes"][-1]["items"].append(dict(t="proposition", prive=True, id=plan[1]["id"], journee=plan[1].get("journee"),
+                                                adversaire=plan[1]["adversaire"], domicile=plan[1]["domicile"],
+                                                plus=[data["joueurs"][0]["cle"]], moins=[]))
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(data, {}), "utf-8")
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        page = browser.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(page_file.as_uri())
+        text = page.text_content(".nouv")
+        assert "Mis à jour" in text and page.locator(".nouv li").count() >= 3 and "Proposition du tableau de bord" not in text
+        first = page.locator(".nouv > ul > li").all_inner_texts()
+        assert len(first) <= 6 and first[0].startswith("🏁")   # le résultat du match d'abord, le reste au besoin dans un tiroir
+        page.set_viewport_size({"width": 360, "height": 780})
+        assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        page.click("[data-nouv-vu]")
+        assert page.locator(".nouv").count() == 0 and page.evaluate("localStorage.getItem('hbpsm:nouveautes-vu')") == data["nouveautes"][-1]["le"]
+        # l'entraîneur publie : dit tout de suite, en attendant le recalcul ; les nouvelles données le remplacent
+        page.evaluate("liveChoix({matchs: {}}, {matchs: {[PLAN[0].m.id]: {joueurs: [D.joueurs[0].cle]}}, blesses: {x: 1}}); render(true)")
+        text = page.inner_text(".nouv")
+        assert "Feuille de l'entraîneur publiée" in text and "Blessés et absents" in text and "se recalculent" in text
+        page.evaluate("LIVE = LIVE.filter(n => n.le > parisMs('2999-01-01 00:00')); render(true)")
+        assert page.locator(".nouv").count() == 0
+        coach = browser.new_page()
+        coach.on("pageerror", lambda e: errors.append(str(e)))
+        coach.goto(page_file.as_uri() + "#entraineur")
+        assert "Proposition du tableau de bord revue" in coach.text_content(".nouv")   # au besoin dans le tiroir
+        assert "Ce que ces choix ont donné" in coach.evaluate("ecartsBlock()") and "feuille du match" in coach.evaluate("influenceBlock()")
+        browser.close()
+    assert errors == []
+
+
+def test_recalcul_apres_les_choix():
+    """Une feuille, des blessés ou des absents publiés par l'entraîneur relancent tout le calcul, sans rien demander au
+    site de la fédération ; une collecte qui attend déjà son tour les prendra (on ne la remplace pas dans la file)."""
+    import yaml
+    wf = yaml.safe_load((ROOT_DIR / ".github" / "workflows" / "weekly.yml").read_text("utf-8"))
+    assert (wf.get(True) or wf["on"])["workflow_dispatch"]["inputs"]["recalcul"]["type"] == "boolean"
+    steps = wf["jobs"]["collecte"]["steps"]
+    remote = [s for s in steps if "ffhandball" in (s.get("name") or "") or "Saisons passées" in (s.get("name") or "")]
+    assert len(remote) == 2 and all(s.get("if") == "${{ !inputs.recalcul }}" for s in remote)
+    seal = next(s for s in steps if (s.get("run") or "").strip() == "python -m pipeline.publish seal")
+    assert "HBPSM_RECALCUL" in seal["env"]
+    ch = yaml.safe_load((ROOT_DIR / ".github" / "workflows" / "choix.yml").read_text("utf-8"))
+    assert ch["permissions"]["actions"] == "write"
+    run = next(s["run"] for s in ch["jobs"]["publier"]["steps"] if "recalculer" in (s.get("name") or "").lower())
+    assert "gh workflow run weekly.yml" in run and "-f recalcul=true" in run and '"queued"' in run

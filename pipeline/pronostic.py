@@ -26,7 +26,8 @@ from . import analyze as an
 from .common import DATA, is_club, match_name, name_key, read_json, same_team, write_json
 
 NAME = "pronostics.json"   # data/, repris de etat.enc
-V = 1                      # version du calcul de la réalité : une autre version refait les bilans déjà faits
+V = 2                      # version du calcul de la réalité : une autre version refait les bilans déjà faits
+                           # (2 : la proposition du tableau de bord et l'équipe jouée, chiffrées, 10/10/2026)
 GARDE = 80                 # pronostics gardés (un peu plus de deux saisons)
 
 DOM, EXT = 1.04, 0.96      # avantage du terrain posé au départ (buts attendus à domicile, à l'extérieur)
@@ -283,11 +284,22 @@ def _missing(model, keys, n=3, cles=None):
     return [dict(cle=k, nom=model["noms"].get(k), taux=round(model["taux"][k], 1)) for k in top if k not in keys]
 
 
-def reality(m, side, avant, cal, models, keyf, choix=None, cles=None, gardiens=frozenset()):
+def lineup(us, keys, avant, cal, gardiens=frozenset()):
+    """L'écart attendu avec cette équipe de notre côté (clés des joueurs), l'adversaire à son habitude : les
+    gardiens pèsent leur part habituelle des tirs."""
+    keepers = {k: us["part"].get(k, 0.0) for k in keys if k in gardiens or k in us["sr"]}
+    pi, dsr = presence(us, [k for k in keys if k not in keepers], keepers)
+    pour, contre = adjust(avant["pour"], avant["contre"], cal, (pi, dsr))
+    return dict(part=round(100 * pi), gardien=round(100 * dsr, 1), pour=pour, contre=contre, ecart=round(pour - contre, 1))
+
+
+def reality(m, side, avant, cal, models, keyf, choix=None, cles=None, gardiens=frozenset(), suggestion=None, source=None):
     """Ce que la feuille dit du match, et ce que les présents expliquent de l'écart au pronostic.
     models : (le nôtre, le leur), tels qu'ils étaient avant le match ; choix : la feuille retenue par
     l'entraîneur (clés des joueurs), si elle a été publiée ; cles : les joueurs de l'effectif (seuls
-    eux peuvent manquer) ; gardiens : nos gardiens."""
+    eux peuvent manquer) ; gardiens : nos gardiens ; suggestion : la feuille que proposait le tableau de
+    bord (source : « publication », jointe à la feuille de l'entraîneur, ou « collecte », la dernière
+    calculée avant le coup d'envoi)."""
     o = "away" if side == "home" else "home"
     bp, bc = m[side]["score"], m[o]["score"]
     players = m.get("players") or {}
@@ -321,12 +333,24 @@ def reality(m, side, avant, cal, models, keyf, choix=None, cles=None, gardiens=f
         pour, contre = adjust(avant["pour"], avant["contre"], cal, (n.get("part", 100) / 100, n.get("gardien", 0) / 100),
                               (t.get("part", 100) / 100, t.get("gardien", 0) / 100))
         out["corrige"] = dict(pour=pour, contre=contre, ecart=round(pour - contre, 1))
-    if choix and us and us["feuilles"] >= MIN_FEUILLES:
-        keepers = {k: us["part"].get(k, 0.0) for k in choix if k in gardiens or k in us["sr"]}
-        pi, dsr = presence(us, [k for k in choix if k not in keepers], keepers)
-        pour, contre = adjust(avant["pour"], avant["contre"], cal, (pi, dsr))
-        out["retenue"] = dict(part=round(100 * pi), gardien=round(100 * dsr, 1), pour=pour, contre=contre,
-                              ecart=round(pour - contre, 1))
+    if not (us and us["feuilles"] >= MIN_FEUILLES):
+        return out
+    if choix:
+        out["retenue"] = lineup(us, choix, avant, cal, gardiens)
+    # la proposition du tableau de bord, et l'équipe qui a joué, chiffrées de la même façon : l'écart entre les
+    # deux est ce que le modèle pensait des choix de l'entraîneur ; l'écart au score, ce qu'ils ont donné
+    played = [keyf(pl) for pl in sheet]
+    if played:
+        out["jouee"] = lineup(us, played, avant, cal, gardiens)
+    coach = choix or played
+    if suggestion and coach:
+        out["proposee"] = dict(lineup(us, suggestion, avant, cal, gardiens), source=source)
+        plus, moins = sorted(set(coach) - set(suggestion)), sorted(set(suggestion) - set(coach))
+        goals = {keyf(pl): pl.get("goals") or 0 for pl in sheet if not pl.get("saves")}
+        on = [k for k in plus if k in goals]   # ceux qu'il a fait entrer et qui ont joué dans le champ
+        out["choix"] = dict(source="publiee" if choix else "feuille", plus=plus, moins=moins,
+                            buts_plus=sum(goals[k] for k in on) if sheet else None,
+                            attendus_plus=round(sum(us["taux"].get(k, us["moyen"]) for k in on), 1) if sheet else None)
     return out
 
 
@@ -342,10 +366,12 @@ def entries_of(team, current, past, before, keyf_is_club=False, w_past=0.5, conf
     return out
 
 
-def record(saison, profiles, club, current, past, cal, config, roster, players, now, season_label, w_past, choix=None):
+def record(saison, profiles, club, current, past, cal, config, roster, players, now, season_label, w_past, choix=None,
+           archive=None):
     """Garde le pronostic de chaque match du club à venir (le dernier avant le coup d'envoi l'emporte),
-    puis, le match joué, ce que la feuille en dit. Renvoie les pronostics de la saison, du plus ancien
-    au plus récent, et leur bilan."""
+    puis, le match joué, ce que la feuille en dit. archive : les feuilles retenues et proposées gardées par
+    pipeline/selections.py, {match: entrée}. Renvoie les pronostics de la saison, du plus ancien au plus
+    récent, et leur bilan."""
     store = read_json(DATA / NAME, {}) or {}
     kept = dict(store.get("matchs") or {})
     played = {str(m["id"]): m for m in current if m["home"].get("score") is not None and m["away"].get("score") is not None}
@@ -366,8 +392,11 @@ def record(saison, profiles, club, current, past, cal, config, roster, players, 
         us = team_model(entries_of(club, current, past, before, True, w_past, config), keyf)
         adv = x["away" if side == "home" else "home"]["name"]
         them = team_model(entries_of(adv, current, past, before, w_past=w_past))
-        mine = ((choix or {}).get(mid) or {}).get("joueurs")
-        e["apres"] = reality(x, side, avant, cal, (us, them), keyf, mine, cles, gardiens)
+        sel = (archive or {}).get(mid) or {}
+        mine = ((choix or {}).get(mid) or {}).get("joueurs") or sel.get("retenue")
+        sugg = sel.get("proposee") or sel.get("auto")
+        e["apres"] = reality(x, side, avant, cal, (us, them), keyf, mine, cles, gardiens, sugg,
+                             "publication" if sel.get("proposee") else "collecte")
     # les plus récents ; un match qui n'a plus lieu (date passée, jamais joué) finit par sortir
     order = sorted(kept, key=lambda k: (kept[k].get("avant") or {}).get("date") or "")
     kept = {k: kept[k] for k in order[-GARDE:]}
@@ -391,6 +420,65 @@ def summary(items):
                 n_presents=len(known),
                 erreur_avant=round(sum(abs(x["apres"]["ecart"] - x["ecart"]) for x in known) / len(known), 1) if known else None,
                 erreur_presents=round(sum(abs(x["apres"]["ecart"] - x["apres"]["corrige"]["ecart"]) for x in known) / len(known), 1) if known else None)
+
+
+SD_PRUDENT = 6.0   # buts : l'écart-type d'un écart au score face au modèle, tant que trop peu de matchs le mesurent
+SD_MIN = 4.0       # jamais moins, même si les premiers matchs tombent près du pronostic
+
+
+def _mean(v):
+    return round(sum(v) / len(v), 1) if v else None
+
+
+def influence(items):
+    """Les choix de l'entraîneur face aux propositions du tableau de bord, et ce qu'ils ont donné (demande de
+    l'auteur, 10/10/2026). Pour chaque match joué dont on connaît les deux : ce que le modèle pensait de ses
+    changements avant le match (`valeur` : écart attendu avec son équipe moins écart attendu avec la
+    proposition), et ce que l'équipe a fait de plus que prévu une fois connus les présents des deux côtés
+    (`residu` : écart au score moins l'écart corrigé). Puis, matchs où il a suivi la proposition contre
+    matchs où il s'en est écarté : si ses choix savent ce que le modèle ignore (forme du moment, adversaire,
+    vestiaire), l'équipe fait mieux que prévu quand il s'écarte. Une tendance, pas une preuve : `marge` est
+    la marge d'erreur à 95 % de la différence (ou du résidu face à zéro si l'un des deux groupes manque)."""
+    rows = []
+    for x in items:
+        a = x.get("apres") or {}
+        c, p = a.get("choix"), a.get("proposee")
+        if not c or not p:
+            continue
+        coach = a.get("retenue") if c["source"] == "publiee" else a.get("jouee")
+        ref = (a.get("corrige") or a.get("jouee") or {}).get("ecart")
+        rows.append(dict(id=x["id"], journee=x.get("journee"), coupe=x.get("coupe"), tour=x.get("tour"),
+                         adversaire=x.get("adversaire"), date=x.get("date"), source=c["source"], proposee=p.get("source"),
+                         changes=len(c["plus"]), plus=c["plus"], moins=c["moins"], res=a.get("res"), reel=a["ecart"],
+                         prevu=x.get("ecart"), avec_proposee=p["ecart"], avec_choix=coach and coach["ecart"],
+                         valeur=round(coach["ecart"] - p["ecart"], 1) if coach else None,
+                         residu=round(a["ecart"] - ref, 1) if ref is not None else None,
+                         buts_plus=c.get("buts_plus"), attendus_plus=c.get("attendus_plus")))
+    if not rows:
+        return dict(n=0, matchs=[])
+    res = [r["residu"] for r in rows if r["residu"] is not None]
+    sd = SD_PRUDENT
+    if len(res) >= 3:
+        mu = sum(res) / len(res)
+        sd = max(SD_MIN, math.sqrt(sum((v - mu) ** 2 for v in res) / (len(res) - 1)))
+
+    def group(rs):
+        rr = [r["residu"] for r in rs if r["residu"] is not None]
+        return dict(n=len(rs), residu=_mean(rr), n_residu=len(rr), valeur=_mean([r["valeur"] for r in rs if r["valeur"] is not None]),
+                    resultats={k: sum(1 for r in rs if r["res"] == k) for k in ("V", "N", "D")})
+    suivis, ecartes = group([r for r in rows if not r["changes"]]), group([r for r in rows if r["changes"]])
+    if suivis["n_residu"] and ecartes["n_residu"]:
+        diff = round(ecartes["residu"] - suivis["residu"], 1)
+        marge = round(1.96 * sd * math.sqrt(1 / suivis["n_residu"] + 1 / ecartes["n_residu"]), 1)
+    else:   # un seul des deux groupes : face au modèle, qui vise zéro
+        g = ecartes if ecartes["n_residu"] else suivis
+        diff = g["residu"]
+        marge = round(1.96 * sd / math.sqrt(g["n_residu"]), 1) if g["n_residu"] else None
+    on = [r for r in rows if r["buts_plus"] is not None and r["attendus_plus"] is not None and r["plus"]]
+    return dict(n=len(rows), matchs=rows, suivis=suivis, ecartes=ecartes, diff=diff, marge=marge, sd=round(sd, 1),
+                changements=round(sum(r["changes"] for r in rows) / len(rows), 1),
+                buts_plus=sum(r["buts_plus"] for r in on) if on else None,
+                attendus_plus=round(sum(r["attendus_plus"] for r in on), 1) if on else None)
 
 
 def lineup_inputs(players, club, current, past, config, roster, w_past):

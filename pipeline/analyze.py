@@ -1378,28 +1378,29 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
     return (prev.get("depuis") if same else None) or paris_now().strftime("%Y-%m-%d %H:%M")
 
 
-def published_choices():
-    """Les feuilles retenues par l'entraîneur (publie/choix.enc), quand la phrase du club est là :
-    {match: {joueurs, le}}. Le pronostic d'un match joué les confronte à la feuille."""
+def published_box():
+    """Tout ce que l'entraîneur a publié (publie/choix.enc : feuilles, blessés, absents, rendez-vous, annulations),
+    quand la phrase du club est là ; {} sinon."""
     path, secret = PUBLIE / "choix.enc", os.environ.get("HBPSM_CLE") or ""
     if not path.exists() or not secret:
         return {}
     try:
-        return (vault.decrypt(read_json(path), secret) or {}).get("matchs") or {}
+        box = vault.decrypt(read_json(path), secret) or {}
     except (vault.VaultError, ValueError, KeyError, TypeError):
         return {}
+    return box if isinstance(box, dict) else {}
+
+
+def published_choices():
+    """Les feuilles retenues par l'entraîneur (publie/choix.enc), quand la phrase du club est là :
+    {match: {joueurs, le}}. Le pronostic d'un match joué les confronte à la feuille."""
+    return published_box().get("matchs") or {}
 
 
 def published_cancellations():
     """Les entraînements et matchs annulés par l'entraîneur (publie/choix.enc, `annulees`), en repères
     « E-AAAA-MM-JJ » et « M-<rencontre> » ; vide sans la phrase du club."""
-    path, secret = PUBLIE / "choix.enc", os.environ.get("HBPSM_CLE") or ""
-    if not path.exists() or not secret:
-        return set()
-    try:
-        off = (vault.decrypt(read_json(path), secret) or {}).get("annulees") or []
-    except (vault.VaultError, ValueError, KeyError, TypeError):
-        return set()
+    off = published_box().get("annulees") or []
     return {f"E-{x}" if len(str(x)) == 10 and str(x)[4] == "-" else str(x) for x in off}
 
 
@@ -1457,7 +1458,7 @@ def club_agenda(fixtures, matches, config, roster):
         out.append(dict(id=str(f["id"]), date=f.get("date"), provisoire=bool(f.get("date_provisoire")),
                         adversaire=f["away"] if dom else f["home"], domicile=dom, journee=f.get("journee"),
                         coupe=f.get("coupe"), tour=f.get("tour"), bp=f.get("score_home" if dom else "score_away"),
-                        bc=f.get("score_away" if dom else "score_home"), joueurs=sorted(set(who))))
+                        bc=f.get("score_away" if dom else "score_home"), joueurs=sorted(set(who)), feuille=bool(sheet)))
     return sorted(out, key=lambda x: x["date"] or "9999")
 
 
@@ -1616,12 +1617,16 @@ def analyze(today=None, roster=None):
     w_past = HIST * fade(len(with_sheet))
     choix = published_choices()
     now = stamp if stamp[:10] == today else today + "T00:00"
-    pronos, suivi = pronostic.record(saison, profiles, club_name, every_match + outside, year, cal, config, roster, players,
-                                     now, config.get("saison"), w_past, choix) if club_name else ([], dict(n=0))
     agenda = club_agenda(every_fixture, every_match, config, roster)
+    # les feuilles publiées de l'entraîneur, et la proposition du tableau de bord à côté (pipeline/selections.py) :
+    # avant les pronostics, qui disent après le match ce que valait chacune
+    chosen = selections.record(choix, agenda, now, config.get("saison"))
+    pronos, suivi = pronostic.record(saison, profiles, club_name, every_match + outside, year, cal, config, roster, players,
+                                     now, config.get("saison"), w_past, choix,
+                                     {e["id"]: e for e in chosen["matchs"]}) if club_name else ([], dict(n=0))
     equipe = pronostic.lineup_inputs(players, club_name, every_match, year, config, roster, w_past) if club_name else None
     return dict(
-        meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"),
+        meta=dict(genere=paris_now().strftime("%Y-%m-%d %H:%M"), instant=now,
                   saison=config.get("saison"), club=club_name,
                   club_court=config["club"]["nom_affiche"],
                   demo=any((m.get("source") or {}).get("demo") for m in matches),
@@ -1646,8 +1651,7 @@ def analyze(today=None, roster=None):
         # présences et homme du match (demande de l'auteur, 09/10/2026) : les matchs du club, les jours
         # d'entraînement et les délais de réponse ; les réponses elles-mêmes sont lues par la page
         agenda=agenda,
-        # les feuilles publiées de l'entraîneur, et la proposition du tableau de bord à côté (pipeline/selections.py)
-        selections=selections.record(choix, agenda, now, config.get("saison")),
+        selections=chosen,
         presences=dict(config.get("presences") or {}, jours=(config.get("entrainement") or {}).get("jours") or [1, 4],
                        # qui les tient (rôle « présences » de l'effectif) : seul à voir l'onglet, reconnu par son code
                        gestion=sorted("R:" + k for k, r in roster.items() if r.get("gere_presences"))),
@@ -1674,7 +1678,8 @@ def analyze(today=None, roster=None):
                        key=lambda r: r["date"] or "9999")[:40],
         equipes=profiles, joueurs=players, duos=pairs(with_sheet), plans=PLANS,
         saison=saison, axes=axes,
-        pronostics=dict(matchs=pronos, suivi=suivi, modele=cal, equipe=equipe),
+        # ce que les choix de l'entraîneur, face aux propositions, ont donné (pronostic.influence)
+        pronostics=dict(matchs=pronos, suivi=suivi, modele=cal, equipe=equipe, influence=pronostic.influence(pronos)),
     )
 
 

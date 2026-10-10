@@ -31,14 +31,14 @@ import pathlib
 import sys
 import time
 
-from . import agenda, collect, presences, vault
-from .analyze import analyze, published_cancellations
+from . import agenda, collect, nouveautes, presences, selections, suggestions, vault
+from .analyze import analyze, published_box, published_cancellations
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
 from .export_training import build_exports
 
 STATE_FILES = ("fixtures.json", "official_standings.json", "rapport_extraction.json", "planif.json", "chances.json",
-               "pronostics.json", "selections.json")
+               "pronostics.json", "selections.json", nouveautes.NAME)
 PAGE_NAME = "HBPSM-tableau-de-bord.html"
 # Séance du prochain entraînement, publiée EN CLAIR pour l'application HANDBALL-training : elle ne
 # porte aucun nom de joueur (équipes, chiffres d'équipe, numéros de maillot), ce que seal() vérifie.
@@ -248,6 +248,17 @@ def check_public(text, names):
                 raise vault.VaultError("un fichier public contiendrait un nom de joueur : publication refusée.")
 
 
+def previous_data(secret):
+    """Les données publiées juste avant (hbpsm.enc), pour dire ce qui a changé ; None la première fois."""
+    path = PUBLIE / "hbpsm.enc"
+    if not path.exists():
+        return None
+    try:
+        return (vault.decrypt(read_json(path), secret) or {}).get("data")
+    except (vault.VaultError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
 def seal(today=None):
     secret = vault.passphrase()
     config = load_config()
@@ -258,7 +269,16 @@ def seal(today=None):
     # annulé au calendrier
     cancelled = published_cancellations()
     trainings = (config.get("presences") or {}).get("entrainements", True)
-    _, seance = build_exports(data, scratch, today, presences.journal(config, secret) if trainings else [], cancelled)
+    journal = presences.journal(config, secret)
+    _, seance = build_exports(data, scratch, today, journal if trainings else [], cancelled)
+    # la proposition du tableau de bord pour chaque match à venir, calculée par la page même, présences et choix
+    # publiés compris : gardée jusqu'au coup d'envoi, même sans feuille publiée (pipeline/suggestions.py)
+    auto = suggestions.snapshot(data, published_box(), journal)
+    if auto:
+        data["selections"] = selections.record_auto(auto, data.get("agenda") or [], data["meta"]["instant"], config.get("saison"))
+    # ce qui a changé depuis la publication d'avant : le bandeau de la page (pipeline/nouveautes.py)
+    source = "recalcul" if os.environ.get("HBPSM_RECALCUL") else "collecte"
+    data["nouveautes"] = nouveautes.record(nouveautes.compare(previous_data(secret), data), source, data["meta"]["genere"])
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()

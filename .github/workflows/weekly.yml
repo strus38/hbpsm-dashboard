@@ -6,6 +6,7 @@
 #   HBPSM_CLE       phrase secrète partagée avec les entraîneurs (16 caractères au moins)
 #   HBPSM_EFFECTIF  facultatif : un joueur par ligne, « Prénom Nom »
 name: Collecte quotidienne
+run-name: ${{ inputs.recalcul && 'Recalcul après les choix de l''entraîneur' || 'Collecte quotidienne' }}
 
 on:
   schedule:
@@ -20,6 +21,12 @@ on:
       url_poule_72:
         description: "URL ffhandball.fr de la poule 72 (seulement pour remplacer celle de config.yml)"
         required: false
+      recalcul:
+        # lancé par « Choix de l'entraîneur » (feuille, blessés, absents publiés) : tout se recalcule (notes,
+        # propositions, pronostics, bilans) sans rien demander au site de la fédération
+        description: "Recalcul seulement, sans collecte sur ffhandball.fr"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -57,12 +64,14 @@ jobs:
         run: python -m pipeline.publish roster
 
       - name: Collecte sur ffhandball.fr
+        if: ${{ !inputs.recalcul }}
         env:
           URL_71: ${{ inputs.url_poule_71 }}
           URL_72: ${{ inputs.url_poule_72 }}
         run: python -m pipeline.collect || echo "::warning::Collecte incomplète, voir le journal"
 
       - name: Saisons passées (collectées une fois, puis reprises de historique.enc)
+        if: ${{ !inputs.recalcul }}
         run: python -m pipeline.history || echo "::warning::Saison passée non collectée, voir le journal"
 
       - name: Lecture des feuilles de match
@@ -73,6 +82,7 @@ jobs:
         env:
           # jeton des propositions d'amendes, limité au dépôt hbpsm-cn : rangé dans les données chiffrées
           HBPSM_JETON_CN: ${{ secrets.HBPSM_JETON_CN }}
+          HBPSM_RECALCUL: ${{ inputs.recalcul && '1' || '' }}   # le bandeau des nouveautés dit d'où vient le passage
         run: python -m pipeline.publish seal
 
       - name: Santé du tableau de bord (bandeau de la page, issue d'alerte ; sans aucun nom)
@@ -87,7 +97,7 @@ jobs:
           git config user.name "hbpsm-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Collecte du $(date -u +%F)"
+          git diff --cached --quiet || git commit -m "${{ inputs.recalcul && 'Recalcul' || 'Collecte' }} du $(date -u +%F)"
           # les choix de l'entraîneur ou une saisie de la caisse ont pu être publiés entre-temps (d'autres fichiers) :
           # on se replace dessus et on réessaie
           for essai in 1 2 3 4 5 6; do
