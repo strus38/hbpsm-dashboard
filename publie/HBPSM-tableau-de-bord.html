@@ -245,7 +245,7 @@ section[hidden]{display:none}
 .gate .err{color:var(--loss);font-weight:600;margin-top:10px}
 .status{font-size:.8rem;color:var(--muted);margin:10px 0 0}
 .status a,.status button{color:var(--link)}
-nav.tabs[hidden]{display:none}
+nav.tabs[hidden],nav.tabs button[hidden]{display:none}
 .note{max-width:78ch;border-left:3px solid var(--accent);padding:6px 0 6px 10px;margin:12px 0;font-size:.88rem;color:var(--muted)}
 .hero{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:0;padding:12px 14px;margin-top:12px}
 .hero .kpis{margin-top:0}
@@ -463,7 +463,7 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .cchip .pris,.qui-alerte{color:var(--warn);font-weight:600}
 .code-val{font:700 1.1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:var(--us-bg);color:var(--heading)}
 .code-in{font:600 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;width:15ch;max-width:100%;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
-.code-perso{margin:6px 0 12px}.reps .todo{color:var(--warn)}.note.envoi-ko{border-left-color:var(--loss);color:var(--ink)}.moi-qui{margin-bottom:6px}
+.code-perso{margin:6px 0 12px}.note.envoi-ko{border-left-color:var(--loss);color:var(--ink)}.moi-qui{margin-bottom:6px}
 .rep{border-top:1px solid var(--rule);padding:10px 0}.reps>.rep:first-of-type{border-top:0}.rep.off{opacity:.6}
 .rep-l{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
 .rep-btn{display:flex;gap:6px}.rep-btn .btn{margin-top:0;padding:8px 12px}
@@ -471,19 +471,12 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .pst-etat.ok{background:color-mix(in srgb,var(--win) 22%,transparent)}.pst-etat.no{background:color-mix(in srgb,var(--loss) 22%,transparent)}
 .pst-etat.wait{background:color-mix(in srgb,var(--accent) 25%,transparent)}
 .absform{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}.absform .cnote{box-sizing:border-box;background:var(--surface)}
-.absform input[type=date]{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
 .pst-etat.off{background:var(--rule);color:var(--muted)}
-.cal li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--rule)}.cal li.off>span{opacity:.6}
-.mois{border-top:1px solid var(--rule);padding:6px 0}.mois>summary{cursor:pointer;padding:6px 0}.mois .rep:first-of-type{border-top:0}
-.seance{padding:8px 0;border-top:1px solid var(--rule)}.seance:first-child{border-top:0}.seance summary{cursor:pointer}.seance.off{opacity:.6}
-.board-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;margin-top:10px}.board-col{min-width:0}
-.board-col li>span,.rep-l>span{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+.rep-l>span{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}.rep-l>.rep-btn{flex:0 0 auto}
+.gestion .sel-gest{margin:10px 0 4px;padding:10px;border-radius:10px;background:var(--bg)}.gestion .sel-gest p:first-child{margin-top:0}
 .rep-btn .btn{white-space:nowrap}.seg.wrap{flex-wrap:wrap}.seg.wrap button{flex:1 1 40%;border-top:1px solid var(--rule);margin-top:-1px}
-@media (max-width:560px){.board-cols{grid-template-columns:1fr}.rep-btn{width:100%}.rep-btn .btn{flex:1;width:auto}}
-.board-col h3{margin:0 0 6px;font-size:1rem}.board-col ul{list-style:none;margin:0;padding:0}
-.board-col li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--rule)}
-.board-col li .btn{margin-top:0;padding:6px 10px;flex-shrink:0}
-.b-why.ok{color:var(--win)}.b-why.no{color:var(--loss)}.b-why.wait{color:var(--warn)}
+@media (max-width:560px){.rep-btn{width:100%}.rep-btn .btn{flex:1;width:auto}}
+.ecarts li{padding:6px 0;border-top:1px dashed var(--rule)}.ecarts li:first-child{border-top:0}.b-plus{color:var(--win)}.b-moins{color:var(--loss)}
 .vote .vote-elu{font-size:1.15rem;margin:6px 0}.vote p:first-child{margin-top:0}
 .cell.nr{opacity:.55}
 .picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
@@ -605,7 +598,6 @@ h2[id^="j-"]{scroll-margin-top:64px}
   .kpis{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
   .kpis .num{font-size:1.4rem}
   .btn{width:100%;text-align:center}
-  .board-col li .btn{width:auto;flex:0 0 auto}
   .plan-wrap{padding:6px}
   .plan{grid-template-columns:minmax(100px,1fr) repeat(var(--n),48px) 30px;min-width:0;font-size:.8rem}
   .plan>div{padding:4px 2px}
@@ -652,7 +644,7 @@ h2[id^="j-"]{scroll-margin-top:64px}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "e250b223c991", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "2325d60fa5be", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -694,14 +686,18 @@ S.tab = COACH ? "planif" : (() => { try { return localStorage.getItem("hbpsm:moi
 const HASH_TAB = location.hash.slice(1).split("&").map(x => TAB_ALIAS[x] || x).find(x => TAB_IDS.includes(x));
 if(HASH_TAB) S.tab = HASH_TAB;
 try { const back = sessionStorage.getItem("hbpsm:onglet"); if(back){ S.tab = back; sessionStorage.removeItem("hbpsm:onglet"); } } catch (e) {}
-// téléphone : quatre onglets selon qui regarde, les autres sous « Plus » (demande de l'auteur, 08/10/2026)
-// l'entraîneur : les présences remplacent les joueurs (09/10/2026), qui passent sous « Plus »
-const PRIMARY = COACH ? ["planif", "presences", "convoc", "semaine"] : ["moi", "semaine", "saison", "caisse"];
-document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => {
-  const i = PRIMARY.indexOf(b.dataset.tab);
-  b.classList.toggle("sec", i < 0);
-  if(i >= 0) b.style.setProperty("--o", i);
-});
+// téléphone : quatre onglets selon qui regarde, les autres sous « Plus » (demande de l'auteur, 08/10/2026) ;
+// « Présences » pour celui qui les tient seulement, caché à tous les autres, l'entraîneur compris (09/10/2026)
+const primaryTabs = () => COACH ? ["planif", "semaine", "convoc", "joueurs"] : GESTION ? ["moi", "presences", "semaine", "caisse"] : ["moi", "semaine", "saison", "caisse"];
+function applyTabs(){
+  const P = primaryTabs();
+  document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => {
+    const i = P.indexOf(b.dataset.tab);
+    b.hidden = b.dataset.tab === "presences" && !GESTION;
+    b.classList.toggle("sec", i < 0 && !b.hidden);
+    if(i >= 0) b.style.setProperty("--o", i); else b.style.removeProperty("--o");
+  });
+}
 function plusMenu(open){
   const menu = document.getElementById("plus-menu"), btn = document.querySelector("nav.tabs [data-plus]");
   if(!menu || !btn) return;
@@ -733,7 +729,8 @@ const isUs = t => t === D.meta.club;
 // En consultation, la proposition ne dépend que des données partagées : rien de ce qui a pu être
 // saisi dans ce navigateur (en mode entraîneur un autre jour) ne la change ; la même pour tous.
 const NEUTRE = {postes:{}, absents:{}, depannage:{}, dm:{}, pin:{}, regle:1};
-const SP = () => COACH ? S : NEUTRE;
+let NEUTRAL = null;   // le match dont on calcule la proposition du tableau de bord (suggestionOf) : rien d'ici n'y entre
+const SP = () => COACH && NEUTRAL === null ? S : NEUTRE;
 const poste = p => (SP().postes[p.cle] ?? p.poste ?? "");
 const isGK = p => poste(p) ? poste(p).split("/").includes("GB") : p.gardien;
 const dispo = p => SP().absents[p.cle] === undefined ? p.disponible !== false : !SP().absents[p.cle];
@@ -834,8 +831,9 @@ const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringi
 // plus disponible après la date de l'effectif (« jusqu_au »)
 const gone = (p, m) => !!p.jusqu_au && (m.date || "9999").slice(0, 10) > p.jusqu_au;
 const untilText = p => "disponible jusqu'au " + new Date(p.jusqu_au + "T12:00").toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"});
-// la réponse du joueur (présences, 09/10/2026) : absent s'il l'a dit ; s'il n'a pas répondu et que d'autres, assez
-// nombreux, ont dit venir, la feuille se fait parmi eux (entraîneur seulement) ; ce que l'entraîneur a saisi ici prime
+// la présence annoncée (09/10/2026) : absent s'il est annoncé absent ; pas encore renseigné alors que d'autres, assez
+// nombreux, sont annoncés présents : la feuille se fait parmi eux (entraîneur et celui qui tient les présences) ; ce
+// que l'entraîneur a saisi ici prime
 const availOf = (p, m) => {
   if(!dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m)) return "a";
   const l = localAv(p, m);
@@ -949,7 +947,19 @@ const ruleOf = n => Math.min(Number(SP().regle) || 0, n);
 const byCle = k => D.joueurs.find(p => p.cle === k);
 const pubOf = m => (CHOIX && CHOIX.matchs && CHOIX.matchs[m.id]) || null;
 const retiredOf = m => COACH && S.retire && S.retire[m.id];   // retirée ici, retrait pas encore en ligne
-const fixedOf = m => retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+const fixedOf = m => NEUTRAL !== null ? (String(m.id) === NEUTRAL ? null : pubOf(m))
+  : retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+// Mémoire des choix (demande de l'auteur, 09/10/2026) : chaque feuille publiée emporte la proposition du tableau de
+// bord pour ce match (suggestion), celle que voient les joueurs sans ce choix, présences comprises ; la collecte les
+// archive côte à côte (pipeline/selections.py) pour comprendre les choix de l'entraîneur. La première gardée l'emporte ;
+// une feuille publiée sans elle (page d'avant) la reçoit à la publication suivante, tant que le match est à venir.
+function suggestionOf(id){
+  NEUTRAL = String(id);
+  try { const r = planning().find(x => String(x.m.id) === String(id)); return r ? r.sel.map(p => p.cle) : null; }
+  finally { NEUTRAL = null; }
+}
+const withSuggestion = (id, c) => { const s = c.suggestion || (pubOf({id}) || {}).suggestion || suggestionOf(id);
+  return s && s.length ? Object.assign({}, c, {suggestion: s}) : c; };
 // En dépannage (effectif ou fiche du joueur) : retenu seulement s'il manque des joueurs ou un poste
 // clef, et jamais compté dans la rotation.
 const depOf = p => (SP().depannage || {})[p.cle] ?? !!p.depannage;
@@ -1654,9 +1664,9 @@ function viewMoi(){
   const me = stored(MOI) || "", P = PLAN, p = byCle(me);
   let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meBlock();
   h += installCard();
-  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, vos réponses aux entraînements et aux matchs, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre vote pour l\'homme du match, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
   h += annulesNote();
-  if(!COACH && p) h += todoBlock(me);
+  if(!COACH && p) h += votesBlock(me);
   const status = r => {
     if(!p) return ["", ""];
     if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
@@ -1756,15 +1766,15 @@ function viewPlanif(){
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle], ext = sel && r.extra.includes(p);
         const hurt = injured(p, r.m), hb = hurt ? blesses()[p.cle] : null, fin = gone(p, r.m);
-        const nr = av === "a" && noAnswerOut(p, r.m), said = av !== "a" && COACH && ownCall(p, r.m) && playerSays(p, r.m) === "present";
+        const nr = av === "a" && noAnswerOut(p, r.m), said = av !== "a" && seesAll() && ownCall(p, r.m) && playerSays(p, r.m) === "present";
         const cls = hurt ? "a hurt" : av === "a" ? (nr ? "a nr" : "a") : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
         const sym = hurt ? "✚" : av === "a" ? "✕" : sel ? (rot || ext ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
         const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
         const forced = r.forced.includes(p);
         const what = hurt ? "blessé depuis le match du "+fmtDate(hb.de)+(hb.a ? ", de retour le "+fmtDate(hb.a) : ", jusqu'à son retour")+" : indisponible"+(COACH ? " ; touchez un match suivant pour le dire rétabli à partir de celui-ci" : "")
           : fin ? untilText(p) + " : pas pour ce match"
-          : saidAbsent(p, r.m) ? (COACH ? "absent : il l'a dit ("+motifTxt(statusOf(p.cle, evMatch(r.m)))+") ; touchez pour le retenir quand même" : "absent : votre réponse")
-          : nr ? "pas de réponse : assez d'autres ont dit venir, la feuille se fait parmi eux ; touchez pour le retenir quand même"
+          : saidAbsent(p, r.m) ? "absent annoncé ("+motifTxt(statusOf(p.cle, evMatch(r.m)))+")"+(COACH ? " ; touchez pour le retenir quand même" : "")
+          : nr ? "pas encore renseigné : assez d'autres sont annoncés présents, la feuille se fait parmi eux"+(COACH ? " ; touchez pour le retenir quand même" : "")
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
@@ -1780,7 +1790,7 @@ function viewPlanif(){
           : sel && depOf(p) ? w+" en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
           : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match")
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
-        const why = what + (said ? " · a dit venir" : "");
+        const why = what + (said ? " · annoncé présent" : "");
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
           + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? (nr ? "sans rép." : "absent") : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
       }
@@ -1800,13 +1810,59 @@ function viewPlanif(){
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
 
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas de réponse, alors qu\'assez d\'autres ont dit venir ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
+  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
     + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
     + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
     + 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.</p></details>';
+  if(seesAll()) h += '<details class="calc"'+keep("ecarts", false)+'><summary class="small">L\'entraîneur face aux propositions</summary>'+ecartsBlock()+'</details>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
+  return h;
+}
+// L'entraîneur face aux propositions (demande de l'auteur, 09/10/2026 : comprendre ses choix) : les feuilles publiées
+// et la proposition gardée à côté (D.selections, archivées par la collecte ; ce qui est publié depuis, d'après les
+// choix en ligne), match par match puis joueur par joueur. Pour l'entraîneur et celui qui tient les présences.
+function ecartsData(){
+  const list = ((D.selections || {}).matchs || []).map(e => Object.assign({}, e)), byId = {};
+  for(const e of list) byId[String(e.id)] = e;
+  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})){
+    const m = agendaList().find(x => String(x.id) === id);
+    if(!m || !(c.joueurs || []).length || (byId[id] && m.date && new Date(m.date) <= new Date())) continue;   // joué : l'archive fait foi
+    const e = byId[id] || (byId[id] = {id, date: m.date, adversaire: m.adversaire, journee: m.journee, coupe: m.coupe, tour: m.tour});
+    if(!list.includes(e)) list.push(e);
+    e.retenue = c.joueurs;
+    if((c.suggestion || []).length) e.proposee = c.suggestion;
+  }
+  return list.filter(e => (e.proposee || []).length && (e.retenue || []).length)
+    .map(e => Object.assign(e, {plus: e.retenue.filter(c => !e.proposee.includes(c)), moins: e.proposee.filter(c => !e.retenue.includes(c))}))
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+}
+function ecartsBlock(){
+  if(!seesAll()) return "";
+  const list = ecartsData(), nom = c => esc(memberName(c)), noms = l => l.map(nom).join(", ");
+  if(!list.length) return '<p class="small muted">Pas encore de feuille de l\'entraîneur à comparer : dès qu\'une est publiée, la proposition du tableau de bord est gardée à côté, match après match.</p>';
+  const per = {}, add = (c, k) => { (per[c] = per[c] || {cle: c, plus: 0, moins: 0, prop: 0, ret: 0})[k]++; };
+  for(const e of list){ e.proposee.forEach(c => add(c, "prop")); e.retenue.forEach(c => add(c, "ret")); e.plus.forEach(c => add(c, "plus")); e.moins.forEach(c => add(c, "moins")); }
+  const n = list.reduce((a, e) => a + e.plus.length, 0), mean = l => { const v = l.map(byCle).filter(p => p && rated(p)).map(p => p.scores.equilibre);
+    return v.length ? Math.round(v.reduce((a, x) => a + x, 0) / v.length) : null; };
+  const ins = list.flatMap(e => e.plus), outs = list.flatMap(e => e.moins), mi = mean(ins), mo = mean(outs);
+  const postes = l => { const k = {}; for(const c of l){ const p = byCle(c), x = p ? postesOf(p)[0] || "?" : "?"; k[x] = (k[x] || 0) + 1; }
+    return Object.entries(k).sort((a, b) => b[1] - a[1]).map(([x, v]) => x+" ×"+v).join(", "); };
+  let h = '<p class="small">'+list.length+' feuille'+(list.length > 1 ? "s" : "")+' comparée'+(list.length > 1 ? "s" : "")+' · <b>'+n+'</b> changement'+(n > 1 ? "s" : "")
+    + ' par rapport à la proposition'+(list.length > 1 ? ' ('+fr((n / list.length).toFixed(1))+' par match)' : '')+'.'
+    + (mi != null && mo != null ? ' Ceux qu\'il fait entrer ont une note moyenne de <b>'+mi+'</b>, ceux qu\'il écarte <b>'+mo+'</b>.' : '')
+    + (n ? ' Postes : entrent '+esc(postes(ins))+' ; sortent '+esc(postes(outs))+'.' : '')+'</p><ul class="plain ecarts">'
+    + list.slice().reverse().map(e => { const f = e.feuille || [], horsFeuille = f.length ? e.retenue.filter(c => !f.includes(c)) : [], enPlus = f.length ? f.filter(c => !e.retenue.includes(c)) : [];
+      return '<li><b>'+esc(roundShort(e))+' · '+esc(teamShort(e.adversaire || ""))+'</b> <span class="small muted">'+esc(fmtDate(e.date))+'</span><br>'
+        + (e.plus.length ? '<span class="small"><span class="b-plus">+ '+noms(e.plus)+'</span> à la place de <span class="b-moins">− '+noms(e.moins)+'</span></span>'
+          : '<span class="small muted">identique à la proposition</span>')
+        + (horsFeuille.length || enPlus.length ? '<br><span class="small muted">Feuille du match : '+[horsFeuille.length ? 'retenu'+(horsFeuille.length > 1 ? 's' : '')+' mais absent'+(horsFeuille.length > 1 ? 's' : '')+' : '+noms(horsFeuille) : '',
+            enPlus.length ? 'en plus : '+noms(enPlus) : ''].filter(Boolean).join(' ; ')+'</span>' : '')+'</li>'; }).join("")+'</ul>';
+  const tops = Object.values(per).filter(x => x.plus || x.moins).sort((a, b) => b.plus + b.moins - a.plus - a.moins || memberName(a.cle).localeCompare(memberName(b.cle)));
+  if(tops.length) h += '<p class="small"><b>Joueur par joueur</b></p><ul class="plain ecarts">'+tops.map(x => '<li>'+nom(x.cle)+' <span class="small muted">'
+    + [x.plus ? 'retenu '+x.plus+' fois sans être proposé' : '', x.moins ? 'proposé '+x.moins+' fois sans être retenu' : ''].filter(Boolean).join(' · ')
+    + ' (proposé '+x.prop+', retenu '+x.ret+' sur '+list.length+')</span></li>').join("")+'</ul>';
   return h;
 }
 function cycleCell(id, cle){
@@ -2531,20 +2587,53 @@ async function fetchCN(){   // vrai si le journal des propositions a changé
   setCnOutbox(cnOutbox().filter(o => !known.has(o.id)));   // en ligne : plus rien à envoyer
   return true;
 }
+// Rien ne se perd (vérifié le 09/10/2026 avec toute une équipe qui envoie à la même seconde) : chaque envoi reste dans la
+// boîte de l'appareil tant qu'il n'est pas lu en ligne ; il part en paquets que GitHub accepte (au plus n envois et
+// environ 20 000 caractères : l'entrée d'un workflow tient 65 535 caractères, le chiffrement allonge d'un tiers ; une
+// boîte trop pleine, après des envois bloqués, aurait sinon été refusée à jamais) ; un seul envoi à la fois par page,
+// les nouveautés arrivées pendant ce temps partent juste après ; ce qui n'est pas en ligne repart de lui-même (deux
+// minutes après, puis à chaque vérification et à chaque ouverture). Le dépôt ne compte jamais deux fois le même envoi.
+function packets(list, n){
+  const out = [];
+  let cur = [], size = 0;
+  for(const o of list){
+    const s = JSON.stringify(o).length;
+    if(cur.length && (cur.length >= n || size + s > 20000)){ out.push(cur); cur = []; size = 0; }
+    cur.push(o); size += s;
+  }
+  if(cur.length) out.push(cur);
+  return out;
+}
+async function dispatch(depot, workflow, branche, token, input, env){
+  return fetch("https://api.github.com/repos/" + depot + "/actions/workflows/" + workflow + "/dispatches", {
+    method: "POST", body: JSON.stringify({ref: branche || "main", inputs: {[input]: JSON.stringify(env)}}),
+    headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
+}
+const CN_MAX = 40;   // comme le dépôt hbpsm-cn (propositions.py, MAX_OPS)
+let CN_SENDING = false, CN_AGAIN = false;
 async function sendCN(){
+  if(CN_SENDING){ CN_AGAIN = true; return; }   // un envoi à la fois ; celui-ci repart juste après
   const box = cnOutbox(), phrase = stored(PASS), token = cnToken();
   if(!box.length) return;
-  if(!token || !CFG.cn_depot || !phrase){ CN_PUB = "erreur"; render(true); return; }
-  CN_PUB = "envoi"; render(true);
+  if(!token || !CFG.cn_depot || !phrase){ CN_PUB = "erreur"; CN_CODE = 0; render(true); return; }
+  CN_SENDING = true; CN_PUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format: "hbpsm-cn", v: 1, ops: box}, phrase);
-    const r = await fetch("https://api.github.com/repos/" + CFG.cn_depot + "/actions/workflows/" + (CFG.cn_workflow || "proposer.yml") + "/dispatches", {
-      method: "POST", body: JSON.stringify({ref: CFG.cn_branche || "main", inputs: {prop: JSON.stringify(env)}}),
-      headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
-    CN_PUB = r.status === 204 ? "envoyee" : "erreur"; CN_CODE = r.status;
+    for(const ops of packets(box, CN_MAX)){
+      const r = await dispatch(CFG.cn_depot, CFG.cn_workflow || "proposer.yml", CFG.cn_branche, token, "prop", await sealVault({format: "hbpsm-cn", v: 1, ops}, phrase));
+      CN_CODE = r.status;
+      if(r.status !== 204){ CN_PUB = "erreur"; break; }
+      CN_PUB = "envoyee";
+    }
   } catch (e) { CN_PUB = "erreur"; CN_CODE = 0; }
+  CN_SENDING = false;
   render(true);
   if(CN_PUB === "envoyee") watchCN();
+  if(CN_AGAIN){ CN_AGAIN = false; sendCN(); }
+}
+// à chaque vérification (dix minutes, retour au premier plan, retour de la connexion) : ce qui attend encore repart
+function resendPending(){
+  if(cnOutbox().length && !CN_SENDING && !["envoi", "envoyee"].includes(CN_PUB)) sendCN();
+  if(outbox().length && canWrite() && !CAISSE_SENDING && !["envoi", "envoyee", "refuse", "jeton"].includes(CPUB)) flushCaisse();
 }
 // pas en ligne au bout de deux minutes (un envoi perdu en route) : renvoyé de lui-même, deux fois au plus ;
 // le dépôt ne compte jamais deux fois le même envoi
@@ -2561,29 +2650,34 @@ function watchCN(){   // la mise en ligne prend une minute ou deux : un coup d'�
     else if(n >= 16){ CN_PUB = "lent"; render(true); clearInterval(CN_POLL); }
   }, 15000);
 }
-async function flushCaisse(){
+let CAISSE_SENDING = false, CAISSE_AGAIN = false, CAISSE_RETRY = 0;
+async function flushCaisse(){   // comme les envois des joueurs : en paquets, un à la fois, sans rien perdre
+  if(CAISSE_SENDING){ CAISSE_AGAIN = true; return; }
   const box = outbox(), token = stored(TOKEN), phrase = stored(PASS);
   if(!box.length) return;
   if(!token){ CPUB = "jeton"; render(true); return; }
   if(!CFG.depot || !phrase){ CPUB = "erreur"; render(true); return; }
-  CPUB = "envoi"; render(true);
+  CAISSE_SENDING = true; CPUB = "envoi"; render(true);
   try {
-    const env = await sealVault({format: "hbpsm-caisse-ops", v: 1, ops: box}, phrase);
-    const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/caisse.yml/dispatches", {
-      method: "POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {ops: JSON.stringify(env)}}),
-      headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
-    CPUB = r.status === 204 ? "envoyee" : [401, 403, 404].includes(r.status) ? "refuse" : "erreur";
+    for(const ops of packets(box, 100)){
+      const r = await dispatch(CFG.depot, "caisse.yml", CFG.branche, token, "ops", await sealVault({format: "hbpsm-caisse-ops", v: 1, ops}, phrase));
+      if(r.status !== 204){ CPUB = [401, 403, 404].includes(r.status) ? "refuse" : "erreur"; break; }
+      CPUB = "envoyee";
+    }
   } catch (e) { CPUB = "erreur"; }
+  CAISSE_SENDING = false;
   render(true);
   if(CPUB === "envoyee") watchCaisse();
+  if(CAISSE_AGAIN){ CAISSE_AGAIN = false; flushCaisse(); }
 }
-function watchCaisse(){   // la mise en ligne prend une minute ou deux
+function watchCaisse(){   // la mise en ligne prend une minute ou deux ; ce qui tarde repart de lui-même (deux fois)
   clearInterval(CPOLL);
   let n = 0;
   CPOLL = setInterval(async () => {
     n++;
     if(await fetchCaisse()) render(true);
-    if(!outbox().length){ CPUB = ""; render(true); clearInterval(CPOLL); }
+    if(!outbox().length){ CPUB = ""; CAISSE_RETRY = 0; render(true); clearInterval(CPOLL); }
+    else if(n === 8 && CAISSE_RETRY < 2){ CAISSE_RETRY++; clearInterval(CPOLL); CPUB = ""; flushCaisse(); }
     else if(n >= 16){ CPUB = "lent"; render(true); clearInterval(CPOLL); }
   }, 15000);
 }
@@ -2908,19 +3002,23 @@ function viewPoules(){
 const emptyPanel = () => '<div class="panel"><p>Aucune donnée pour l\'instant. Lance le workflow « Collecte quotidienne » dans l\'onglet Actions du dépôt.</p></div>';
 const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></header>'+emptyPanel();
 // ---------------------------------------------------------------- présences
-// Présences aux entraînements et aux matchs, homme du match (demande de l'auteur, 09/10/2026). Chacun dit une fois
-// qui il est sur son appareil (« Vous êtes »), puis répond pour chaque séance et chaque match au plus tard 4 jours
-// avant, 21 h (config.yml, presences) : présent, ou absent avec un motif (« autre » : un mot obligatoire). Sans
-// réponse à temps : absent sans justification, et l'amende du règlement proposée aux trésoriers. Réponses, « Vous
-// êtes » et votes partent au dépôt des propositions (hbpsm-cn, presences.enc), avec le même jeton. Seul l'entraîneur
-// voit les réponses des autres ; un joueur ne voit que les siennes (demande de l'auteur, 09/10/2026). Comme le mode
-// entraîneur, ce n'est pas un verrou : le journal est chiffré avec la phrase du club.
+// Présences aux matchs, homme du match (demandes de l'auteur, 09/10/2026). Chacun dit une fois qui il est sur son
+// appareil (« Vous êtes »), reconnu ailleurs par son code personnel. Un seul joueur tient les présences : celui qui a
+// le rôle « présences » dans l'effectif (D.presences.gestion), sur un appareil qui a son code. Lui seul voit l'onglet ;
+// pour chaque match, il dit qui vient, qui est absent (motif : « autre » demande un mot), et saisit la sélection de
+// l'entraîneur, publiée comme ses choix. Les entraînements ne sont plus suivis (config.yml, presences.entrainements).
+// Réponses, « Vous êtes » et votes partent au dépôt des propositions (hbpsm-cn, presences.enc), avec le même jeton.
+// Seuls l'entraîneur et lui voient les réponses ; un joueur ne voit pas les siennes. Comme le mode entraîneur, ce
+// n'est pas un verrou : le journal est chiffré avec la phrase du club.
 const PRESC = () => (D && D.presences) || {};
+let GESTION = false;   // cet appareil est celui qui tient les présences (revu à chaque rendu)
+const isManager = () => { const me = stored(MOI); return !!me && (PRESC().gestion || []).includes(me) && !!myCodeFor(me); };
+const seesAll = () => COACH || GESTION;
 const APP_KEY = "hbpsm:appareil", MOI_AUCUN = "hbpsm:moi-aucun", PRES_KEY = "hbpsm:presences";
 const PRES_T = ["moi", "dispo", "vote"];
 const MOTIFS = {malade: "🤒 Malade", blesse: "🩹 Blessé", vacances: "🏖️ Vacances", autre: "✏️ Autre"};
 let PRESJ = null, PRESJ_SIG = null, DECL = null, RESTRICT = {}, QUI = null;
-let PF = {ev: null, motif: "", texte: "", du: "", au: ""};   // la réponse « absent » en cours de saisie
+let PF = {ev: null, who: null, motif: "", texte: ""};   // l'absence en cours de saisie : ce match, ce joueur
 const deviceId = () => { let v = stored(APP_KEY); if(!v){ v = uid(); try { localStorage.setItem(APP_KEY, v); } catch (e) {} } return v; };
 // l'heure d'un envoi : celle de l'appareil, sauf s'il n'est arrivé que plus d'un jour après (horloge fausse)
 const opTime = o => { const le = Date.parse(o.le), re = Date.parse(o.recu);
@@ -2968,7 +3066,7 @@ const agendaList = () => D.agenda || ((D.saison && D.saison.matchs) || []);
 const annKey = x => /^\d{4}-\d{2}-\d{2}$/.test(x) ? "E-" + x : String(x);
 if(S.annule) for(const k of Object.keys(S.annule)) if(annKey(k) !== k){ S.annule[annKey(k)] = S.annule[k]; delete S.annule[k]; }
 const annPub = () => ((CHOIX && CHOIX.annulees) || []).map(annKey);
-const annuleId = id => COACH && S.annule && id in S.annule ? !!S.annule[id] : annPub().includes(id);
+const annuleId = id => COACH && S.annule && id in S.annule ? !!S.annule[id] : GESTION && id in gest().annule ? !!gest().annule[id] : annPub().includes(id);
 const annulee = day => annuleId("E-" + day);
 const recentDay = () => addDays(ymd(new Date()), -60);
 const annDay = id => id.startsWith("E-") ? id.slice(2) : String((agendaList().find(m => "M-" + m.id === id) || {}).date || "9999").slice(0, 10);
@@ -2980,15 +3078,11 @@ const evMatch = m => ({id: "M-" + m.id, type: "m", day: String(m.date || "").sli
 function annulesNote(){
   const today = ymd(new Date()), list = events(today, addDays(today, 27)).filter(e => e.annule);
   return list.length ? '<p class="note annules">🚫 <b>Annulé par l\'entraîneur</b> : '+list.map(e => esc(e.type === "e" ? "entraînement du " + fmtDate(e.day)
-    : roundOf(e.m) + " contre " + teamShort(e.m.adversaire) + " (" + fmtDate(e.date, e.m.provisoire) + ")")).join(" · ")+'. Vos réponses restent gardées.</p>' : ""; }
-// rien n'est demandé avant le début des présences (config.yml, presences.debut) ; on répond à l'avance jusqu'à la
-// fin de la saison (presences.fin, ou le dernier match connu s'il est plus loin) : tout le calendrier, mois par mois
-const presStart = () => { const t = ymd(new Date()), d = PRESC().debut || ""; return d > t ? d : t; };
-const presEnd = () => [addDays(ymd(new Date()), 27), PRESC().fin || "", ...agendaList().map(m => String(m.date || "").slice(0, 10))].sort().pop();
+    : roundOf(e.m) + " contre " + teamShort(e.m.adversaire) + " (" + fmtDate(e.date, e.m.provisoire) + ")")).join(" · ")+'.</p>' : ""; }
 function events(from, to){   // de from à to inclus, dans l'ordre (jamais avant le début des présences)
   if(PRESC().debut && from < PRESC().debut) from = PRESC().debut;
-  const days = PRESC().jours || [1, 4], out = [];
-  for(let d = from; d <= to; d = addDays(d, 1)) if(days.includes((new Date(d + "T12:00").getDay() + 6) % 7)) out.push(evTraining(d));
+  const days = PRESC().entrainements === false ? [] : PRESC().jours || [1, 4], out = [];   // matchs seulement (09/10/2026)
+  for(let d = from; days.length && d <= to; d = addDays(d, 1)) if(days.includes((new Date(d + "T12:00").getDay() + 6) % 7)) out.push(evTraining(d));
   for(const m of agendaList()){ const e = evMatch(m); if(e.day && e.day >= from && e.day <= to) out.push(e); }
   return out.sort((a, b) => a.day.localeCompare(b.day) || (a.type === "e" ? -1 : 1));
 }
@@ -2998,26 +3092,25 @@ const deadline = e => { const [y, mo, d] = e.day.split("-").map(Number), [h, mi]
 const hTxt = d => d.getHours() + "h" + (d.getMinutes() ? String(d.getMinutes()).padStart(2, "0") : "");
 const dateHeure = d => d.toLocaleDateString("fr-FR", {weekday: "short", day: "numeric", month: "short"}) + " " + hTxt(d);
 const dlText = e => dateHeure(deadline(e));
-const limiteTxt = () => { const [h, mi] = String(PRESC().heure_limite || "21:00").split(":").map(Number); return hTxt(new Date(2000, 0, 1, h || 0, mi || 0)); };
 const evName = e => e.type === "e" ? "l'entraînement du " + fmtDate(e.day) : roundOf(e.m) + " contre " + teamShort(e.m.adversaire) + " (" + fmtDate(e.date, e.m.provisoire) + ")";
 const squad = () => D.joueurs.filter(p => String(p.cle).startsWith("R:"));
 // qui doit répondre : l'effectif, sauf les indisponibles de la saison, ceux qui ne sont plus là et les blessés déclarés
 const concerned = (p, e) => dispo(p) && !gone(p, e) && !injured(p, e);
 function statusOf(c, e, now = new Date()){
   const x = decl()[c + "|" + e.id], dl = deadline(e);
-  if(!x) return {etat: now > dl && e.day >= (PRESC().amendes_depuis || "") ? "sans" : "attente"};
+  if(!x) return {etat: PRESC().amendes_depuis && now > dl && e.day >= PRESC().amendes_depuis ? "sans" : "attente"};
   const o = x.last;
   return {etat: o.etat, motif: o.motif || "", texte: o.texte || "", le: opTime(o), retard: opTime(x.first) > dl.getTime(), envoi: !!o.envoi};
 }
-const ETAT_P = {present: ["ok", "✓ présent"], absent: ["no", "✕ absent"], attente: ["wait", "pas encore répondu"], sans: ["no", "absent – sans justification"]};
+const ETAT_P = {present: ["ok", "✓ présent"], absent: ["no", "✕ absent"], attente: ["wait", "pas encore renseigné"], sans: ["no", "absent – sans justification"]};
 const motifTxt = s => s.etat === "absent" ? (MOTIFS[s.motif] || "absent") + (s.texte ? " : " + s.texte : "") : "";
-// la feuille proposée : l'entraîneur tient compte de toutes les réponses ; en consultation, chacun de la sienne seulement
-const seesAnswer = c => COACH || c === stored(MOI);
-const playerSays = (p, m) => seesAnswer(p.cle) ? statusOf(p.cle, evMatch(m)).etat : "attente";
-// assez de joueurs ont dit venir (gardiens d'un côté, joueurs de champ de l'autre) : la feuille se fait parmi eux ;
-// sinon, comme avant, parmi tous les disponibles, sans ceux qui ont dit ne pas venir (entraîneur seulement)
+// la feuille proposée : l'entraîneur et celui qui tient les présences tiennent compte des réponses ; les autres
+// d'aucune, pas même la leur (demande de l'auteur, 09/10/2026 : un joueur ne voit pas ses présences)
+const playerSays = (p, m) => seesAll() ? statusOf(p.cle, evMatch(m)).etat : "attente";
+// assez de joueurs sont annoncés présents (gardiens d'un côté, joueurs de champ de l'autre) : la feuille se fait parmi
+// eux ; sinon, comme avant, parmi tous les disponibles, sans les absents annoncés
 function restricts(m, gk){
-  if(!COACH) return false;
+  if(!seesAll()) return false;
   const k = m.id + "|" + gk;
   if(k in RESTRICT) return RESTRICT[k];
   const nGK = D.meta.gardiens ?? 2, n = gk ? nGK : sizeOf(m) - nGK;
@@ -3028,7 +3121,7 @@ function restricts(m, gk){
 const ownCall = (p, m) => dispo(p) && !gone(p, m) && !injured(p, m) && !declaredAbsent(p, m) && !localAv(p, m);
 const saidAbsent = (p, m) => ownCall(p, m) && playerSays(p, m) === "absent";
 const noAnswerOut = (p, m) => ownCall(p, m) && !["present", "absent"].includes(playerSays(p, m)) && restricts(m, isGK(p));
-function tally(e){   // pour l'entraîneur : qui a dit venir, qui non, qui n'a pas répondu
+function tally(e){   // qui est annoncé présent, absent, pas encore renseigné
   const out = {present: [], absent: [], attente: [], sans: []};
   for(const p of squad()) if(concerned(p, e)) out[statusOf(p.cle, e).etat].push(p);
   return out;
@@ -3100,7 +3193,7 @@ function codeLine(){   // Ma semaine, Présences : son code (à garder), ou de q
     + 'puis donnez ce code, vous y serez reconnu.</p></div>';
   if(!ownerHash(me)) return "";
   return '<div class="panel code-perso"><p class="small">🔑 <b>'+esc(memberName(me))+'</b> a un code personnel, affiché dans Ma semaine sur son premier appareil. '
-    + 'Donnez-le ici pour être reconnu sur cet appareil :</p><div class="edit"><input id="code-saisie" class="code-in" autocomplete="off" autocapitalize="characters" '
+    + 'Donnez-le ici pour être reconnu sur cet appareil'+((PRESC().gestion || []).includes(me) ? ' et y tenir les présences' : '')+' :</p><div class="edit"><input id="code-saisie" class="code-in" autocomplete="off" autocapitalize="characters" '
     + 'placeholder="XXXX-XXXX" maxlength="12" aria-label="Code personnel"><button class="btn" data-code-ok="1">Valider</button></div>'
     + (CODE_ERR ? '<p class="small cstop">'+esc(CODE_ERR)+'</p>' : '')+'</div>';
 }
@@ -3117,11 +3210,11 @@ function quiBlock(){
         + '<div class="edit"><input id="qui-code" class="code-in" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX" maxlength="12" aria-label="Code personnel">'
         + '<button class="btn" data-qui-code="'+esc(pick)+'">Valider mon code</button></div>'+(QUI.err ? '<p class="small cstop">'+esc(QUI.err)+'</p>' : '')
         + '<p class="small muted">Pas de code ? Si c\'est bien vous, continuez : l\'autre appareil verra qu\'un doublon existe. Sinon, choisissez votre propre nom.</p>'
-      : '<p class="small">Si c\'est vous, sur un autre téléphone ou un ordinateur, continuez. Sinon, choisissez votre propre nom : vos réponses et votre vote partent à ce nom. En cas de doute, voyez-le avec l\'équipe.</p>')
+      : '<p class="small">Si c\'est vous, sur un autre téléphone ou un ordinateur, continuez. Sinon, choisissez votre propre nom : votre vote part à ce nom. En cas de doute, voyez-le avec l\'équipe.</p>')
       + '<div class="edit"><button class="btn'+(ownerHash(pick) ? " ghost" : "")+'" data-qui-ok="'+esc(pick)+'">C\'est bien moi'+(ownerHash(pick) ? " (sans code)" : "")+'</button>'
       + '<button class="btn ghost" data-qui-back="1">Choisir un autre nom</button></div>';
   } else {
-    h += '<p class="small muted">Une fois sur cet appareil. Vos réponses aux entraînements et aux matchs, votre vote pour l\'homme du match et vos propositions d\'amendes partent à ce nom : choisissez le vôtre.</p>'
+    h += '<p class="small muted">Une fois sur cet appareil. Votre vote pour l\'homme du match et vos propositions d\'amendes partent à ce nom : choisissez le vôtre.</p>'
       + '<div class="cchips qui-list">'+squad().slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom))).map(p => '<button class="cchip'+(p.cle === me ? " on" : "")+'" data-qui="'+esc(p.cle)+'">'+esc(p.nom)
         + (p.cle !== me && taken(p.cle) ? ' <small class="pris">déjà pris</small>' : '')+'</button>').join("")+'</div>'
       + '<p class="small">'+(D.caisse ? '<button class="link" data-qui="'+esc(D.caisse.coach)+'">Je suis l\'entraîneur</button> · ' : '')
@@ -3144,54 +3237,27 @@ const sendLine = () => { const n = cnOutbox().filter(o => PRES_T.includes(o.t)).
   if(CN_PUB && cnMsg()) return '<p class="note'+(CN_PUB === "erreur" ? " envoi-ko" : "")+'">'+esc(cnMsg())+(n && CN_PUB !== "envoi" ? ' <button class="link" data-cnsend="1">Renvoyer</button>' : '')+'</p>';
   return n ? '<p class="note">'+n+' envoi'+(n > 1 ? "s" : "")+' pas encore en ligne. <button class="link" data-cnsend="1">Renvoyer</button></p>' : ""; };
 
-// les réponses : présent d'un geste ; absent avec son motif (« autre » : un mot obligatoire), pour un jour ou une période
+// les réponses, saisies pour chaque joueur par celui qui tient les présences : présent d'un geste ; absent avec son
+// motif (« autre » : un mot obligatoire) ; « présent » d'un coup pour tous ceux qui ne sont pas encore renseignés
 const motifOK = () => !!PF.motif && (PF.motif !== "autre" || !!PF.texte.trim());
-function declare(evs, etat, motif, texte){
-  const me = stored(MOI);
-  if(!me || !String(me).startsWith("R:") || !evs.length) return;
-  setCnOutbox([...cnOutbox(), {id: "d:" + uid(), t: "dispo", joueur: me, evs: evs.slice(0, 60), etat, motif: etat === "absent" ? motif : "",
-    texte: etat === "absent" ? String(texte || "").trim().slice(0, 300) : "", app: deviceId(), le: new Date().toISOString()}]);
-  DECL = null; PF = {ev: null, motif: "", texte: "", du: "", au: ""};
+const dispoOp = (c, evs, etat, motif, texte) => ({id: "d:" + uid(), t: "dispo", joueur: c, evs: evs.slice(0, 60), etat, motif: etat === "absent" ? motif : "",
+  texte: etat === "absent" ? String(texte || "").trim().slice(0, 300) : "", app: deviceId(), le: new Date().toISOString()});
+function declare(who, evs, etat, motif, texte){   // who : un joueur, ou une liste
+  const list = [].concat(who || []).filter(c => String(c).startsWith("R:"));
+  if(!GESTION || !list.length || !evs.length) return;
+  setCnOutbox([...cnOutbox(), ...list.map(c => dispoOp(c, evs, etat, motif, texte))]);
+  DECL = null; PF = {ev: null, who: null, motif: "", texte: ""};
   render(true); sendCN();
 }
-const motifHint = () => motifOK() ? "" : !PF.motif ? "Choisissez d'abord un motif (ou écrivez votre justification : ce sera « Autre »)." : "« Autre » : écrivez votre justification.";
-const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">(seul l\'entraîneur le voit)</span></p><div class="cchips">'
+const motifHint = () => motifOK() ? "" : !PF.motif ? "Choisissez d'abord un motif (ou écrivez la justification : ce sera « Autre »)." : "« Autre » : écrivez la justification.";
+const motifPart = () => '<p class="small"><b>Pourquoi ?</b> <span class="muted">(seuls l\'entraîneur et vous le voyez)</span></p><div class="cchips">'
   + Object.entries(MOTIFS).map(([k, v]) => '<button class="cchip'+(PF.motif === k ? " on" : "")+'" data-motif="'+k+'">'+v+'</button>').join("")+'</div>'
-  + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif && PF.motif !== "autre" ? "Un mot pour l'entraîneur (facultatif)" : "Votre justification")+'" value="'+esc(PF.texte)+'">'
-  + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer mon absence</button><button class="link" data-rep-annule="1">Annuler</button></div>'
+  + '<input id="pf-texte" class="cnote" maxlength="300" placeholder="'+(PF.motif && PF.motif !== "autre" ? "Un mot pour l'entraîneur (facultatif)" : "La justification")+'" value="'+esc(PF.texte)+'">'
+  + '<div class="edit"><button class="btn" data-rep-envoi="1"'+(motifOK() ? '' : ' disabled')+'>Envoyer l\'absence</button><button class="link" data-rep-annule="1">Annuler</button></div>'
   + '<p class="small cstop" id="pf-hint">'+esc(motifHint())+'</p>';
-function answerRow(e, me, lecture){   // lecture : sa réponse seulement, sans boutons (Ma semaine)
-  const what = e.type === "e" ? "🏃 Entraînement" : (e.m.coupe ? "🏆 " : "🤾 ")+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire))+(e.m.domicile ? " · dom." : " · ext.");
-  const when = esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire));
-  if(e.annule){ const s = statusOf(me, e), kept = ["present", "absent"].includes(s.etat) ? ' · votre réponse est gardée : '+ETAT_P[s.etat][1] : '';
-    return '<div class="rep off"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br><span class="pst-etat off">🚫 '
-      + (e.type === "e" ? "pas d'entraînement : annulé par l'entraîneur" : "match annulé par l'entraîneur")+'</span><span class="small muted">'+kept+'</span></span></div></div>'; }
-  const s = statusOf(me, e), [cls, label] = ETAT_P[s.etat], late = new Date() > deadline(e), open = !lecture && PF.ev === e.id;
-  return '<div class="rep'+(open ? " open" : "")+'"><div class="rep-l"><span><b>'+what+'</b> <span class="small muted">'+when+'</span><br>'
-    + '<span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.retard ? ' · en retard' : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
-    + (s.etat === "absent" && s.texte ? '<span class="small muted">« '+esc(s.texte)+' »</span> ' : '')   // sa propre justification
-    + '<span class="small muted">'+(late ? 'délai passé ('+esc(dlText(e))+')' : 'avant le '+esc(dlText(e)))+'</span></span>'
-    + (lecture ? '' : '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-rep="'+esc(e.id)+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
-      + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-rep-abs="'+esc(e.id)+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button></span>')+'</div>'
-    + (open ? '<div class="absform">'+motifPart()+'</div>' : '')+'</div>';
-}
-function periodBlock(){
-  if(PF.ev !== "periode") return '<p class="small"><button class="link" data-periode="1">Absent plusieurs jours (vacances, blessure…) ?</button></p>';
-  return '<div class="absform"><p class="small"><b>Absent du</b> <input type="date" id="pf-du" min="'+presStart()+'" max="'+presEnd()+'" value="'+esc(PF.du)+'"> <b>au</b> <input type="date" id="pf-au" min="'+presStart()+'" max="'+presEnd()+'" value="'+esc(PF.au)+'"></p>'
-    + '<p class="small muted">Tous les entraînements et les matchs de ces jours-là.</p>'+motifPart()+'</div>';
-}
-const periodEvents = () => { const du = PF.du > presStart() ? PF.du : presStart();
-  return !PF.du || !PF.au || PF.au < du ? [] : events(du, PF.au).map(e => e.id).slice(0, 60); };
-// Ma semaine : le vote de l'homme du match, puis ses présences des deux semaines qui viennent, répondues ou non, avec sa
-// réponse (demande de l'auteur, 09/10/2026 : voir mes présences) ; en lecture seule : on répond et on change dans Présences
-function todoBlock(me){
-  const today = ymd(new Date()), list = events(today, addDays(today, 13)), todo = list.filter(e => notYet(e, me)).length;
-  const votes = ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length));
-  return votes.map(b => voteCard(b, me)).join("") + '<h2>Mes présences</h2><div class="panel reps">'
-    + '<p class="small muted">Les deux semaines qui viennent · '+(todo ? '<b class="todo">'+todo+' sans réponse</b>' : '✓ tout est répondu')+'</p>'
-    + (list.length ? list.map(e => answerRow(e, me, true)).join("") : '<p class="small muted">Ni entraînement ni match ces deux semaines.</p>')
-    + '<div class="edit"><button class="btn" data-tab="presences">'+(todo ? 'Répondre' : 'Changer une réponse')+' dans Présences</button></div></div>';
-}
+// Ma semaine : le vote de l'homme du match (ouvert, ou son résultat) ; plus ses présences, que seul celui qui les tient
+// et l'entraîneur voient (demande de l'auteur, 09/10/2026)
+const votesBlock = me => ballots().filter(b => (b.ouvert && b.el.includes(me)) || (b.clos && b.elus.length)).map(b => voteCard(b, me)).join("");
 
 // l'homme du match : élu par les joueurs de la feuille (lue, sinon celle que l'entraîneur a publiée), pendant 48 h
 function voteWindow(m){
@@ -3273,108 +3339,139 @@ function motmFines(L, now = new Date()){
   return out;
 }
 
-// l'entraîneur, et lui seul : qui a dit quoi, et la feuille qu'il bouge d'un geste (demande de l'auteur, 09/10/2026)
-function presWhy(p, m, e){
-  if(injured(p, m)) return ["no", "🩹 blessé (votre saisie)"];
-  if(gone(p, m)) return ["no", untilText(p)];
-  if(!dispo(p)) return ["no", "indisponible pour la saison"];
-  if(declaredAbsent(p, m)) return ["no", "absent : votre saisie"];
-  const s = statusOf(p.cle, e), late = s.retard ? " · en retard" : "";
-  if(s.etat === "absent") return ["no", motifTxt(s) + late];
-  if(s.etat === "present") return ["ok", "✓ a dit venir" + late];
-  return s.etat === "sans" ? ["no", "absent – sans justification"] : ["wait", "pas encore répondu"];
+// Celui qui tient les présences, et lui seul (demandes de l'auteur, 09/10/2026) : match par match, qui vient et qui est
+// absent, et la sélection de l'entraîneur ; il la publie comme les choix de l'entraîneur (choix.enc, jeton de
+// publication), avec les matchs qu'il annule ou rétablit. Ce qui n'est pas encore en ligne reste sur cet appareil.
+const GEST_KEY = "hbpsm:gestion", SEL_TOKEN = "hbpsm:jeton-selection", SEL_MAX = 16;   // 16 : comme pipeline/choix.py
+let SPUB = "", SPUB_POLL = null;
+const gest = () => { try { return Object.assign({sel: {}, annule: {}}, JSON.parse(stored(GEST_KEY) || "{}")); } catch (e) { return {sel: {}, annule: {}}; } };
+const setGest = g => { try { localStorage.setItem(GEST_KEY, JSON.stringify(g)); } catch (e) {} };
+const pubToken = () => stored(SEL_TOKEN) || stored(TOKEN);
+const pubSel = id => ((CHOIX && CHOIX.matchs && CHOIX.matchs[id]) || {}).joueurs || [];
+const sameSet = (a, b) => a.slice().sort().join("|") === b.slice().sort().join("|");
+const selOf = id => gest().sel[id] || pubSel(id);   // saisie ici, sinon publiée
+const inPlan = id => (PLAN || []).some(r => String(r.m.id) === String(id));
+// ce qui n'est pas encore en ligne : sélections retouchées (matchs de la planification), matchs annulés ou rétablis
+const gestPending = () => { const g = gest();
+  return Object.keys(g.sel).filter(id => inPlan(id) && !sameSet(g.sel[id], pubSel(id))).length
+    + Object.keys(g.annule).filter(k => !!g.annule[k] !== annPub().includes(k)).length; };
+function forgetGest(){   // ce qui est en ligne n'a plus à être retenu ici
+  if(!stored(GEST_KEY)) return;
+  const g = gest();
+  for(const id of Object.keys(g.sel)) if(sameSet(g.sel[id], pubSel(id))) delete g.sel[id];
+  for(const k of Object.keys(g.annule)) if(!!g.annule[k] === annPub().includes(k)) delete g.annule[k];
+  setGest(g);
 }
-function moveSel(id, cle, add){   // retenir ou retirer, comme un clic dans la planification
-  const r = PLAN.find(x => String(x.m.id) === id), p = byCle(cle);
-  if(!r || !p) return;
-  const dm = S.dm[id] = S.dm[id] || {}, pin = S.pin[id] = S.pin[id] || {};
-  if(r.fixed){   // feuille validée : on la retouche, les autres restent
-    S.valide = S.valide || {}; S.valide[id] = null;
-    const drop = add ? r.sel.filter(q => isGK(q) === isGK(p)).sort((a, b) => val(a, r.m) - val(b, r.m))[0] : null;
-    for(const q of r.sel) if(q !== p && q !== drop && !pin[q.cle]) pin[q.cle] = "in";
+async function publishGestion(){
+  const token = pubToken(), phrase = stored(PASS);
+  if(!GESTION) return;
+  if(!token){ SPUB = "jeton"; render(true); return; }
+  if(!CFG.depot || !phrase){ SPUB = "erreur"; render(true); return; }
+  if(Object.entries(gest().sel).some(([id, l]) => inPlan(id) && l.length > SEL_MAX)){ SPUB = "trop"; render(true); return; }
+  SPUB = "envoi"; render(true);
+  await fetchChoices();   // repartir de ce qui est en ligne : l'entraîneur a pu publier entre-temps
+  // comme l'entraîneur : les matchs de la planification et les derniers joués ; ses blessés, absents et rendez-vous restent
+  const g = gest(), base = CHOIX || {}, matchs = {}, off = new Set(annPub());
+  const ids = new Set([...PLAN.map(r => String(r.m.id)), ...(D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).map(x => String(x.id))]);
+  for(const [id, c] of Object.entries(base.matchs || {})) if(ids.has(id)) matchs[id] = inPlan(id) ? withSuggestion(id, c) : c;
+  for(const [id, l] of Object.entries(g.sel)){
+    if(!ids.has(id) || sameSet(l, pubSel(id))) continue;
+    const m = agendaList().find(x => String(x.id) === id) || {};
+    if(l.length) matchs[id] = withSuggestion(id, {joueurs: l, le: new Date().toISOString(), journee: m.journee ?? null}); else delete matchs[id];
   }
-  if(add){ if(availOf(p, r.m) !== "d") dm[cle] = "d"; pin[cle] = "in"; }
-  else pin[cle] = "out";
+  for(const [k, on] of Object.entries(g.annule)) if(on) off.add(k); else off.delete(k);
+  try {
+    const env = await sealVault({format: "hbpsm-choix", v: 1, matchs, blesses: base.blesses || {}, absents: base.absents || {}, rdv: base.rdv || {},
+                                 annulees: [...off].sort()}, phrase);
+    const r = await fetch("https://api.github.com/repos/" + CFG.depot + "/actions/workflows/choix.yml/dispatches", {
+      method: "POST", body: JSON.stringify({ref: CFG.branche || "main", inputs: {choix: JSON.stringify(env)}}),
+      headers: {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"}});
+    SPUB = r.status === 204 ? "envoyee" : [401, 403, 404].includes(r.status) ? "refuse" : "erreur";
+  } catch (e) { SPUB = "erreur"; }
+  render(true);
+  if(SPUB === "envoyee") watchGestion();
 }
-function boardBlock(){
-  const P = PLAN;
-  if(!P.length) return "";
-  const r = P.find(x => String(x.m.id) === String(S.presM)) || P[0], m = r.m, e = evMatch(m), id = String(m.id);
-  const sel = [...r.gks, ...r.field], inSel = new Set(sel), etat = p => statusOf(p.cle, e).etat;
-  const hard = p => !dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m), others = D.joueurs.filter(p => !inSel.has(p));
-  const pres = others.filter(p => !hard(p) && etat(p) === "present"), none = others.filter(p => !hard(p) && ["attente", "sans"].includes(etat(p)));
-  const abs = others.filter(p => hard(p) || etat(p) === "absent"), t = tally(e), gk = t.present.filter(isGK).length;
-  const row = (p, how) => { const [c, why] = presWhy(p, m, e);
-    return '<li><span><b>'+esc(p.nom)+'</b>'+(poste(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')+'<br><span class="small b-why '+c+'">'+esc(why)+'</span></span>'
-      + (how ? '<button class="btn'+(how === "out" ? " ghost" : "")+'" data-sel="'+esc(id)+'|'+esc(p.cle)+'|'+how+'">'+(how === "out" ? "Retirer" : "Retenir")+'</button>' : '')+'</li>'; };
-  const col = (title, list, how, n) => '<div class="board-col"><h3>'+title+' <span class="small muted">'+n+'</span></h3>'
-    + (list.length ? '<ul>'+list.map(p => row(p, how)).join("")+'</ul>' : '<p class="small muted">personne</p>')+'</div>';
-  return sec("matchs", "Matchs")+'Les matchs</h2><div class="seg wrap noprint" role="group" aria-label="Match">'
-    + P.map(x => '<button data-presm="'+esc(x.m.id)+'" aria-pressed="'+(x === r)+'">'+esc(roundShort(x.m))+' · '+esc(teamShort(x.m.adversaire))+'</button>').join("")+'</div>'
-    + '<div class="panel board" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p>'
-    + '<p class="small"><b>'+(t.present.length - gk)+'</b> joueur'+(t.present.length - gk > 1 ? "s" : "")+' de champ et <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")+' ont dit venir · '
-    + t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+(t.attente.length + t.sans.length)+' sans réponse <span class="muted">(réponses attendues avant le '+esc(dlText(e))+')</span></p>'
-    + etatLine(r)+'<div class="board-cols">'+col("Sur la feuille", sel, "out", sel.length+"/"+r.size)+col("Ont dit venir", pres, "in", pres.length)
-    + col("Sans réponse", none, "in", none.length)+col("Absents", abs, null, abs.length)+'</div>'
-    + '<p class="small muted">Retenir ou retirer change la feuille comme un clic dans la planification ; validez-la ensuite pour la publier.</p>'
-    + '<p><button class="link" data-annule="M-'+esc(id)+'">Annuler ce match</button> <span class="small muted">(reporté, forfait… : vu de tous une fois publié ; les réponses sont gardées)</span></p></div>';
+function watchGestion(){   // la mise en ligne prend une minute ou deux : un coup d'œil toutes les 15 s
+  clearInterval(SPUB_POLL);
+  let n = 0;
+  SPUB_POLL = setInterval(async () => {
+    n++;
+    if(await fetchChoices()) render(true);
+    if(!gestPending()){ SPUB = ""; render(true); clearInterval(SPUB_POLL); }
+    else if(n >= 16) clearInterval(SPUB_POLL);
+  }, 15000);
 }
-function seasonBlock(list){   // l'entraîneur : tout le calendrier, pour annuler ou rétablir une séance ou un match
-  const months = {};
-  for(const e of list) (months[e.day.slice(0, 7)] = months[e.day.slice(0, 7)] || []).push(e);
-  return sec("calendrier", "Calendrier")+'Le calendrier de la saison</h2><div class="panel"><p class="small muted">Annulez une séance (vacances, gymnase fermé) ou un match '
-    + '(reporté, forfait) : tout le monde le voit une fois publié, plus personne n\'a à y répondre, sans amende ; les réponses déjà données restent gardées.</p>'
-    + Object.entries(months).map(([mo, l]) => { const off = l.filter(e => e.annule).length;
-      return '<details class="mois"'+keep("cal-"+mo, false)+'><summary><b>'+esc(monthName(mo).replace(/^./, c => c.toUpperCase()))+'</b> <span class="small muted">'
-        + l.length+' rendez-vous'+(off ? ' · '+off+' annulé'+(off > 1 ? "s" : "") : '')+'</span></summary><ul class="plain cal">'
-        + l.map(e => '<li class="'+(e.annule ? "off" : "")+'"><span>'+(e.type === "e" ? "🏃 Entraînement" : "🤾 "+esc(roundShort(e.m))+" · "+esc(teamShort(e.m.adversaire)))
-          + ' <span class="small muted">'+esc(e.type === "e" ? fmtDate(e.day) : fmtDate(e.date, e.m.provisoire))+'</span>'+(e.annule ? ' <span class="pst-etat off">🚫 annulé</span>' : '')+'</span>'
-          + '<button class="link" data-annule="'+esc(e.id)+'">'+(e.annule ? "rétablir" : "annuler")+'</button></li>').join("")+'</ul></details>'; }).join("")+'</div>';
+const SPUB_TXT = {envoi: "Publication…", envoyee: "Envoyé : tout le monde le verra d'ici une à deux minutes.", erreur: PUB_TXT.erreur,
+  trop: "Une sélection compte plus de " + SEL_MAX + " joueurs : retirez-en avant de publier."};
+function gestNote(){   // le jeton la première fois ; ensuite, ce qui reste à publier et où en est la publication
+  if(SPUB === "jeton" || SPUB === "refuse") return '<div class="panel jeton noprint"><p><b>Publier la sélection et les annulations.</b> '
+    + (SPUB === "refuse" ? esc(PUB_TXT.refuse) : 'Collez le jeton de publication du tableau de bord (celui de l\'entraîneur) : une fois sur cet appareil, il y reste.')+'</p>'
+    + '<div class="edit"><input id="sjeton" type="password" autocomplete="off" aria-label="Jeton de publication"><button class="btn" data-sjeton="1">Enregistrer et publier</button></div></div>';
+  const n = gestPending(), msg = SPUB && (n || SPUB !== "envoyee") ? '<p class="note'+(SPUB === "erreur" || SPUB === "trop" ? " envoi-ko" : "")+'">'+esc(SPUB_TXT[SPUB] || "")+'</p>' : "";
+  if(!n || SPUB === "envoi" || SPUB === "envoyee") return msg;
+  return msg + '<p class="note injury-box">'+n+' changement'+(n > 1 ? "s" : "")+' pas encore publié'+(n > 1 ? "s" : "")+' (sélection, match annulé ou rétabli) : '
+    + 'les autres ne le voient pas encore. <button class="btn" data-mpub="1">Publier</button></p>';
 }
-function trainingsBlock(list){
-  if(!list.length) return "";
-  const names = l => l.map(p => esc(p.nom)+(isGK(p) ? ' <small class="pst">GB</small>' : '')).join(", ");
-  return sec("seances", "Entraînements")+'Les entraînements</h2><div class="panel">'+list.map(e => {
-    if(e.annule) return '<div class="seance off"><b>'+esc(fmtDate(e.day))+'</b> <span class="small muted">pas d\'entraînement (annulé)</span> <button class="link" data-annule="'+e.id+'">rétablir</button></div>';
-    const t = tally(e), gk = t.present.filter(isGK).length, n = t.present.length, s = t.attente.length + t.sans.length;
-    return '<details class="seance"'+keep("s-"+e.day, false)+'><summary><b>'+esc(fmtDate(e.day))+'</b> · <b>'+(n - gk)+'</b> joueur'+(n - gk > 1 ? "s" : "")+' de champ + <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")
-      + ' <span class="small muted">· '+t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+s+' sans réponse</span></summary>'
-      + (n ? '<p class="small"><b>Présents</b> : '+names(t.present)+'</p>' : '')
-      + (t.absent.length ? '<p class="small"><b>Absents</b> : '+t.absent.map(p => { const x = statusOf(p.cle, e);
-          return esc(p.nom)+' <span class="muted">('+esc(motifTxt(x))+(x.retard ? ', en retard' : '')+')</span>'; }).join(", ")+'</p>' : '')
-      + (s ? '<p class="small"><b>Sans réponse</b> : '+names([...t.attente, ...t.sans])+(t.sans.length ? ' <span class="muted">(délai passé : absents sans justification)</span>' : '')+'</p>' : '')
-      + '<p><button class="link" data-annule="'+e.id+'">Pas d\'entraînement ce jour-là</button></p></details>';
-  }).join("")+'</div>';
+// ce que l'entraîneur a tranché (blessé, absent déclaré) ou l'effectif (indisponible, parti) : dit à côté du nom
+const hardWhy = (p, m) => injured(p, m) ? "🩹 blessé (déclaré par l'entraîneur)" : gone(p, m) ? untilText(p) : !dispo(p) ? "indisponible pour la saison"
+  : declaredAbsent(p, m) ? "absent (déclaré par l'entraîneur)" : "";
+// les matchs à venir, les plus proches d'abord (annulés compris : on les rétablit)
+const comingMatches = () => { const t = ymd(new Date()); return agendaList().filter(m => String(m.date || "9999").slice(0, 10) >= t).slice(0, 8); };
+const unset = e => squad().filter(p => concerned(p, e) && !declaredAbsent(p, e.m) && statusOf(p.cle, e).etat === "attente");
+function gestionBlock(){
+  const list = comingMatches();
+  if(!list.length) return '<div class="panel"><p class="small muted">Aucun match à venir pour l\'instant.</p></div>';
+  const m = list.find(x => String(x.id) === String(S.presM)) || list[0], id = String(m.id), e = evMatch(m), r = PLAN.find(x => String(x.m.id) === id);
+  let h = sec("matchs", "Matchs")+'Les matchs</h2><div class="seg wrap noprint" role="group" aria-label="Match">'
+    + list.map(x => '<button data-presm="'+esc(x.id)+'" aria-pressed="'+(x === m)+'">'+esc(roundShort(x))+' · '+esc(teamShort(x.adversaire))+(annuleId("M-" + x.id) ? ' 🚫' : '')+'</button>').join("")+'</div>'
+    + '<div class="panel gestion" style="margin-top:12px"><p class="when">'+matchLine(m)+' · '+esc(teamShort(m.adversaire))+'</p>';
+  if(e.annule) return h + '<p><span class="pst-etat off">🚫 match annulé</span> <span class="small muted">plus de présence ni de sélection, pas de vote ; les réponses déjà données sont gardées</span></p>'
+    + '<p><button class="link" data-gannule="M-'+esc(id)+'">Rétablir ce match</button></p></div>';
+  const t = tally(e), gk = t.present.filter(isGK).length, todo = unset(e), sel = selOf(id), mine = new Set(sel);
+  h += '<p class="small"><b>'+(t.present.length - gk)+'</b> joueur'+(t.present.length - gk > 1 ? "s" : "")+' de champ et <b>'+gk+'</b> gardien'+(gk > 1 ? "s" : "")+' présents · '
+    + t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+' · '+todo.length+' pas encore renseigné'+(todo.length > 1 ? "s" : "")+'</p>'
+    + (todo.length > 1 ? '<p class="small"><button class="link" data-mrep-tous="'+esc(e.id)+'">Présent : les '+todo.length+' pas encore renseignés</button></p>' : '');
+  // la sélection de l'entraîneur : saisie pour les matchs de la planification, publiée comme ses choix
+  if(r){
+    const gkOf = c => !!byCle(c) && isGK(byCle(c)), ngk = sel.filter(gkOf).length, dirty = id in gest().sel && !sameSet(gest().sel[id], pubSel(id)), pub = pubOf(m);
+    const away = sel.filter(c => byCle(c) && availOf(byCle(c), r.m) === "a");
+    const state = dirty ? '<span class="feuille mid">pas encore publiée</span>' : pub ? '<span class="feuille ok">publiée'+(pub.le ? ' le '+esc(dayShort(pub.le)) : '')+'</span>'
+      : '<span class="feuille sugg">pas encore saisie</span>';
+    h += '<div class="sel-gest"><p><b>Sélection de l\'entraîneur</b> · '+sel.length+'/'+r.size+' dont '+ngk+' gardien'+(ngk > 1 ? "s" : "")+' '+state+'</p>'
+      + (sel.length ? '<p class="small">'+sel.slice().sort((x, y) => gkOf(y) - gkOf(x) || memberName(x).localeCompare(memberName(y))).map(c => esc(memberName(c))).join(", ")+'</p>'
+        : '<p class="small muted">Tant qu\'elle n\'est pas publiée, les joueurs voient la suggestion du tableau de bord. Touchez « Retenir » à côté de chaque joueur retenu.</p>')
+      + '<div class="edit">'+(dirty ? '<button class="btn" data-mpub="1"'+(sel.length > SEL_MAX ? ' disabled' : '')+'>Publier la sélection</button>' : '')
+      + (sel.length ? '' : '<button class="btn ghost" data-msug="'+esc(id)+'">Reprendre la suggestion</button>')
+      + (sel.length ? '<button class="link" data-mvide="'+esc(id)+'">Tout retirer</button>' : '')+'</div>'
+      + (sel.length > SEL_MAX ? '<p class="small cstop">'+SEL_MAX+' joueurs au plus.</p>' : '')
+      + (away.length ? '<p class="small cstop">⚠️ Retenu'+(away.length > 1 ? "s" : "")+' mais absent'+(away.length > 1 ? "s" : "")+' : '+away.map(c => esc(memberName(c))).join(", ")
+        + ' (l\'entraîneur verra la feuille « à revoir »).</p>' : '')+'</div>';
+  } else h += '<p class="small muted">La sélection de l\'entraîneur se saisit pour les '+PLAN.length+' prochains matchs.</p>';
+  const order = squad().slice().sort((a, b) => !!isGK(b) - !!isGK(a) || String(a.nom).localeCompare(String(b.nom)));
+  h += '<div class="reps">'+order.map(p => { const s = statusOf(p.cle, e), [cls, label] = ETAT_P[s.etat], hard = hardWhy(p, m), open = PF.ev === e.id && PF.who === p.cle;
+    const k = esc(e.id)+'|'+esc(p.cle), on = mine.has(p.cle);
+    return '<div class="rep'+(open ? " open" : "")+(hard ? " off" : "")+'"><div class="rep-l"><span><b>'+esc(p.nom)+'</b>'+(poste(p) ? ' <small class="pst">'+esc(poste(p))+'</small>' : '')
+      + (on ? ' <span class="feuille ok">retenu</span>' : '')+'<br><span class="pst-etat '+cls+'">'+label+(s.etat === "absent" && s.motif ? ' · '+esc(MOTIFS[s.motif] || "") : '')+(s.envoi ? ' · envoi en cours' : '')+'</span> '
+      + (s.etat === "absent" && s.texte ? '<span class="small muted">« '+esc(s.texte)+' »</span> ' : '')+(hard ? '<span class="small muted">'+esc(hard)+'</span>' : '')+'</span>'
+      + '<span class="rep-btn"><button class="btn'+(s.etat === "present" ? "" : " ghost")+'" data-mrep="'+k+'" aria-pressed="'+(s.etat === "present")+'">Présent</button>'
+      + '<button class="btn'+(s.etat === "absent" ? "" : " ghost")+'" data-mrep-abs="'+k+'" aria-pressed="'+(s.etat === "absent")+'">Absent</button>'
+      + (r ? '<button class="btn'+(on ? "" : " ghost")+'" data-msel="'+esc(id)+'|'+esc(p.cle)+'" aria-pressed="'+on+'">'+(on ? "Retenu" : "Retenir")+'</button>' : '')+'</span></div>'
+      + (open ? '<div class="absform">'+motifPart()+'</div>' : '')+'</div>'; }).join("")+'</div>'
+    + '<p><button class="link" data-gannule="M-'+esc(id)+'">Annuler ce match</button> <span class="small muted">(reporté, forfait… : vu de tous une fois publié ; les réponses sont gardées)</span></p></div>';
+  return h;
 }
-function viewPresences(){
-  const me = stored(MOI) || "", today = ymd(new Date()), coming = events(today, addDays(today, 27)), votes = ballots();
-  const season = events(presStart(), presEnd());   // tout le calendrier : chacun répond à l'avance
-  let h = '<header class="top"><p class="when">Réponse au plus tard '+(PRESC().delai_jours ?? 4)+' jours avant, '+limiteTxt()
-    + ' ; sans réponse, absent sans justification</p><h1>Présences</h1></header>' + (COACH ? sendLine() : "");
-  const hdm = votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, COACH ? "" : me)).join("") : "";
-  if(COACH) return withJumps(h + jetonBox() + (statusPending() ? '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : '
-      + 'les joueurs ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>' : '')
-    + annulesNote() + boardBlock() + trainingsBlock(coming.filter(e => e.type === "e")) + seasonBlock(season) + hdm);
-  h += meBlock() + annulesNote() + hdm + sec("reponses", "Mes réponses")+'Mes réponses</h2>';
-  if(!String(me).startsWith("R:")) return withJumps(h + '<div class="panel"><p class="small muted">Dites d\'abord qui vous êtes : chaque joueur répond pour lui-même.</p></div>');
-  return withJumps(h + '<div class="panel reps"><p class="small muted">Tout le calendrier de la saison : répondez à l\'avance, mois par mois. '
-    + 'Seul l\'entraîneur voit les réponses de chacun ; vous ne voyez que les vôtres.</p>' + periodBlock() + monthsBlock(season, me) + '</div>');
+function viewPresences(){   // celui qui les tient, et lui seul (l'onglet est caché à tous les autres)
+  const me = stored(MOI) || "", votes = ballots();
+  const h = '<header class="top"><p class="when">Qui vient à chaque match, et la sélection de l\'entraîneur : vous seul les saisissez ; '
+    + 'seuls l\'entraîneur et vous voyez les réponses</p><h1>Présences</h1></header>' + meBlock() + gestNote() + annulesNote() + gestionBlock();
+  return withJumps(h + (votes.length ? sec("hdm", "Homme du match")+'Homme du match</h2>'+votes.map(b => voteCard(b, me)).join("") : "")
+    + sec("ecarts", "Écarts")+'L\'entraîneur face aux propositions</h2><div class="panel">'+ecartsBlock()+'</div>');
 }
-// le calendrier mois par mois : les deux premiers ouverts, « présent » d'un coup pour ce qui reste sans réponse
-const notYet = (e, me) => !e.annule && e.day >= ymd(new Date()) && statusOf(me, e).etat === "attente";
-function monthsBlock(list, me){
-  const months = {};
-  for(const e of list) (months[e.day.slice(0, 7)] = months[e.day.slice(0, 7)] || []).push(e);
-  return Object.entries(months).map(([mo, l], i) => { const todo = l.filter(e => notYet(e, me));
-    return '<details class="mois"'+keep("mois-"+mo, i < 2 || l.some(e => e.id === PF.ev))+'><summary><b>'+esc(monthName(mo).replace(/^./, c => c.toUpperCase()))+'</b> '
-      + '<span class="small muted">'+l.filter(e => !e.annule).length+' rendez-vous · '+(todo.length ? todo.length+' sans réponse' : 'tout est répondu ✓')+'</span></summary>'
-      + (todo.length > 1 ? '<p class="small"><button class="link" data-rep-mois="'+mo+'">Présent à tout ce qui reste sans réponse en '+esc(monthName(mo).split(" ")[0])+'</button></p>' : '')
-      + l.map(e => answerRow(e, me)).join("")+'</details>'; }).join("");
-}
-// la séance à importer dans HANDBALL-training, avec ceux qui ont dit venir à l'instant (entraîneur)
+// la séance à importer dans HANDBALL-training, avec ceux qui ont dit venir à l'instant (entraîneur), tant que les
+// entraînements sont suivis
 function seanceWithCounts(){
   const f = JSON.parse(JSON.stringify(D.seance_hbt)), s = f && f.contenu && f.contenu.seance;
-  if(COACH && PRESJ && s && s.date){
+  if(COACH && PRESJ && s && s.date && PRESC().entrainements !== false){
     const t = tally(evTraining(String(s.date).slice(0, 10))), gk = t.present.filter(isGK).length;
     s.effectifGardiens = gk; s.effectifJoueurs = t.present.length - gk;
   }
@@ -3393,11 +3490,14 @@ function render(keepScroll){
   const newer = !NEWER ? "" : location.protocol === "file:"
     ? '<p class="demo">Une version plus récente de ce fichier existe.'+(CFG.versions ? ' <a href="'+esc(CFG.versions)+'" target="_blank" rel="noopener">La télécharger</a>' : '')+'</p>'
     : '<p class="demo">Une nouvelle version de la page est en ligne : elle s\'affichera d\'elle-même d\'ici quelques minutes, sans rien perdre de vos réglages.</p>';
+  GESTION = isManager();
+  applyTabs();
+  if(S.tab === "presences" && !GESTION) S.tab = !COACH && stored(MOI) ? "moi" : "planif";
   PLAN = planning();
   document.getElementById("app").innerHTML = newer + santeBanner() + VIEWS[S.tab]() + quiBlock();
   document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
   const more = document.querySelector("nav.tabs [data-plus]");
-  if(more) more.classList.toggle("on", !PRIMARY.includes(S.tab));
+  if(more) more.classList.toggle("on", !primaryTabs().includes(S.tab));
   plusMenu(false);
   window.scrollTo(0, keepScroll ? y : 0);
 }
@@ -3467,21 +3567,27 @@ document.addEventListener("click", ev => {
   else if(t.dataset.quiBack || t.dataset.quiOpen){ QUI = {}; render(true); }
   else if(t.dataset.quiAucun){ try { localStorage.setItem(MOI_AUCUN, "1"); localStorage.removeItem(MOI); } catch (e) {} QUI = null; render(true); }
   else if(t.dataset.quiClose){ QUI = null; render(true); }
-  // présences : sa réponse, son motif, une période ; le vote ; la feuille et les séances de l'entraîneur
-  else if(t.dataset.rep){ declare([t.dataset.rep], "present"); }
-  else if(t.dataset.repAbs){ PF = {ev: t.dataset.repAbs, motif: "", texte: "", du: "", au: ""}; render(true); }
-  else if(t.dataset.periode){ const d = presStart(); PF = {ev: "periode", motif: "", texte: "", du: d, au: d}; render(true); }
-  else if(t.dataset.repMois){ const me = stored(MOI), mo = t.dataset.repMois;
-    const evs = events(mo + "-01", mo + "-31").filter(e => notYet(e, me)).map(e => e.id);
-    if(evs.length) declare(evs, "present"); }
+  // présences (celui qui les tient) : la réponse de chaque joueur, son motif, tous présents ; la sélection de
+  // l'entraîneur, un match annulé ou rétabli, puis la publication ; le vote (tous)
+  else if(t.dataset.mrep && GESTION){ const [ev, c] = t.dataset.mrep.split("|"); declare(c, [ev], "present"); }
+  else if(t.dataset.mrepAbs && GESTION){ const [ev, c] = t.dataset.mrepAbs.split("|"); PF = {ev, who: c, motif: "", texte: ""}; render(true); }
+  else if(t.dataset.mrepTous && GESTION){ const m = agendaList().find(x => "M-" + x.id === t.dataset.mrepTous);
+    if(m) declare(unset(evMatch(m)).map(p => p.cle), [t.dataset.mrepTous], "present"); }
   else if(t.dataset.motif){ PF.motif = t.dataset.motif; render(true); }
-  else if(t.dataset.repAnnule){ PF = {ev: null, motif: "", texte: "", du: "", au: ""}; render(true); }
-  else if(t.dataset.repEnvoi && motifOK()){ const evs = PF.ev === "periode" ? periodEvents() : [PF.ev];
-    if(evs.length) declare(evs, "absent", PF.motif, PF.texte); else showWhy("Aucun entraînement ni match à venir entre ces deux dates."); }
+  else if(t.dataset.repAnnule){ PF = {ev: null, who: null, motif: "", texte: ""}; render(true); }
+  else if(t.dataset.repEnvoi && motifOK()){ declare(PF.who, [PF.ev], "absent", PF.motif, PF.texte); }
+  else if(t.dataset.msel && GESTION){ const [id, c] = t.dataset.msel.split("|"), g = gest(), cur = selOf(id);
+    g.sel[id] = cur.includes(c) ? cur.filter(x => x !== c) : [...cur, c]; setGest(g); render(true); }
+  else if(t.dataset.msug && GESTION){ const r = PLAN.find(x => String(x.m.id) === t.dataset.msug), g = gest();
+    if(r){ g.sel[t.dataset.msug] = r.sel.map(p => p.cle); setGest(g); render(true); } }
+  else if(t.dataset.mvide && GESTION){ const g = gest(); g.sel[t.dataset.mvide] = []; setGest(g); render(true); }
+  else if(t.dataset.mpub && GESTION){ publishGestion(); }
+  else if(t.dataset.sjeton && GESTION){ const v = (document.getElementById("sjeton").value || "").trim(); if(v){ try { localStorage.setItem(SEL_TOKEN, v); } catch (e) {} publishGestion(); } }
+  else if(t.dataset.gannule && GESTION){ const k = t.dataset.gannule, on = !annuleId(k);
+    if(on && !confirm("Annuler ce match pour tout le monde ? Les réponses déjà données sont gardées.")) return;
+    const g = gest(); g.annule[k] = on; setGest(g); render(true); publishGestion(); }
   else if(t.dataset.vote){ const [mid, c] = t.dataset.vote.split("|"); vote(mid, c); }
   else if(t.dataset.presm){ S.presM = t.dataset.presm; save(); render(true); }
-  else if(t.dataset.sel && COACH){ const [id, cle, how] = t.dataset.sel.split("|"); moveSel(id, cle, how === "in"); save(); render(true); }
-  else if(t.dataset.annule && COACH){ S.annule = S.annule || {}; S.annule[t.dataset.annule] = !annuleId(t.dataset.annule); save(); render(true); }
   else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
   else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
@@ -3559,7 +3665,6 @@ document.addEventListener("change", ev => {
   if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
   if(t.id === "cme"){ setMe(t.value); render(true); return; }
   if(t.id === "jtri"){ JTRI = t.value; render(true); return; }
-  if(t.id === "pf-du" || t.id === "pf-au"){ PF[t.id.slice(3)] = t.value; return; }
   if(t.id === "cdate"){ PICK.date = t.value; return; }
   if(t.dataset.cpenadd !== undefined){ if(t.value){ (PENS[t.dataset.cpenadd] = PENS[t.dataset.cpenadd] || {})[t.value] = {a: 0, h: 0}; } render(true); return; }
   if(t.id === "adv"){ S.adv = t.value; save(); render(true); }
@@ -3621,7 +3726,7 @@ async function fetchChoices(){   // vrai si les choix publiés ont changé
   if(!env){ try { env = JSON.parse(stored(CHOIX_KEY) || "null"); } catch (e) {} }   // hors connexion : la dernière copie
   if(!env || env.donnees === CHOIX_SIG) return false;
   try { CHOIX = await openVault(env, phrase); CHOIX_SIG = env.donnees; } catch (e) { return false; }
-  forgetWithdrawn();
+  forgetWithdrawn(); forgetGest();
   try { localStorage.setItem(CHOIX_KEY, JSON.stringify(env)); } catch (e) {}
   return true;
 }
@@ -3634,7 +3739,8 @@ function validate(id){   // la feuille du moment devient le choix de l'entraîne
   const r = PLAN.find(x => String(x.m.id) === String(id));
   if(!r) return;
   S.valide = S.valide || {};
-  S.valide[r.m.id] = {joueurs: r.sel.map(p => p.cle), le: new Date().toISOString(), journee: r.m.journee ?? null};
+  S.valide[r.m.id] = withSuggestion(r.m.id, {joueurs: r.sel.map(p => p.cle), le: new Date().toISOString(), journee: r.m.journee ?? null,
+                                              suggestion: (S.valide[r.m.id] || {}).suggestion});
   if(S.retire) delete S.retire[r.m.id];
   save(); render(true);
   publishChoices();
@@ -3656,8 +3762,8 @@ async function publishChoices(){
   // ce qui est déjà publié (un autre ordinateur a pu valider d'autres matchs), puis les validations d'ici
   // les matchs à venir, et les derniers joués (le bilan d'un match compare la feuille au choix de l'entraîneur)
   const ids = new Set([...PLAN.map(r => String(r.m.id)), ...(D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).map(x => String(x.id))]), matchs = {};
-  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = c;
-  for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = c;
+  for(const [id, c] of Object.entries((CHOIX && CHOIX.matchs) || {})) if(ids.has(id) && !(S.retire && S.retire[id])) matchs[id] = inPlan(id) ? withSuggestion(id, c) : c;
+  for(const [id, c] of Object.entries(S.valide || {})) if(c && ids.has(id)) matchs[id] = withSuggestion(id, c);
   PUB = "envoi"; render(true);
   try {
     const env = await sealVault({format:"hbpsm-choix", v:1, matchs, blesses: blesses(), absents: absentsNow(), rdv: rdvNow(), annulees: annuleesNow()}, phrase);
@@ -3743,6 +3849,7 @@ async function check(){
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire
     if(await fetchCN()) render(true);        // une proposition d'amende d'un joueur
     if(await fetchPresences()) render(true); // une réponse de présence, un « Vous êtes », un vote
+    resendPending();                          // ce qui attend encore sur cet appareil repart
     if(await fetchSante()) render(true);     // une alerte de santé (site, feuilles, jetons)
     if(m.maj && m.maj !== GENERE){
       const env = await fetchVault();
@@ -3802,7 +3909,7 @@ async function start(phrase){
   render(false);
   status();
   fetchChoices().then(changed => { if(changed) render(true); });
-  fetchCaisse().then(changed => { if(changed) render(true); });
+  fetchCaisse().then(changed => { if(changed) render(true); if(outbox().length && canWrite()) flushCaisse(); });   // saisies restées en route
   fetchCN().then(changed => { if(changed) render(true); if(cnOutbox().length) sendCN(); });
   fetchPresences().then(changed => { if(changed) render(true); ensureClaim(); });   // « Vous êtes » choisi avant : partagé
   fetchSante().then(changed => { if(changed) render(true); });   // une proposition restée en route : renvoyée
