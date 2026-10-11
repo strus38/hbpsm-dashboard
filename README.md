@@ -15,7 +15,7 @@ joueur est chiffré avant d'y entrer (AES-256-GCM, clé dérivée d'une phrase s
 | `publie/hbpsm.enc` | données du tableau de bord et séance à importer | qui connaît la phrase |
 | `publie/etat.enc` | état de la collecte (rencontres, feuilles lues) | qui connaît la phrase |
 | `publie/historique.enc` | saisons passées collectées (rencontres, feuilles lues) | qui connaît la phrase |
-| `publie/manifeste.json` | date et empreinte de la dernière mise à jour, heure de la dernière collecte réussie | tout le monde |
+| `publie/manifeste.json` | date et empreinte de la dernière mise à jour, heure de la dernière collecte réussie et ce qu'elle a apporté (nombres seulement) | tout le monde |
 | `publie/seance-prochaine.hbt.json` | séance du prochain entraînement, sans nom de joueur | tout le monde |
 | `publie/tableau-public.json` | résumé d'équipe sans nom de joueur (prochain match, classements, chances, repérage par numéro) | tout le monde |
 | `publie/matchs.ics` | calendrier des matchs du club (équipes, dates, gymnases, scores), sans nom de joueur, auquel on s'abonne | tout le monde |

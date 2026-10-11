@@ -68,6 +68,8 @@ p{margin:0 0 8px}
 .club b{font:700 1.25rem var(--display);letter-spacing:.03em;color:var(--accent)}
 .club span{font-size:.86rem;color:var(--structure-100)}
 .club .etat{margin-left:auto;font-size:.78rem}
+.club .etat .dot{display:inline-block;width:.8em;height:.8em;margin-left:5px;border-radius:50%;vertical-align:.02em}
+.club .etat .dot.vert{background:#3ddc84}.club .etat .dot.orange{background:#ffa630}
 .demo a{color:var(--on-accent)}
 /* ce qui a changé depuis la dernière visite (D.nouveautes) */
 .nouv{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent-trait);border-radius:8px;padding:10px 12px;margin:12px 0 0}
@@ -675,9 +677,11 @@ let CHOIX = null, CHOIX_SIG = null, PUB = "", PUB_POLL = null;
 // que la composition d'équipe (absences et postes saisis ici), et revient voir s'il y a du nouveau.
 const VERIF = Math.max(1, Number(CFG.verif) || 600) * 1000;
 let GENERE = null, CHECKED = null, ONLINE = false, CHECKING = false, NEWER = false;
-// la dernière collecte réussie sur le site de la fédération (manifeste, demande de l'auteur, 11/10/2026) : même quand
-// elle n'apporte rien de nouveau ; gardée sur l'appareil pour la dire aussi hors connexion
-let COLLECTE = (() => { try { return localStorage.getItem("hbpsm:collecte"); } catch (e) { return null; } })();
+// la dernière collecte réussie sur le site de la fédération (manifeste, demandes de l'auteur, 11/10/2026) : son heure,
+// même quand elle n'apporte rien, et un point vert (nouveaux résultats ou feuilles) ou orange (rien de nouveau) ;
+// gardée sur l'appareil pour la dire aussi hors connexion
+let COLLECTE = null, APPORT = null;
+try { ({le: COLLECTE = null, apport: APPORT = null} = JSON.parse(localStorage.getItem("hbpsm:collecte")) || {}); } catch (e) {}
 const POSTES = ["GB","ALG","ARG","DC","ARD","ALD","PIV"];
 const POSTE_NOM = {GB:"Gardien",ALG:"Ailier gauche",ARG:"Arrière gauche",DC:"Demi-centre",ARD:"Arrière droit",ALD:"Ailier droit",PIV:"Pivot"};
 const PLAN_NOM = {equilibre:"Équilibré",attaque:"Attaque",rigueur:"Rigueur"};
@@ -3991,23 +3995,30 @@ function gate(message, busy){
   if(input && !busy) input.focus();
 }
 const hhmm = d => d.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
-const whenShort = d => { const t = new Date(), y = new Date(t); y.setDate(t.getDate() - 1);
-  return d.toDateString() === t.toDateString() ? "à " + hhmm(d) : d.toDateString() === y.toDateString() ? "hier à " + hhmm(d)
-    : d.toLocaleDateString("fr-FR", {weekday: "short", day: "numeric", month: "numeric"}) + " à " + hhmm(d); };
 const collecteDate = () => { const d = new Date(COLLECTE || ""); return isNaN(d) ? null : d; };
+// l'heure seule le jour même ; sinon « hier 18:07 », « ven. 09/10 18:07 »
+const whenTime = d => { const t = new Date(), y = new Date(t); y.setDate(t.getDate() - 1);
+  return d.toDateString() === t.toDateString() ? hhmm(d) : (d.toDateString() === y.toDateString() ? "hier"
+    : d.toLocaleDateString("fr-FR", {weekday: "short", day: "2-digit", month: "2-digit"})) + " " + hhmm(d); };
+const plural = (n, un, des) => n + " " + (n > 1 ? des : un);
+const apportTxt = a => !a ? "" : a.resultats || a.feuilles
+  ? [a.resultats ? plural(a.resultats, "nouveau résultat", "nouveaux résultats") : "", a.feuilles ? plural(a.feuilles, "nouvelle feuille lue", "nouvelles feuilles lues") : ""].filter(Boolean).join(", ")
+  : "rien de nouveau";
 function sourceText(){
   const g = new Date(GENERE), c = collecteDate();
   return "Données du " + (isNaN(g) ? GENERE : g.toLocaleString("fr-FR", {dateStyle:"medium", timeStyle:"short"}))
-    + (c ? ", dernière collecte réussie sur le site de la fédération le " + c.toLocaleString("fr-FR", {dateStyle:"medium", timeStyle:"short"}) : "")
+    + (c ? ", dernière collecte réussie sur le site de la fédération le " + c.toLocaleString("fr-FR", {dateStyle:"medium", timeStyle:"short"}) + (APPORT ? " (" + apportTxt(APPORT) + ")" : "") : "")
     + (ONLINE ? ", dernière vérification à " + hhmm(CHECKED) + " (toutes les " + Math.round(VERIF / 60000 || 1) + " min)."
               : ", copie gardée sur cet ordinateur (hors connexion" + (CHECKED ? ", dépôt injoignable à " + hhmm(CHECKED) : "") + ").");
 }
 function status(){
   const etat = document.getElementById("club-etat"), src = document.getElementById("source");
-  const c = collecteDate();
-  if(etat){ etat.textContent = !GENERE ? "" : (ONLINE ? "à jour · " + hhmm(CHECKED) : "hors connexion") + (c ? " · dernière collecte " + whenShort(c) : "");
+  const c = collecteDate(), neuf = APPORT && (APPORT.resultats || APPORT.feuilles);
+  if(etat){ etat.innerHTML = !GENERE ? "" : esc((ONLINE ? "à jour · " + hhmm(CHECKED) : "hors connexion") + (c ? " · dernière collecte " + whenTime(c) : ""))
+      + (c && APPORT ? '<i class="dot '+(neuf ? "vert" : "orange")+'" role="img" aria-label="'+esc(apportTxt(APPORT))+'"></i>' : "");
     etat.title = !GENERE ? "" : (ONLINE ? "Données vérifiées à " + hhmm(CHECKED) + ". " : "")
-      + (c ? "Dernière collecte réussie sur le site de la fédération : " + c.toLocaleString("fr-FR", {dateStyle:"full", timeStyle:"short"}) + "." : ""); }
+      + (c ? "Dernière collecte réussie sur le site de la fédération : " + c.toLocaleString("fr-FR", {dateStyle:"full", timeStyle:"short"})
+        + (APPORT ? ", " + apportTxt(APPORT) + " (point " + (neuf ? "vert" : "orange") + ")" : "") + "." : ""); }
   if(src && GENERE) src.textContent = sourceText();
 }
 async function fetchVault(){
@@ -4046,7 +4057,9 @@ async function check(){
   try {
     const m = await (await fetch(CFG.manifeste + "?t=" + Date.now(), {cache:"no-store"})).json();
     CHECKED = new Date(); ONLINE = true;
-    if(m.collecte && m.collecte !== COLLECTE){ COLLECTE = m.collecte; try { localStorage.setItem("hbpsm:collecte", COLLECTE); } catch (e) {} }
+    if(m.collecte && (m.collecte !== COLLECTE || JSON.stringify(m.apport || null) !== JSON.stringify(APPORT))){
+      COLLECTE = m.collecte; APPORT = m.apport || null;
+      try { localStorage.setItem("hbpsm:collecte", JSON.stringify({le: COLLECTE, apport: APPORT})); } catch (e) {} }
     if(m.app && m.app !== CFG.app && !NEWER){ NEWER = true; render(true); waitNewPage(m.app); }  // la page elle-même a évolué
     if(await fetchChoices()) render(true);   // l'entraîneur a validé une feuille
     if(await fetchCaisse()) render(true);    // une saisie de la caisse noire

@@ -111,6 +111,15 @@ def compare(prev, data):
     return items
 
 
+def fresh(items):
+    """Ce qu'un passage a apporté du site de la fédération : nouveaux résultats et nouvelles feuilles lues, du club et
+    des autres équipes de nos poules (le point vert ou orange de la dernière collecte, à côté de « à jour »)."""
+    club = [x for x in items if x.get("t") == "resultat"]
+    poules = [x for x in items if x.get("t") == "poules"]
+    return dict(resultats=sum(1 for x in club if x.get("score")) + sum(x.get("resultats") or 0 for x in poules),
+                feuilles=sum(1 for x in club if x.get("feuille")) + sum(x.get("feuilles") or 0 for x in poules))
+
+
 def record(items, source, now):
     """Ajoute la ligne de ce passage (source : « collecte » ou « recalcul ») s'il a changé quelque chose ; renvoie
     les lignes gardées, de la plus ancienne à la plus récente."""

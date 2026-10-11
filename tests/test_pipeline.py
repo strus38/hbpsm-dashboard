@@ -458,7 +458,8 @@ def test_publication_chiffree(sandbox, monkeypatch):
     assert manifest["collecte"] is None
     common.write_json(sandbox / "data" / collect.REUSSIE, dict(le="2026-10-04T06:07:00Z"))
     publish.seal("2026-10-04")
-    assert json.loads((out / "manifeste.json").read_text("utf-8")) == dict(manifest, collecte="2026-10-04T06:07:00Z")
+    assert json.loads((out / "manifeste.json").read_text("utf-8")) == dict(manifest, collecte="2026-10-04T06:07:00Z",
+                                                                          apport=dict(resultats=0, feuilles=0))   # point orange
     assert (out / "hbpsm.enc").read_text("utf-8") == before
     (sandbox / "data" / collect.REUSSIE).unlink()   # un recalcul, sans collecte : celle d'avant reste
     publish.seal("2026-10-04")
@@ -842,6 +843,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
           D.saison.matchs[0].attente = true; render(true); })()""")
         page.click("nav.tabs button[data-tab=saison]")
         assert "dernière collecte" in page.inner_text("#club-etat") and "dernière collecte réussie" in page.inner_text("#source")
+        assert page.locator("#club-etat .dot.orange").count() == 1   # la première publication : rien de nouveau à comparer
         main = page.inner_text("main")
         assert "Résultats attendus" in main and "Proj." in main and "rang provisoire" in main and "Journée 3 incomplète" in main
         assert page.locator("td .att").count() == 1 and page.locator(".stakes .sk.att").count() == 1
@@ -850,6 +852,9 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte
         publish.seal("2026-10-04")
         page.wait_for_function("() => D && D.meta.matchs === 24", timeout=20000)
+        # la collecte a apporté de nouveaux résultats : point vert à côté de son heure
+        page.wait_for_selector("#club-etat .dot.vert", timeout=20000)
+        assert "6 nouveaux résultats" in page.get_attribute("#club-etat", "title")
         assert page.get_attribute("nav.tabs button[data-tab=saison]", "aria-selected") == "true"
         # l'entraîneur valide la feuille du 1er match : elle part chiffrée au workflow « Choix de l'entraîneur »
         sent = []

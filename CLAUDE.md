@@ -684,8 +684,11 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   la saison passée (`pastPlayers`) et la liste « Leurs gardiens » ont disparu. Rien de tout cela dans le résumé public.
 - Dernière collecte réussie (demande de l'auteur, 11/10/2026, à côté de « à jour ») : `collect.main` écrit
   `data/collecte.json` (UTC, « Z ») quand les deux poules sont lues ; `seal` le met au manifeste (`collecte`), réécrit
-  même sans nouvelle donnée (un commit par passage) ; un recalcul garde la précédente. Page : `COLLECTE`
-  (« hbpsm:collecte », aussi hors connexion), `status()` « à jour · HH:MM · dernière collecte … », `sourceText`.
+  même sans nouvelle donnée (un commit par passage) ; un recalcul garde la précédente. Avec elle, `apport`
+  (`nouveautes.fresh` : nouveaux résultats et feuilles de ce passage, d'après la comparaison avec la publication
+  d'avant). Page : `COLLECTE`, `APPORT` (« hbpsm:collecte » en JSON, aussi hors connexion), `status()` « à jour · HH:MM ·
+  dernière collecte HH:MM » (jour devant si ce n'est pas aujourd'hui, `whenTime`) et un point vert (nouveaux résultats
+  ou feuilles) ou orange (rien de nouveau) ; le détail au survol, et dans `sourceText`.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

@@ -278,7 +278,8 @@ def seal(today=None):
         data["selections"] = selections.record_auto(auto, data.get("agenda") or [], data["meta"]["instant"], config.get("saison"))
     # ce qui a changé depuis la publication d'avant : le bandeau de la page (pipeline/nouveautes.py)
     source = "recalcul" if os.environ.get("HBPSM_RECALCUL") else "collecte"
-    data["nouveautes"] = nouveautes.record(nouveautes.compare(previous_data(secret), data), source, data["meta"]["genere"])
+    items = nouveautes.compare(previous_data(secret), data)
+    data["nouveautes"] = nouveautes.record(items, source, data["meta"]["genere"])
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""
     hist = history_state()
@@ -289,8 +290,11 @@ def seal(today=None):
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()
-    # la dernière collecte réussie (pipeline/collect.py ; un recalcul ne collecte pas : celle d'avant reste)
-    ran = (read_json(DATA / collect.REUSSIE, {}) or {}).get("le") or previous.get("collecte")
+    # la dernière collecte réussie (pipeline/collect.py ; un recalcul ne collecte pas : celle d'avant reste) et ce qu'elle
+    # a apporté : nouveaux résultats ou feuilles (point vert), rien (point orange) ; demande de l'auteur, 11/10/2026
+    ran_now = (read_json(DATA / collect.REUSSIE, {}) or {}).get("le")
+    ran = ran_now or previous.get("collecte")
+    apport = nouveautes.fresh(items) if ran_now else previous.get("apport")
     cfg = page_config(config)
     public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
     public_board = json.dumps(public_summary(data), ensure_ascii=False, indent=1)
@@ -318,9 +322,9 @@ def seal(today=None):
         write_json(PUBLIE / "etat.enc", vault.encrypt(state, secret))
         write_json(PUBLIE / "manifeste.json", dict(format="hbpsm-manifeste", v=1, maj=now,
                                                    empreinte=digest, app=cfg["app"],
-                                                   historique=hist_digest if hist else None, collecte=ran))
-    elif ran != previous.get("collecte"):   # rien de nouveau, mais le site a été relu : la page le dit
-        write_json(PUBLIE / "manifeste.json", dict(previous, collecte=ran))
+                                                   historique=hist_digest if hist else None, collecte=ran, apport=apport))
+    elif (ran, apport) != (previous.get("collecte"), previous.get("apport")):   # rien de nouveau, mais le site a été relu
+        write_json(PUBLIE / "manifeste.json", dict(previous, collecte=ran, apport=apport))
     release = changed and data["meta"]["matchs"] > 0
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
