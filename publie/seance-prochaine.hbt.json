@@ -1,25 +1,25 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-10T10:25:40.000Z",
+ "exporteLe": "2026-10-11T07:55:30.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-10-10",
-   "titre": "Préparer P16M DIV- SABLONS RHODIA SAINT MAURICE",
+   "id": "tableau-de-bord-2026-10-11",
+   "titre": "Préparer P16M DIV - NORD DROME HANDBALL",
    "date": "2026-10-13",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
-   "objectifSeance": "Avant P16M DIV- SABLONS RHODIA SAINT MAURICE (journée 2, sam. 10 oct., à l’extérieur). Aucun écart marqué par rapport aux autres équipes : entretenir les acquis. Adversaire : 21,0 buts marqués et 29,0 encaissés par match ; à surveiller : n° 12 (6,0 buts/match), n° 7 (4,0 buts/match).",
+   "objectifSeance": "Avant P16M DIV - NORD DROME HANDBALL (Coupe de France, 1er tour, sam. 17 oct., à l’extérieur). Aucun écart marqué par rapport aux autres équipes : entretenir les acquis. Adversaire : 32,8 buts marqués et 24,8 encaissés par match ; à surveiller : n° 4 (5,0 buts/match), n° 5 (4,8 buts/match).",
    "effectifJoueurs": 0,
    "effectifGardiens": 0,
    "espaceDisponible": "",
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-10T10:25:40.000Z",
-   "modifieLe": "2026-10-10T10:25:40.000Z"
+   "creeLe": "2026-10-11T07:55:30.000Z",
+   "modifieLe": "2026-10-11T07:55:30.000Z"
   }
  }
 }
