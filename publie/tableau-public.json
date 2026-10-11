@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-11 09:55",
+ "genere": "2026-10-11 10:42",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -64,7 +64,7 @@
    4.0
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (32,8 buts/match, médiane 28,0) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (32,8 buts/match, médiane 29,0) : priorité à la discipline et à l'impact collectif.",
   "niveau": 1,
   "poule_libelle": "1re division masculine P16 AURA, poule 6",
   "forfait": null,
@@ -191,7 +191,7 @@
    4.0
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (32,0 buts/match, médiane 28,0) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (32,0 buts/match, médiane 29,0) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -607,6 +607,23 @@
    },
    {
     "rang": 2,
+    "equipe": "MEYLAN HANDBALL 2",
+    "pts": 4,
+    "j": 2,
+    "v": 1,
+    "n": 0,
+    "d": 1,
+    "bp": 69,
+    "bc": 61,
+    "diff": 8,
+    "forme": [
+     "D",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
     "equipe": "HANDBALL CLUB PONTOIS",
     "pts": 3,
     "j": 1,
@@ -622,7 +639,7 @@
     "forfait": null
    },
    {
-    "rang": 3,
+    "rang": 4,
     "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 2",
     "pts": 3,
     "j": 1,
@@ -638,7 +655,7 @@
     "forfait": null
    },
    {
-    "rang": 4,
+    "rang": 5,
     "equipe": "RC DOMENE",
     "pts": 3,
     "j": 1,
@@ -654,23 +671,24 @@
     "forfait": null
    },
    {
-    "rang": 5,
-    "equipe": "MEYLAN HANDBALL 2",
-    "pts": 1,
-    "j": 1,
+    "rang": 6,
+    "equipe": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+    "pts": 2,
+    "j": 2,
     "v": 0,
     "n": 0,
-    "d": 1,
-    "bp": 28,
-    "bc": 31,
-    "diff": -3,
+    "d": 2,
+    "bp": 51,
+    "bc": 83,
+    "diff": -32,
     "forme": [
+     "D",
      "D"
     ],
     "forfait": null
    },
    {
-    "rang": 6,
+    "rang": 7,
     "equipe": "HAND BIEVRE TERRES FROIDES",
     "pts": 1,
     "j": 1,
@@ -680,22 +698,6 @@
     "bp": 23,
     "bc": 34,
     "diff": -11,
-    "forme": [
-     "D"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 7,
-    "equipe": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
-    "pts": 1,
-    "j": 1,
-    "v": 0,
-    "n": 0,
-    "d": 1,
-    "bp": 21,
-    "bc": 42,
-    "diff": -21,
     "forme": [
      "D"
     ],
@@ -712,6 +714,15 @@
    "ext": "BIEVRE HANDBALL",
    "sd": 22,
    "se": 21
+  },
+  {
+   "poule": "72",
+   "journee": 2,
+   "date": "2026-10-10T19:30",
+   "dom": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+   "ext": "MEYLAN HANDBALL 2",
+   "sd": 30,
+   "se": 41
   },
   {
    "poule": "72",
