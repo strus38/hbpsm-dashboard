@@ -237,6 +237,8 @@ def test_course_au_classement(sandbox):
 def test_pronostics_gardes_puis_compares(sandbox, monkeypatch):
     """Le pronostic de chaque match du club est gardé jusqu'au coup d'envoi, puis confronté à la feuille ;
     les saisons lues apprennent au modèle l'avantage du terrain et le poids des présents."""
+    # une horloge hors des dates du test : le jour même, analyze prendrait l'heure réelle (échec le 11/10/2026)
+    monkeypatch.setattr(an, "paris_now", lambda: dt.datetime(2026, 9, 1, 12, 0))
     demo(sandbox)
     d = an.analyze("2026-10-04")
     p = d["pronostics"]
@@ -1004,6 +1006,53 @@ def test_workflows_lisibles():
         d = yaml.safe_load(f.read_text("utf-8"))
         assert (d.get(True) or d.get("on")) and d.get("jobs"), f.name
 
+
+
+def test_horloge_de_la_collecte(tmp_path):
+    """La collecte part à l'heure de Paris, été comme hiver (demande de l'auteur, 11/10/2026) : dimanche et lundi
+    toutes les deux heures de 6 h à 22 h, les autres jours à 6 h, 12 h et 18 h. Le script même du workflow, avec
+    l'heure de Paris et GitHub simulés ; pas de seconde collecte quand une attend déjà son tour."""
+    import shutil
+    import subprocess
+    import yaml
+    bash = shutil.which("bash")
+    if not bash:
+        pytest.skip("bash nécessaire")
+    d = yaml.safe_load((ROOT_DIR / ".github" / "workflows" / "horloge.yml").read_text("utf-8"))
+    crons = [c["cron"] for c in (d.get(True) or d["on"])["schedule"]]
+    body = d["jobs"]["lancer"]["steps"][0]["run"]
+    fakes = ('date() { echo "$FAUX_DECALAGE"; }\n'
+             'gh() { if [ "$1" = run ]; then echo "$FAUSSE_ATTENTE"; else echo "$*" >> "$JOURNAL"; fi; }\n')
+
+    def expand(field, top):
+        out = set()
+        for part in field.split(","):
+            rng, _, step = part.partition("/")
+            lo, _, hi = rng.partition("-")
+            out |= set(range(int(lo), int(hi or lo) + 1, int(step or 1))) if rng != "*" else set(range(top))
+        return out
+
+    def launched(cron, offset, waiting="0"):
+        log = tmp_path / "journal.txt"
+        log.unlink(missing_ok=True)
+        env = dict(os.environ, HORAIRE=cron, FAUX_DECALAGE=offset, FAUSSE_ATTENTE=waiting, JOURNAL=str(log),
+                   BRANCHE="main", GITHUB_REPOSITORY="exemple/depot", GH_TOKEN="faux")
+        subprocess.run([bash, "--noprofile", "--norc", "-eo", "pipefail", "-c", fakes + body], env=env, check=True,
+                       capture_output=True)
+        sent = log.read_text("utf-8") if log.exists() else ""
+        assert sent in ("", "workflow run weekly.yml --repo exemple/depot --ref main\n"), sent
+        return bool(sent)
+
+    for offset, utc in (("+0200", 2), ("+0100", 1)):
+        paris = {day: set() for day in range(7)}   # 0 = dimanche, comme cron
+        for cron in crons:
+            if launched(cron, offset):
+                _, hours, _, _, days = cron.split()
+                for day in expand(days, 7):
+                    paris[day] |= {h + utc for h in expand(hours, 24)}
+        assert paris[0] == paris[1] == set(range(6, 23, 2)), (offset, paris)
+        assert all(paris[day] == {6, 12, 18} for day in range(2, 7)), (offset, paris)
+    assert not launched(crons[0], "+0200", waiting="1")   # une collecte attend déjà : elle partira du dernier état
 
 def test_calendrier_des_matchs(tmp_path):
     """Le calendrier auquel chacun s'abonne : les matchs du club (championnat et coupe), à l'heure de Paris,

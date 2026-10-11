@@ -46,9 +46,12 @@ une phrase courte se devine par essais successifs.
 3. **Actions > Collecte quotidienne > Run workflow**. Les adresses des poules 71 et 72 sont
    dans `config.yml` ; vides, la collecte les retrouve sur la page de la compétition.
 
-Ensuite la collecte tourne seule chaque jour du dimanche au vendredi à 05:00 UTC (7 h à
-Paris l'été, 6 h l'hiver) : les feuilles arrivent dans le désordre, et une journée n'est close
-que lorsque toutes ses feuilles sont lues. Dates et heures sont celles de Paris. Quand les données changent,
+Ensuite la collecte tourne seule, à l'heure de Paris (demande de l'auteur, 11/10/2026) : le dimanche
+et le lundi toutes les deux heures de 6 h à 22 h, du mardi au samedi à 6 h, 12 h et 18 h. Les feuilles
+arrivent dans le désordre, et une journée n'est close que lorsque toutes ses feuilles sont lues. GitHub
+ne programme qu'en UTC : le workflow « Horloge de la collecte » (`horloge.yml`) porte chaque horaire pour
+l'heure d'été et pour l'heure d'hiver, et ne lance « Collecte quotidienne » que sur celui de la saison
+du jour (sauf si une collecte attend déjà son tour). GitHub peut retarder un lancement programmé. Dates et heures sont celles de Paris. Quand les données changent,
 une Release « Données du … » est créée.
 
 ## Pour les entraîneurs
@@ -522,7 +525,7 @@ devient lisible qu'après une dizaine de matchs, jamais une preuve.
 Demande de l'auteur (10/10/2026) : recalculer toutes les statistiques à chaque nouvelle feuille, à chaque
 choix de l'entraîneur avant le match, et à tout ce qui peut améliorer les pronostics.
 
-- **Nouvelles feuilles** : la collecte quotidienne (du dimanche au vendredi) recalcule tout : notes, forces
+- **Nouvelles feuilles** : la collecte (`horloge.yml` : dimanche et lundi toutes les deux heures, sinon trois fois par jour) recalcule tout : notes, forces
   des adversaires, modèle (terrain, buteurs absents, gardiens), pronostics, simulation de la saison,
   propositions, bilans.
 - **Choix de l'entraîneur** (feuille validée, sélection de celui qui tient les présences, blessés, absents,

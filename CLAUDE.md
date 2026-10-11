@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (62 tests au 10/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (63 tests au 11/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -80,9 +80,15 @@ Le dépôt GitHub est vide au 04/10/2026 : rien n'a encore été poussé.
 3. Après la journée 2 (10-11/10), relancer et vérifier qu'une journée close n'est plus relue.
 
 En local : `python -m venv .venv`, `.venv/Scripts/python -m pip install -r requirements-dev.txt`.
-Rester léger avec le site de la fédération : deux poules, un passage par jour du dimanche au
-vendredi (demande de l'auteur, 04/10/2026, car les feuilles arrivent dans le désordre), une
-seconde entre deux pages, ne pas relire une journée dont toutes les feuilles sont lues.
+Rester léger avec le site de la fédération : deux poules, une seconde entre deux pages, ne pas relire
+une journée dont toutes les feuilles sont lues. Horaire (demande de l'auteur, 11/10/2026 ; avant : une fois
+par jour du dimanche au vendredi) : dimanche et lundi toutes les deux heures de 6 h à 22 h, du mardi au
+samedi à 6 h, 12 h et 18 h, heure de Paris. `horloge.yml` porte chaque horaire en UTC pour l'heure d'été et
+pour l'heure d'hiver et ne lance `weekly.yml` (plus de `schedule` dans celui-ci) que sur la ligne dont la
+première heure tombe à 6 h à Paris ce jour-là, et pas si une collecte attend déjà ; ses passages sans objet
+restent hors du groupe `collecte`, où ils prendraient la place d'une collecte ou d'un recalcul en attente.
+Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lancement de 05:00 UTC parti vers
+11:30-12:00 UTC (5-9/10/2026), un jour sauté (06/10).
 
 ## Points ouverts
 

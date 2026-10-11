@@ -9,10 +9,9 @@ name: Collecte quotidienne
 run-name: ${{ inputs.recalcul && 'Recalcul après les choix de l''entraîneur' || 'Collecte quotidienne' }}
 
 on:
-  schedule:
-    # chaque jour du dimanche au vendredi, 05:00 UTC (7 h à Paris l'été, 6 h l'hiver) : les feuilles
-    # arrivent dans le désordre, une journée n'est close que lorsque toutes sont lues
-    - cron: "0 5 * * 0-5"
+  # lancée par « Horloge de la collecte » (horloge.yml, à l'heure de Paris : dimanche et lundi toutes les deux heures
+  # de 6 h à 22 h, les autres jours à 6 h, 12 h et 18 h ; les feuilles arrivent dans le désordre, une journée n'est
+  # close que lorsque toutes sont lues), par « Choix de l'entraîneur » (recalcul) ou à la main
   workflow_dispatch:
     inputs:
       url_poule_71:

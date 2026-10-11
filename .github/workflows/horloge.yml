@@ -1,0 +1,51 @@
+# Horloge de la collecte (demande de l'auteur, 11/10/2026) : la collecte quotidienne part, à l'heure de Paris,
+#   - le dimanche et le lundi, toutes les deux heures de 6 h à 22 h (les feuilles du week-end arrivent) ;
+#   - du mardi au samedi, à 6 h, 12 h et 18 h.
+#
+# GitHub ne connaît que l'heure UTC : chaque horaire est écrit deux fois, pour l'heure d'été (Paris = UTC+2) et pour
+# l'heure d'hiver (UTC+1). Le premier passage de chaque ligne tombe à 6 h à Paris dans sa saison : seule la ligne
+# de la saison du jour lance la collecte, l'autre s'arrête aussitôt. Ces passages sans objet restent ici, hors de
+# la file d'attente de la collecte (groupe « collecte »), où ils prendraient la place d'une collecte ou d'un
+# recalcul en attente : ce workflow ne fait que lancer « Collecte quotidienne ».
+# Minute 7 plutôt que 0 : GitHub retarde le plus les lancements programmés du début de l'heure.
+name: Horloge de la collecte
+
+on:
+  schedule:
+    - cron: "7 4-20/2 * * 0,1"    # dimanche, lundi : 6 h, 8 h… 22 h à Paris, heure d'été
+    - cron: "7 5-21/2 * * 0,1"    # dimanche, lundi : heure d'hiver
+    - cron: "7 4,10,16 * * 2-6"   # mardi à samedi : 6 h, 12 h, 18 h à Paris, heure d'été
+    - cron: "7 5,11,17 * * 2-6"   # mardi à samedi : heure d'hiver
+
+permissions:
+  actions: write   # lancer la collecte
+
+jobs:
+  lancer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Lancer la collecte quand c'est l'heure à Paris
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HORAIRE: ${{ github.event.schedule }}
+          BRANCHE: ${{ github.ref_name }}
+        run: |
+          # première heure UTC de la ligne + décalage de Paris ce jour-là = 6 h : c'est la ligne de la saison
+          premiere=$(echo "$HORAIRE" | awk '{ split($2, h, /[^0-9]/); print h[1] }')
+          decalage=$(TZ=Europe/Paris date +%z)   # +0200 l'été, +0100 l'hiver
+          if [ $((premiere + 10#${decalage:1:2})) -ne 6 ]; then
+            echo "Horaire de l'autre saison (heure d'été ou d'hiver) : rien à faire."
+            exit 0
+          fi
+          # une collecte qui attend déjà son tour partira du dernier état : pas besoin d'une autre ; un recalcul en
+          # attente, lui, cède sa place à la collecte, qui fait tout ce qu'il fait
+          filtre='[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "requested")'
+          filtre="$filtre"' | select(.displayTitle == "Collecte quotidienne")] | length'
+          attente=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow weekly.yml --limit 20 --json status,displayTitle -q "$filtre")
+          if [ "${attente:-0}" != "0" ]; then
+            echo "Une collecte attend déjà son tour."
+          else
+            gh workflow run weekly.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCHE"
+            echo "Collecte lancée."
+          fi
