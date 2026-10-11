@@ -234,6 +234,83 @@ def test_course_au_classement(sandbox):
 
 
 
+def test_resultats_attendus(sandbox, monkeypatch):
+    """Les feuilles n'arrivent pas toutes en même temps (demande de l'auteur, 11/10/2026) : un match joué dont le
+    résultat manque est attendu ; les équipes qui l'ont joué comptent un match de moins, leurs points attendus les
+    comparent à matchs égaux ; la journée est incomplète ; notre match joué n'est plus à préparer, et la feuille
+    publiée de l'entraîneur en tient lieu pour la planification."""
+    demo(sandbox)
+    fixtures = common.read_json(sandbox / "data" / "fixtures.json")
+    j3 = [f for f in fixtures if f["poule"] == "71" and f["journee"] == 3]
+    ours = next(f for f in j3 if demo_data.CLUB in (f["home"], f["away"]))
+    other = next(f for f in j3 if f is not ours)
+    for f in (ours, other):
+        f["score_home"] = f["score_away"] = None
+        (sandbox / "data" / "matches" / f"{f['id']}.json").unlink()
+    common.write_json(sandbox / "data" / "fixtures.json", fixtures)
+    d = an.analyze("2026-10-04")
+    P = d["poules"]["71"]
+    assert {a["id"] for a in P["attendus"]} == {ours["id"], other["id"]}
+    assert P["journees"] == [dict(journee=3, connus=1, total=3)]
+    rows = {r["equipe"]: r for r in P["classement"]}
+    played = {t for f in (ours, other) for t in (f["home"], f["away"])}
+    assert all(rows[t]["attente"] == 1 and rows[t]["pts"] + 1 <= rows[t]["pts_attendus"] <= rows[t]["pts"] + 3 for t in played)
+    assert all(r["attente"] == 0 and "pts_attendus" not in r for t, r in rows.items() if t not in played)
+    assert sorted(r["rang_attendu"] for r in P["classement"]) == list(range(1, len(rows) + 1))
+    assert d["poules"]["72"]["attendus"] == [] and "rang_attendu" not in d["poules"]["72"]["classement"][0]
+    s = d["saison"]
+    assert s["attente"]["n"] == 2 and s["attente"]["club"] == 1 and s["attente"]["rang"] == rows[demo_data.CLUB]["rang_attendu"]
+    mine = next(m for m in s["matchs"] if m["id"] == ours["id"])
+    assert mine["attente"] and not any(m["attente"] for m in s["matchs"] if m["id"] != ours["id"])
+    assert d["trajectoire"][-1]["journee"] == 3 and d["trajectoire"][-1]["manquants"] == 2 and d["trajectoire"][0]["manquants"] == 0
+    assert {a["id"] for a in d["a_venir"] if a["attente"]} == {ours["id"], other["id"]}
+    # notre match joué : la feuille publiée de l'entraîneur compte pour la planification, en attendant la vraie
+    assert not any(x.get("attente") for x in d["derniers"])
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    kept = [q["cle"] for q in d["joueurs"]][:12]
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(
+        dict(format="hbpsm-choix", v=1, matchs={ours["id"]: dict(joueurs=kept, le="2026-10-02")}), PHRASE, iterations=2000))
+    last = an.analyze("2026-10-04")["derniers"][-1]
+    assert last["id"] == ours["id"] and last["attente"] and set(last["joueurs"]) == set(kept) and last["res"] is None
+    # un horaire à confirmer : attendu une fois le week-end de la journée fini
+    f = dict(date="2026-10-10", date_provisoire=True, score_home=None)
+    assert not an.awaited(f, "2026-10-11T22:00") and an.awaited(f, "2026-10-12T00:00")
+    assert an.awaited(dict(date="2026-10-10T20:30"), "2026-10-10T20:30") and not an.awaited(dict(date="2026-10-10T20:30", score_home=30), "2026-10-11T00:00")
+
+
+def test_joueurs_adverses(sandbox):
+    """Onglet Adversaires (demande de l'auteur, 11/10/2026) : tous leurs joueurs de la saison, avec leurs matchs, leurs
+    chiffres et leur ligne de chaque match ; revus d'une saison à l'autre même écrits autrement (prénom composé)."""
+    demo(sandbox)
+    d = an.analyze("2026-10-04")
+    team = "Équipe fictive Bravo"
+    e = d["equipes"][team]
+    ms = [common.read_json(f) for f in (sandbox / "data" / "matches").glob("*.json")]
+    sheets = [(m, s) for m in ms for s in ("home", "away") if m[s]["name"] == team]
+    assert e["feuilles"] == e["j"] == len(sheets) and {j["nom"] for j in e["joueurs"]} == {p["name"] for m, s in sheets for p in m["players"][s]}
+    assert sum(j["buts"] for j in e["joueurs"]) == sum(m[s]["score"] for m, s in sheets)
+    assert all(j["m"] == len(j["journal"]) and j["buts"] == sum(x.get("buts", 0) for x in j["journal"]) for j in e["joueurs"])
+    gk = [j for j in e["joueurs"] if j["gardien"]]
+    assert gk and all(j["arrets"] > j["buts"] for j in gk) and gk == e["joueurs"][:len(gk)]
+    line = e["joueurs"][-1]["journal"][0]   # ses chiffres du match ; le match lui-même est dans e["matches"]
+    assert "id" in line and set(line) <= {"id", "buts", "pen", "tirs", "arrets", "pris", "deux_min", "jaunes", "rouges"}
+    assert all(v for v in line.values()) and line["id"] in {x["id"] for x in e["matches"]} and all(x["journee"] for x in e["matches"])
+    # la saison passée : un prénom composé, ou un deuxième prénom, ne fait pas un autre joueur
+    pl = lambda name, goals: dict(num=7, name=name, goals=goals, pen_goals=0, shots=0, saves=0, yellow=0, two_min=0, red=0)
+    match = lambda mid, date, players: dict(
+        id=mid, poule="71", journee=1, date=date, played=True, home=dict(name="CLUB ECHO", score=sum(x["goals"] for x in players), ht=None),
+        away=dict(name="CLUB FOXTROT", score=20, ht=None), players=dict(home=players, away=[]), events=[])
+    now = match("1", "2026-10-03T20:30", [pl("BRAVO Pierre", 5), pl("CHARLIE Isidore", 2)])
+    past = match("9", "2025-10-04T20:30", [pl("BRAVO Jean Pierre", 7), pl("DELTA Modeste", 3)])
+    profiles = an.team_profiles([now])
+    an.history_profiles([dict(saison="2025-2026", matches=[past])], profiles, [now], common.load_config())
+    e = profiles["CLUB ECHO"]
+    who = {j["nom"]: j for j in e["joueurs"]}
+    assert who["BRAVO Pierre"]["avant"]["buts"] == 7 and who["CHARLIE Isidore"]["avant"] is None
+    assert {j["nom"]: j["present"] for j in e["passe"]["joueurs"]} == {"BRAVO Jean Pierre": True, "DELTA Modeste": False}
+    assert e["passe"]["continuite"] == dict(deja=1, sur=2)
+
+
 def test_pronostics_gardes_puis_compares(sandbox, monkeypatch):
     """Le pronostic de chaque match du club est gardé jusqu'au coup d'envoi, puis confronté à la feuille ;
     les saisons lues apprennent au modèle l'avantage du terrain et le poids des présents."""
@@ -290,8 +367,11 @@ def test_trajectoire_et_courbe_du_match():
         return dict(journee=j, date=f"2026-09-{10 + j:02d}", home=dict(name=h, score=sh), away=dict(name=a, score=sa))
     ms = [m(1, "Club A", "Club B", 21, 20), m(1, "Club C", "Club D", 25, 10), m(2, "Club A", "Club C", 30, 20), m(2, "Club B", "Club D", 18, 17)]
     teams = {"Club A", "Club B", "Club C", "Club D"}
-    assert an.trajectory(ms, teams, "Club A", 2) == [dict(journee=1, rang=2, sur=4, pts=3, marge=2, dedans=True),
-                                                    dict(journee=2, rang=1, sur=4, pts=6, marge=2, dedans=True)]
+    assert an.trajectory(ms, teams, "Club A", 2) == [dict(journee=1, rang=2, sur=4, pts=3, marge=2, dedans=True, manquants=0),
+                                                    dict(journee=2, rang=1, sur=4, pts=6, marge=2, dedans=True, manquants=0)]
+    # une journée dont un résultat manque : son rang est provisoire
+    cal = [dict(journee=1), dict(journee=1), dict(journee=2), dict(journee=2), dict(journee=2)]
+    assert [t["manquants"] for t in an.trajectory(ms, teams, "Club A", 2, fixtures=cal)] == [0, 1]
     assert [(t["rang"], t["marge"], t["dedans"]) for t in an.trajectory(ms, teams, "Club B", 2)] == [(3, -2, False), (3, 0, False)]
     assert an.trajectory(ms, teams, "Club D", 2, gone=frozenset({"CLUB D"})) == []   # forfait général : hors course
     ev = [dict(t=60, side="home", type="goal", score=[1, 0]), dict(t=125, side="away", type="miss"),
@@ -373,6 +453,16 @@ def test_publication_chiffree(sandbox, monkeypatch):
     before = (out / "hbpsm.enc").read_text("utf-8")
     publish.seal("2026-10-04")
     assert (out / "hbpsm.enc").read_text("utf-8") == before
+    # une collecte réussie sans rien de nouveau : seule son heure change, au manifeste (la page la montre)
+    manifest = json.loads((out / "manifeste.json").read_text("utf-8"))
+    assert manifest["collecte"] is None
+    common.write_json(sandbox / "data" / collect.REUSSIE, dict(le="2026-10-04T06:07:00Z"))
+    publish.seal("2026-10-04")
+    assert json.loads((out / "manifeste.json").read_text("utf-8")) == dict(manifest, collecte="2026-10-04T06:07:00Z")
+    assert (out / "hbpsm.enc").read_text("utf-8") == before
+    (sandbox / "data" / collect.REUSSIE).unlink()   # un recalcul, sans collecte : celle d'avant reste
+    publish.seal("2026-10-04")
+    assert json.loads((out / "manifeste.json").read_text("utf-8"))["collecte"] == "2026-10-04T06:07:00Z"
     # reprise de l'état sur une machine vierge
     import shutil
     shutil.rmtree(sandbox / "data")
@@ -394,6 +484,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
     monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
     monkeypatch.setenv("HBPSM_CLE", PHRASE)
     demo(sandbox)
+    common.write_json(sandbox / "data" / collect.REUSSIE, dict(le="2026-10-04T06:07:00Z"))   # une collecte réussie
     publish.seal("2026-10-04")
     out = sandbox / "publie"
 
@@ -735,7 +826,25 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         main = page.inner_text("main")
         assert "Projection : nos chiffres face aux leurs" in main and "Pas un résultat entre nos deux équipes" in main
         assert page.locator(".vs td.mieux").count() > 0
+        # tous leurs joueurs, vus cette saison ; chacun s'ouvre sur sa fiche (demande de l'auteur, 11/10/2026)
+        n = page.evaluate("D.equipes[document.getElementById('adv').value].joueurs.length")
+        assert n > 0 and page.locator(".opp-list > details").count() == n and "Vus cette saison" in page.inner_text(".opp-list")
+        page.click(".opp-list > details:last-of-type > summary")
+        assert page.locator(".opp-list > details:last-of-type tbody tr").count() == page.evaluate(
+            "D.equipes[document.getElementById('adv').value].joueurs.slice(-1)[0].m")
+        # des résultats attendus : J marqué, colonne des points projetés, liste à part, rang provisoire
+        page.evaluate("""(() => { const P = D.poules[String(D.saison.poule)], r = P.classement.find(x => isUs(x.equipe));
+          P.attendus = [{id: "x1", journee: 3, date: "2026-10-03T20:30", dom: r.equipe, ext: P.classement[1].equipe}];
+          P.journees = [{journee: 3, connus: 2, total: 3}];
+          P.classement.forEach((x, i) => { x.rang_attendu = i + 1; });
+          r.attente = 1; r.pts_attendus = r.pts + 2.1;
+          D.saison.attente = {n: 1, club: 1, rang: 1, pts: r.pts + 2.1, journees: P.journees};
+          D.saison.matchs[0].attente = true; render(true); })()""")
         page.click("nav.tabs button[data-tab=saison]")
+        assert "dernière collecte" in page.inner_text("#club-etat") and "dernière collecte réussie" in page.inner_text("#source")
+        main = page.inner_text("main")
+        assert "Résultats attendus" in main and "Proj." in main and "rang provisoire" in main and "Journée 3 incomplète" in main
+        assert page.locator("td .att").count() == 1 and page.locator(".stakes .sk.att").count() == 1
         page.wait_for_function("() => document.getElementById('club-etat').textContent.startsWith('à jour')")
         assert page.evaluate("D.meta.matchs") == 18
         demo(sandbox, played_days=4)  # une nouvelle collecte est publiée pendant que la page est ouverte

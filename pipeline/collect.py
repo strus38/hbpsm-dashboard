@@ -32,6 +32,10 @@ import urllib.request
 
 from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, paris_now, read_json, write_json
 
+# l'heure (UTC) du dernier passage réussi, les deux poules lues : la publication la met au manifeste, que la page relit
+# (demande de l'auteur, 11/10/2026 : à côté de « à jour », quand a eu lieu la dernière collecte réussie)
+REUSSIE = "collecte.json"
+
 UA = "hbpsm-dashboard/1.0 (suivi de deux poules; +https://github.com/strus38/hbpsm-dashboard)"
 FDM = "https://fdm.fdme.ffhandball.fr/"
 PAUSE = 1.0     # secondes entre deux pages : rester léger avec le site
@@ -411,6 +415,8 @@ def main():
         print(f"[collecte] adversaires de coupe : {exc}", file=sys.stderr)
     write_json(DATA / "fixtures.json", sorted(old.values(), key=lambda f: (f.get("date") or "9999", f["id"])))
     write_json(DATA / "official_standings.json", officials)
+    if not missing:
+        write_json(DATA / REUSSIE, dict(le=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")))
     return 0 if not missing else 2
 
 

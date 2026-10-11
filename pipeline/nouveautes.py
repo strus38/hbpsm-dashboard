@@ -53,8 +53,9 @@ def compare(prev, data):
     others = [r for r in data.get("resultats") or [] if club not in (r.get("dom"), r.get("ext"))]
     res = sum(1 for r in others if str(r.get("id")) not in was)
     sheets = sum(1 for r in others if r.get("feuille") and not (was.get(str(r.get("id"))) or {}).get("feuille"))
-    if res or sheets:
-        items.append(dict(t="poules", resultats=res, feuilles=sheets))
+    if res or sheets:   # et ceux qu'on attend encore : des équipes comptent un match de moins (demande de l'auteur, 11/10/2026)
+        items.append(dict(t="poules", resultats=res, feuilles=sheets,
+                          attendus=sum(len(v.get("attendus") or []) for v in (data.get("poules") or {}).values())))
     s, ps = data.get("saison") or {}, prev.get("saison") or {}
     if s.get("rang") is not None and ps.get("rang") is not None and s["rang"] != ps["rang"]:
         items.append(dict(t="rang", avant=ps["rang"], apres=s["rang"], poule=s.get("poule")))

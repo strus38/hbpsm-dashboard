@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (63 tests au 11/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (65 tests au 11/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -125,7 +125,7 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   « à confirmer » (`date_provisoire`).
 - Heures : toujours celles de Paris (`common.paris_now`, paquet `tzdata` pour Windows), y compris
   sur le runner GitHub en UTC : `meta.genere`, la date du jour, la comparaison avec l'heure des
-  matchs. Seuls `maj` du manifeste et `exporteLe` de la séance restent en UTC, avec leur « Z ».
+  matchs. Seuls `maj` et `collecte` du manifeste et `exporteLe` de la séance restent en UTC, avec leur « Z ».
 - HANDBALL-training ne demande jamais la phrase (décision de l'auteur, 04/10/2026) : son
   écran « Tableau de bord HBPSM » lit `publie/tableau-public.json` et
   `publie/seance-prochaine.hbt.json`, et ouvre la page complète sur GitHub Pages
@@ -663,6 +663,29 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
     le dernier passage ; `NOUV_PRIO`, 6 lignes puis tiroir ; privés pour `seesAll`), `nouvItem`, « Vu »
     (`data-nouv-vu`) ; `liveChoix` dans `fetchChoices` (pas au premier chargement) -> `LIVE`, effacé quand arrivent
     des données plus récentes (`parisMs(D.meta.genere)`).
+- Résultats attendus (demande de l'auteur, 11/10/2026 : les feuilles n'arrivent pas toutes en même temps, un temps des
+  équipes ont plus de matchs comptés que d'autres ; le rendre visible et en tenir compte) : `analyze.awaited` (coup
+  d'envoi passé ; horaire à confirmer : week-end fini, date + 2 jours) sans score. `pending_points` (mêmes forces que
+  la simulation : `forces`, partagée avec `outlook`) donne les points attendus de ces matchs ; `poule_view` : `attente`
+  (matchs attendus de l'équipe), `pts_attendus`, `rang_attendu` (classement à matchs joués égaux), `attendus`,
+  `journees` (connus / total des journées incomplètes) ; `saison.attente` (n, club, rang, pts, journees) ;
+  `outlook(waiting=)` marque `attente` le match du club joué (simulé comme les autres, hors `horizon()` de la page) ;
+  `trajectory(fixtures=)` : `manquants` (point creux) ; `a_venir[].attente`. Notre match joué sans feuille lue mais
+  avec une feuille publiée par l'entraîneur : entrée `derniers` avec `attente` (`unread_club_matches`) qui compte pour
+  les deux changements, la série des gardiens et domicile / extérieur (`unreadApps`), jamais pour le bilan. Page :
+  `+1` sur J, colonne « Proj. », « Résultats attendus », « rang provisoire », barre hachurée « joué » des matchs à
+  gagner, `journeesTxt`. Nouveautés : `poules.attendus`.
+- Joueurs adverses (demande de l'auteur, 11/10/2026 : combien de matchs, « vu cette saison » / « pas vu cette saison »,
+  un clic pour ses chiffres) : `team_profiles` -> `joueurs` (`season_players` : tous ceux des feuilles lues, matchs,
+  buts, tirs, arrêts, buts pris, sanctions, `journal` sans les zéros, `avant` = sa saison passée) et `feuilles` ;
+  revus d'une saison à l'autre par `match_name` (prénom composé, deuxième prénom), aussi pour `present`, la
+  continuité et `avant` des buteurs et gardiens. Page : `oppPlayers` (« Leurs joueurs » : vus cette saison, puis pas
+  vus cette saison, gardiens d'abord), `oppPlayer` (`keep`), `oppSeason`, `oppLine` ; l'ancien tableau des joueurs de
+  la saison passée (`pastPlayers`) et la liste « Leurs gardiens » ont disparu. Rien de tout cela dans le résumé public.
+- Dernière collecte réussie (demande de l'auteur, 11/10/2026, à côté de « à jour ») : `collect.main` écrit
+  `data/collecte.json` (UTC, « Z ») quand les deux poules sont lues ; `seal` le met au manifeste (`collecte`), réécrit
+  même sans nouvelle donnée (un commit par passage) ; un recalcul garde la précédente. Page : `COLLECTE`
+  (« hbpsm:collecte », aussi hors connexion), `status()` « à jour · HH:MM · dernière collecte … », `sourceText`.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

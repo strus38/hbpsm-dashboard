@@ -5,6 +5,7 @@ Sortie  : dictionnaire prêt pour le tableau de bord (docs/data.json).
 """
 import calendar
 import csv
+import datetime as dt
 import hashlib
 import json
 import itertools
@@ -172,6 +173,18 @@ def rank_teams(teams, results, last=None):
     return order
 
 
+def awaited(f, now):
+    """Match joué dont le résultat n'est pas encore connu (demande de l'auteur, 11/10/2026 : les feuilles arrivent les
+    unes après les autres ; un temps, des équipes ont plus de matchs comptés que d'autres) : coup d'envoi passé ou,
+    horaire à confirmer, week-end de la journée fini. now : « AAAA-MM-JJTHH:MM », heure de Paris."""
+    if f.get("score_home") is not None or not f.get("date") or not now:
+        return False
+    d = str(f["date"])
+    if f.get("date_provisoire") or len(d) < 16:
+        return now >= (dt.date.fromisoformat(d[:10]) + dt.timedelta(days=2)).isoformat() + "T00:00"
+    return now >= d[:16]
+
+
 def standings(matches, teams=()):
     table = {t: dict(equipe=t, pts=0, j=0, v=0, n=0, d=0, bp=0, bc=0, forme=[]) for t in teams}
     for m in sorted(matches, key=lambda x: x.get("date") or ""):
@@ -198,7 +211,8 @@ def standings(matches, teams=()):
 def team_profiles(matches, teams_by_poule=None):
     """Profil de chaque équipe des deux poules (repérage des adversaires)."""
     acc = defaultdict(lambda: dict(matches=[], scorers=defaultdict(
-        lambda: dict(buts=0, pen=0, m=0, num=None, tirs=0, tirs_buts=0)), jaunes=0, deux_min=0, rouges=0,
+        lambda: dict(buts=0, pen=0, m=0, num=None, nums=Counter(), tirs=0, tirs_buts=0, arrets=0, pris=0, cadres=0,
+                     estime=False, deux_min=0, jaunes=0, rouges=0, journal=[])), jaunes=0, deux_min=0, rouges=0,
         keepers=defaultdict(lambda: dict(arrets=0, pris=0, cadres=0, m=0, estime=False)),
         arrets=0, pris=0, periods_for=[0] * 6, periods_against=[0] * 6, has_events=0))
     for m in sorted(matches, key=lambda x: x.get("date") or ""):
@@ -209,21 +223,35 @@ def team_profiles(matches, teams_by_poule=None):
             ht_a = m[other].get("ht")
             a["poule"] = m.get("poule")
             a["sheets"] = a.get("sheets", 0) + (1 if m.get("players", {}).get(side) else 0)
-            a["matches"].append(dict(id=m["id"], date=m.get("date"), adv=opp,
+            a["matches"].append(dict(id=m["id"], date=m.get("date"), journee=m.get("journee"), adv=opp,
                                      dom=side == "home", bp=gf, bc=ga,
                                      res=outcome(gf, ga), mt_bp=ht_f, mt_bc=ht_a))
             conceded, estimated = keepers_conceded(m, side)
             for p in m.get("players", {}).get(side, []):
-                key = norm(p.get("name")) or f"N{p.get('num')}"
+                key = name_key(p.get("name")) or f"N{p.get('num')}"
                 s = a["scorers"][key]
                 s["nom"] = p.get("name") or f"n° {p.get('num')}"
                 s["num"] = p.get("num")
+                if p.get("num") is not None:
+                    s["nums"][p["num"]] += 1
                 s["buts"] += p.get("goals") or 0
                 s["pen"] += p.get("pen_goals") or 0
                 s["m"] += 1
                 if p.get("shots"):
                     s["tirs"] += p["shots"]
                     s["tirs_buts"] += p.get("goals") or 0
+                pris = conceded.get(p.get("num")) if p.get("saves") else None
+                s["arrets"] += p.get("saves") or 0
+                if pris is not None:
+                    s["pris"] += pris
+                    s["cadres"] += p["saves"] + pris
+                    s["estime"] = s["estime"] or estimated
+                for k, src in (("deux_min", "two_min"), ("jaunes", "yellow"), ("rouges", "red")):
+                    s[k] += p.get(src) or 0
+                # ses chiffres de ce match, sans les zéros (sa fiche, onglet Adversaires) ; le match : matches, même id
+                line = dict(buts=p.get("goals"), pen=p.get("pen_goals"), tirs=p.get("shots"), arrets=p.get("saves"),
+                            pris=pris, deux_min=p.get("two_min"), jaunes=p.get("yellow"), rouges=p.get("red"))
+                s["journal"].append(dict({k: v for k, v in line.items() if v}, id=m["id"]))
                 a["jaunes"] += p.get("yellow") or 0
                 a["deux_min"] += p.get("two_min") or 0
                 a["rouges"] += p.get("red") or 0
@@ -256,7 +284,7 @@ def team_profiles(matches, teams_by_poule=None):
         halves = [x for x in a["matches"] if x["mt_bp"] is not None]
         scorers = sorted(a["scorers"].values(), key=lambda s: -s["buts"])[:5]
         out[team] = dict(
-            equipe=team, poule=a.get("poule"), j=n,
+            equipe=team, poule=a.get("poule"), j=n, feuilles=a.get("sheets", 0),
             bp_moy=round(gf / n, 1), bc_moy=round(ga / n, 1),
             forme=[x["res"] for x in a["matches"]][-5:],
             matches=a["matches"],
@@ -280,14 +308,33 @@ def team_profiles(matches, teams_by_poule=None):
                              for k in a["keepers"].values()), key=lambda k: (-k["m"], -k["arrets"])),
             periodes_bp=[round(x / a["has_events"], 1) for x in a["periods_for"]] if a["has_events"] else None,
             periodes_bc=[round(x / a["has_events"], 1) for x in a["periods_against"]] if a["has_events"] else None,
+            # tous leurs joueurs de la saison (demande de l'auteur, 11/10/2026) : matchs, chiffres, match par match
+            joueurs=season_players(a["scorers"].values()),
         )
     for poule, teams in (teams_by_poule or {}).items():
         for team in teams:
             out.setdefault(team, dict(
-                equipe=team, poule=poule, j=0, bp_moy=None, bc_moy=None, forme=[], matches=[],
+                equipe=team, poule=poule, j=0, feuilles=0, joueurs=[], bp_moy=None, bc_moy=None, forme=[], matches=[],
                 mt1_bp=None, mt2_bp=None, mt1_bc=None, mt2_bc=None, jaunes_moy=None, deux_min_moy=None,
                 rouges=None, buteurs=[], arrets_pct=None, gardiens=[], passe=None,
                 periodes_bp=None, periodes_bc=None))
+    return out
+
+
+def season_players(acc):
+    """Les joueurs d'une équipe cette saison, d'après ses feuilles lues : matchs, buts, tirs, arrêts et buts pris des
+    gardiens, sanctions, et leur ligne de chaque match. Gardien : plus d'arrêts que de buts. Les gardiens d'abord,
+    puis les meilleurs buteurs."""
+    out = []
+    for s in acc:
+        out.append(dict(
+            nom=s["nom"], num=s["nums"].most_common(1)[0][0] if s["nums"] else s["num"], m=s["m"],
+            gardien=s["arrets"] > s["buts"], buts=s["buts"], pen=s["pen"], moy=round(s["buts"] / max(1, s["m"]), 1),
+            tirs=s["tirs"] or None, reussite=round(100 * s["tirs_buts"] / s["tirs"]) if s["tirs"] else None,
+            arrets=s["arrets"], pris=s["pris"] if s["cadres"] else None,
+            pct=save_pct(s["cadres"] - s["pris"], s["pris"]) if s["cadres"] else None, estime=s["estime"],
+            deux_min=s["deux_min"], jaunes=s["jaunes"], rouges=s["rouges"], journal=s["journal"]))
+    out.sort(key=lambda j: (not j["gardien"], -(j["arrets"] if j["gardien"] else j["buts"]), -j["m"], j["nom"]))
     return out
 
 
@@ -315,6 +362,7 @@ def past_players(mine, now, matches, team):
     les meilleurs."""
     num_now = {name_key(pl["name"]): pl.get("num") for m in matches for side in ("home", "away")
                if m[side]["name"] == team for pl in (m.get("players") or {}).get(side, [])}
+    seen = lambda name: match_name(name, now) if now else None   # même écrit autrement : prénom composé, deux noms
     acc = {}
     for m, side in mine:
         plist = (m.get("players") or {}).get(side, [])
@@ -348,7 +396,7 @@ def past_players(mine, now, matches, team):
             arrets=s["arrets"], pris=s["pris"] if s["cadres"] else None,
             pct=save_pct(s["cadres"] - s["pris"], s["pris"]) if s["cadres"] else None, estime=s["estime"],
             deux_min=s["deux_min"], jaunes=s["jaunes"], rouges=s["rouges"],
-            present=(k in now) if now else None, num_now=num_now.get(k)))
+            present=bool(seen(s["nom"])) if now else None, num_now=num_now.get(match_name(s["nom"], num_now) or k)))
     out.sort(key=lambda j: (j["present"] is not True, -(j["arrets"] if j["gardien"] else j["buts"]), -j["m"]))
     return out
 
@@ -418,9 +466,9 @@ def history_profiles(seasons, profiles, matches, config, above=(), rosters=None)
                 for pl in (m.get("players") or {}).get(side, []):
                     scorers[name_key(pl["name"])] += pl.get("goals") or 0
                     names[name_key(pl["name"])] = (pl["name"], pl.get("num"))
-            buteurs = [dict(nom=names[k][0], num=names[k][1], buts=b, present=(k in now) if now else None)
+            buteurs = [dict(nom=names[k][0], num=names[k][1], buts=b, present=bool(match_name(k, now)) if now else None)
                        for k, b in scorers.most_common(3) if b]
-            cont = dict(deja=len(now & last), sur=len(now)) if now and last else None
+            cont = dict(deja=sum(1 for k in now if match_name(k, last)), sur=len(now)) if now and last else None
             rec = dict(saison=season["saison"], niveau=level, division=division_label(season.get("competition")),
                        j=len(mine), v=res.count("V"), n=res.count("N"), d=res.count("D"),
                        bp_moy=round(bp / len(mine), 1), bc_moy=round(bc / len(mine), 1),
@@ -436,12 +484,17 @@ def history_profiles(seasons, profiles, matches, config, above=(), rosters=None)
         level, rec, _, joueurs = recs[0]
         # les joueurs de cette saison déjà là la saison passée : leurs chiffres d'alors
         before = {name_key(j["nom"]): j for j in joueurs}
+        was = lambda name: before.get(match_name(name or "", before))
         for b in prof.get("buteurs") or []:
-            j = before.get(name_key(b.get("nom") or ""))
+            j = was(b.get("nom"))
             b["avant"] = j and dict(m=j["m"], buts=j["buts"], moy=j["moy"], reussite=j["reussite"])
         for g in prof.get("gardiens") or []:
-            j = before.get(name_key(g.get("nom") or ""))
+            j = was(g.get("nom"))
             g["avant"] = j and dict(m=j["m"], arrets=j["arrets"], pct=j["pct"])
+        for x in prof.get("joueurs") or []:   # la fiche de chacun : sa saison passée, s'il y était
+            j = was(x.get("nom"))
+            x["avant"] = j and {k: j[k] for k in ("m", "num", "buts", "pen", "moy", "tirs", "reussite", "arrets", "pris",
+                                                   "pct", "estime", "deux_min", "jaunes", "rouges")}
         prof["passe"] = dict(rec, joueurs=joueurs)
         prof["dessus"] = recs[1][1] if len(recs) > 1 else None
         # deux bilans (les deux divisions) : chacun pèse selon la part de l'effectif qui y jouait
@@ -1055,6 +1108,27 @@ def last_matches(current, past, roster, n=3):
     return out
 
 
+def unread_club_matches(fixtures, read, choix, config, now):
+    """Les matchs du club joués (score connu, ou coup d'envoi passé) dont la feuille n'est pas encore lue mais dont
+    l'entraîneur a publié la feuille : qui y était, d'après lui, en attendant la vraie (demande de l'auteur,
+    11/10/2026). La planification les compte comme joués : deux changements d'un match au suivant, matchs de suite
+    des gardiens, domicile et extérieur. read : identifiants des matchs dont la feuille est lue."""
+    out = []
+    for f in fixtures:
+        mid, dom = str(f.get("id")), is_club(f.get("home"), config)
+        if mid in read or not (dom or is_club(f.get("away"), config)):
+            continue
+        joueurs = ((choix or {}).get(mid) or {}).get("joueurs")
+        if not joueurs or not (f.get("score_home") is not None or awaited(f, now)):
+            continue
+        gf, ga = (f.get("score_home"), f.get("score_away")) if dom else (f.get("score_away"), f.get("score_home"))
+        out.append(dict(id=mid, date=f.get("date"), adversaire=f["away"] if dom else f["home"], domicile=dom,
+                        bp=gf, bc=ga, res=outcome(gf, ga) if gf is not None and ga is not None else None,
+                        journee=f.get("journee"), coupe=f.get("coupe"), tour=f.get("tour"), saison=None,
+                        attente=True, joueurs={k: dict(buts=None, arrets=None) for k in joueurs}, courbe=None))
+    return out
+
+
 def score_curve(m, side):
     """L'écart au score, but après but, vu du club (demande de l'auteur, 08/10/2026 : la course du match dans
     le bilan) : [[minute, écart], …] depuis 0-0 ; None sans déroulé."""
@@ -1065,10 +1139,12 @@ def score_curve(m, side):
     return [[0, 0]] + [[round((e.get("t") or 0) / 60, 1), e["score"][us] - e["score"][1 - us]] for e in goals]
 
 
-def trajectory(matches, teams, club, target, gone=frozenset()):
+def trajectory(matches, teams, club, target, gone=frozenset(), fixtures=()):
     """Le rang et les points du club après chaque journée de sa poule, et sa marge sur la place visée :
     d'avance sur le premier hors de l'objectif quand il y est, de retard sur le dernier qualifié sinon
-    (demande de l'auteur, 08/10/2026 : la course en courbe)."""
+    (demande de l'auteur, 08/10/2026 : la course en courbe). manquants : résultats de la journée pas encore
+    connus (fixtures : le calendrier de la poule, sans les matchs d'une équipe en forfait) ; le rang d'une
+    journée incomplète est provisoire."""
     def num(j):
         try:
             return int(j)
@@ -1083,8 +1159,10 @@ def trajectory(matches, teams, club, target, gone=frozenset()):
             continue
         pts = rows[rang - 1]["pts"]
         other = rows[target] if rang <= target and len(rows) > target else rows[min(target, len(rows)) - 1]
+        total = sum(1 for f in fixtures if num(f.get("journee")) == j)
+        known = sum(1 for m in played if num(m["journee"]) == j)
         out.append(dict(journee=j, rang=rang, sur=len(rows), pts=pts, marge=pts - other["pts"],
-                        dedans=rang <= target))
+                        dedans=rang <= target, manquants=max(0, total - known)))
     return out
 
 
@@ -1115,11 +1193,53 @@ def pairs(with_sheet):
     return out
 
 
+def forces(table, priors=None):
+    """Buts marqués et encaissés attendus de chaque équipe, relatifs à la moyenne de la poule : ses matchs joués,
+    ramenés vers une valeur de départ — la moyenne de poule, ou le niveau de la saison passée d'autant plus que
+    l'effectif est resté (continuité c), pesant 3 à 5 matchs. table : {équipe: ligne du classement}. Renvoie
+    (buts par match de la poule, attaque, défense, poids de départ de chacune)."""
+    total_j = sum(r["j"] for r in table.values()) or 1
+    avg = sum(r["bp"] for r in table.values()) / total_j
+    priors = priors or {}
+    k_of = {t: 3 + 2 * (priors[t][2] if t in priors else 0.0) for t in table}
+
+    def rate(t, scored):
+        r, prior = table[t], priors.get(t)
+        c = prior[2] if prior else 0.0
+        rel = 1 + ((prior[0] if scored else prior[1]) - 1) * c if prior else 1.0
+        return ((r["bp" if scored else "bc"] + k_of[t] * avg * rel) / (r["j"] + k_of[t])) / avg
+
+    return avg, {t: rate(t, True) for t in table}, {t: rate(t, False) for t in table}, k_of
+
+
+def pending_points(played, pending, known=(), priors=None, terrain=None, sims=4000, seed=38160):
+    """Points attendus de chaque équipe sur ses matchs joués dont le résultat n'est pas encore connu (de 1 à 3 chacun,
+    selon les forces des deux équipes, comme la simulation de la saison) : {équipe: points}. Ajoutés à ses points,
+    ils comparent les équipes à matchs joués égaux, le temps que les résultats arrivent."""
+    if not pending or not played:
+        return {}
+    dom_f, ext_f = terrain or (pronostic.DOM, pronostic.EXT)
+    table = {r["equipe"]: r for r in standings(played, known)}
+    for f in pending:
+        for t in (f["home"], f["away"]):
+            table.setdefault(t, dict(equipe=t, pts=0, j=0, bp=0, bc=0))
+    avg, att, dfn, _ = forces(table, priors)
+    rng, out = random.Random(seed), defaultdict(float)
+    for f in pending:
+        mh = avg * att[f["home"]] * dfn[f["away"]] * dom_f
+        ma = avg * att[f["away"]] * dfn[f["home"]] * ext_f
+        for _ in range(sims):
+            gh, ga = max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5)))
+            out[f["home"]] += POINTS[outcome(gh, ga)] / sims
+            out[f["away"]] += POINTS[outcome(ga, gh)] / sims
+    return {t: round(v, 1) for t, v in out.items()}
+
+
 UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
 
 
 def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None,
-            terrain=None):
+            terrain=None, waiting=()):
     """Course au classement : chances d'atteindre le rang visé et enjeu de chaque match.
 
     Chaque match restant est simulé à partir des moyennes de buts marqués et
@@ -1128,7 +1248,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
     valeur, d'autant plus large qu'il y a peu de matchs joués (UNSURE).
     L'enjeu d'un match = chances d'atteindre l'objectif en cas de victoire,
     moins ces chances sinon. terrain : buts attendus à domicile, à l'extérieur, mesurés sur toutes les
-    saisons lues (pronostic.calibrate).
+    saisons lues (pronostic.calibrate). waiting : les matchs joués dont le résultat n'est pas encore connu
+    (identifiants) : simulés comme les autres, marqués attente (ni à préparer, ni à planifier).
     """
     dom_f, ext_f = terrain or (pronostic.DOM, pronostic.EXT)
     played = [m for m in matches if str(m.get("poule")) == str(poule)]
@@ -1155,23 +1276,7 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         over = len(listed) >= 2 * (len(teams) - 1) and all(f.get("score_home") is not None for f in listed)
         base["statut"] = "termine" if over else "calendrier_inconnu"
         return base
-    total_j = sum(r["j"] for r in table.values()) or 1
-    avg = sum(r["bp"] for r in table.values()) / total_j
-    priors = priors or {}
-
-    def rate(t, scored):
-        """Buts marqués (ou encaissés) attendus, relatifs à la moyenne : les matchs joués, ramenés vers
-        une valeur de départ — la moyenne de poule, ou le niveau de la saison passée d'autant plus
-        que l'effectif est resté (continuité c), pesant 3 à 5 matchs."""
-        r, prior = table[t], priors.get(t)
-        c = prior[2] if prior else 0.0
-        rel = 1 + ((prior[0] if scored else prior[1]) - 1) * c if prior else 1.0
-        k = 3 + 2 * c
-        return ((r["bp" if scored else "bc"] + k * avg * rel) / (r["j"] + k)) / avg
-
-    att0 = {t: rate(t, True) for t in table}
-    dfn0 = {t: rate(t, False) for t in table}
-    k_of = {t: 3 + 2 * (priors[t][2] if t in priors else 0.0) for t in table}
+    avg, att0, dfn0, k_of = forces(table, priors)
     unsure = {t: UNSURE * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
     rng = random.Random(seed)
     att, dfn = dict(att0), dict(dfn0)
@@ -1241,7 +1346,7 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
             p_victoire=round(100 * s["v"] / sims),
             si_victoire=None if si_v is None else round(si_v),
             sinon=None if si_o is None else round(si_o), enjeu=enjeu,
-            buts_pour=round(mu, 1), ecart=round(mu - mt, 1)))
+            buts_pour=round(mu, 1), ecart=round(mu - mt, 1), attente=str(f["id"]) in waiting))
     ranked = sorted((m for m in base["matchs"] if m["enjeu"] is not None), key=lambda m: -m["enjeu"])
     keys = {m["id"] for m in ranked[:3] if m["enjeu"] > 0}
     for m in base["matchs"]:
@@ -1316,13 +1421,24 @@ def training_axes(club, profiles, players):
     return axes[:4]
 
 
-def poule_view(matches, teams, official, gone=frozenset()):
+def poule_view(matches, teams, official, gone=frozenset(), fixtures=(), pending=(), expected=None):
     """Classement recalculé, et écarts éventuels avec celui de la fédération (pénalités, forfaits).
-    Une équipe en forfait général (gone, noms normalisés) reste affichée, en bas et sans rang."""
+    Une équipe en forfait général (gone, noms normalisés) reste affichée, en bas et sans rang.
+    Les matchs joués dont le résultat n'est pas encore connu (pending) : combien chaque équipe en attend
+    (attente), ses points une fois ces résultats connus (pts_attendus, expected : pending_points) et son rang
+    alors (rang_attendu) ; les journées incomplètes (fixtures : le calendrier de la poule, sans forfait)."""
     rows = standings(matches, teams)
     kept = [r for r in rows if norm(r["equipe"]) not in gone]
     for i, r in enumerate(kept, 1):
         r["rang"] = i
+    waiting = Counter(t for f in pending for t in (f["home"], f["away"]))
+    for r in kept:
+        r["attente"] = waiting.get(r["equipe"], 0)
+        if r["attente"]:
+            r["pts_attendus"] = round(r["pts"] + (expected or {}).get(r["equipe"], 2.0 * r["attente"]), 1)
+    if pending:   # à matchs joués égaux : chacun avec ses points attendus, le classement d'aujourd'hui départage
+        for i, r in enumerate(sorted(kept, key=lambda r: (-r.get("pts_attendus", r["pts"]), r["rang"])), 1):
+            r["rang_attendu"] = i
     rows = kept + [dict(r, rang=None, forfait=True) for r in rows if norm(r["equipe"]) in gone]
     off = {norm(k): v for k, v in official_table(official).items()}
     off_j = {norm(k): v for k, v in official_table(official, ("J",)).items()}
@@ -1330,7 +1446,14 @@ def poule_view(matches, teams, official, gone=frozenset()):
     gaps = [dict(equipe=r["equipe"], officiel=off[norm(r["equipe"])], calcule=r["pts"],
                  retard=off_j.get(norm(r["equipe"])) is not None and off_j[norm(r["equipe"])] < r["j"])
             for r in kept if off.get(norm(r["equipe"])) is not None and off[norm(r["equipe"])] != r["pts"]]
-    return dict(classement=rows, ecarts=gaps, officiel_lu=bool(off))
+    known = Counter(m.get("journee") for m in matches)
+    total = Counter(f.get("journee") for f in fixtures)
+    days = sorted({f.get("journee") for f in pending}, key=lambda j: (j is None, j))
+    return dict(classement=rows, ecarts=gaps, officiel_lu=bool(off),
+                attendus=[dict(id=str(f["id"]), journee=f.get("journee"), date=f.get("date"),
+                               provisoire=bool(f.get("date_provisoire")), dom=f["home"], ext=f["away"])
+                          for f in sorted(pending, key=lambda f: f.get("date") or "")],
+                journees=[dict(journee=j, connus=known.get(j, 0), total=total.get(j, 0)) for j in days])
 
 
 LOGOS = "https://media-logos-clubs.ffhandball.fr/128/"
@@ -1520,6 +1643,15 @@ def analyze(today=None, roster=None):
     by_poule = defaultdict(list)
     for m in matches:
         by_poule[str(m.get("poule"))].append(m)
+    # l'heure de Paris du calcul (le jour même) ; un autre jour (tests, reprise) : son début
+    stamp = paris_now().strftime("%Y-%m-%dT%H:%M")
+    now = stamp if stamp[:10] == today else today + "T00:00"
+    # les matchs joués dont le résultat n'est pas encore connu : les feuilles arrivent les unes après les autres
+    pending = [f for f in fixtures if awaited(f, now)]
+    waiting = {str(f["id"]) for f in pending}
+    pending_by = defaultdict(list)
+    for f in pending:
+        pending_by[str(f.get("poule"))].append(f)
     profiles = team_profiles(matches, teams)
     league_profiles = dict(profiles)
     rivals = {(f["away"] if is_club(f.get("home"), config) else f["home"]) for f in every_fixture
@@ -1592,8 +1724,21 @@ def analyze(today=None, roster=None):
     terrain = (cal["dom"], cal["ext"])
     saison = (outlook(matches, fixtures, club_name, club_poule, target,
                       known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors,
-                      terrain=terrain)
+                      terrain=terrain, waiting=waiting)
               if club_name else None)
+    # à matchs joués égaux : les points attendus des matchs joués dont le résultat manque, poule par poule
+    views = {}
+    for pid in sorted(set(by_poule) | set(teams)):
+        expected = pending_points(by_poule.get(pid, []), pending_by.get(pid, []),
+                                  [t for t in teams.get(pid, ()) if norm(t) not in gone], priors, terrain)
+        views[pid] = poule_view(by_poule.get(pid, []), teams.get(pid, ()), official.get(pid), gone,
+                                [f for f in fixtures if str(f.get("poule")) == pid], pending_by.get(pid, []), expected)
+    if saison and club_poule is not None and views.get(str(club_poule), {}).get("attendus"):
+        view = views[str(club_poule)]
+        row = next((r for r in view["classement"] if r["equipe"] == club_name), None)
+        saison["attente"] = dict(n=len(view["attendus"]), journees=view["journees"],
+                                 club=(row or {}).get("attente", 0), rang=(row or {}).get("rang_attendu"),
+                                 pts=(row or {}).get("pts_attendus", (row or {}).get("pts")))
     if saison and saison.get("matchs") is not None:  # les matchs de coupe à venir, à leur date
         saison["matchs"] = sorted(saison["matchs"] + cup_ahead(every_fixture, config, today, saison["matchs"]),
                                   key=lambda m: m.get("date") or "9999")
@@ -1607,16 +1752,15 @@ def analyze(today=None, roster=None):
                                              terrain=terrain)
                 m["buts_pour"], m["ecart"] = goals.get("pour"), goals.get("ecart")
     chances = record_chances(saison, len(with_sheet))
-    trajet = trajectory(by_poule.get(str(club_poule), []), teams.get(str(club_poule), ()), club_name, target, gone) if club_name else []
+    trajet = trajectory(by_poule.get(str(club_poule), []), teams.get(str(club_poule), ()), club_name, target, gone,
+                        [f for f in fixtures if str(f.get("poule")) == str(club_poule)]) if club_name else []
     plan_since = freeze_plan(players, (saison or {}).get("matchs") or [], [m["id"] for m, *_ in with_sheet], roster, config,
                              all_history)
     axes = training_axes(club_name, profiles, [p for p in players if p["m"]])
     # les pronostics gardés avant chaque match, et ce que la feuille en a dit (onglets Adversaires, Saison)
-    stamp = paris_now().strftime("%Y-%m-%dT%H:%M")
     year = [m for x in history if latest and x.get("saison") == latest for m in x.get("matches") or []]
     w_past = HIST * fade(len(with_sheet))
     choix = published_choices()
-    now = stamp if stamp[:10] == today else today + "T00:00"
     agenda = club_agenda(every_fixture, every_match, config, roster)
     # les feuilles publiées de l'entraîneur, et la proposition du tableau de bord à côté (pipeline/selections.py) :
     # avant les pronostics, qui disent après le match ce que valait chacune
@@ -1640,8 +1784,7 @@ def analyze(today=None, roster=None):
                       every_match + [m for x in history for m in x.get("matches") or []], config)))),
         prochain=nxt,
         parcours=config.get("parcours") or [],   # le parcours de l'équipe depuis 2015 (onglet Saison)
-        poules={p: poule_view(by_poule.get(p, []), teams.get(p, ()), official.get(p), gone)
-                for p in sorted(set(by_poule) | set(teams))},
+        poules=views,
         resultats=sorted((dict(id=m["id"], poule=str(m.get("poule")), journee=m.get("journee"),
                                date=m.get("date"), dom=m["home"]["name"], ext=m["away"]["name"],
                                sd=m["home"]["score"], se=m["away"]["score"],
@@ -1658,8 +1801,11 @@ def analyze(today=None, roster=None):
         # les deux derniers matchs du club dont la feuille est lue : la planification les montre
         # avant les matchs à venir, pour voir d'un coup d'œil ce que la rotation change
         chances=chances, trajectoire=trajet,
-        derniers=last_matches(with_sheet, [c for c in club_matches_of((seasons[-1].get("matches") or []) if seasons else [], config)
-                                           if c[0].get("players", {}).get(c[1])], roster),
+        # un match joué dont la feuille manque encore compte avec la feuille publiée de l'entraîneur (attente)
+        derniers=sorted(last_matches(with_sheet, [c for c in club_matches_of((seasons[-1].get("matches") or []) if seasons else [], config)
+                                                  if c[0].get("players", {}).get(c[1])], roster)
+                        + unread_club_matches(every_fixture, {str(m["id"]) for m, *_ in with_sheet}, choix, config, now),
+                        key=lambda x: (not x.get("saison") or x["saison"] == config.get("saison"), x.get("date") or ""))[-3:],
         logos=team_logos(read_json(DATA / "fixtures.json", []) or []),
         caisse=dict(reglement=caisse.REGLEMENT, coach=caisse.COACH, saison=config.get("saison"),
                     anniversaires=birthdays(caisse.COACH),
@@ -1671,9 +1817,9 @@ def analyze(today=None, roster=None):
                     propositions=caisse.proposals(with_sheet, roster, [p["cle"] for p in players if p["cle"].startswith("R:")
                                                                        and not (roster.get(p["cle"][2:]) or {}).get("hors_caisse")]
                                                   + [caisse.COACH], config.get("saison") or "")),
-        a_venir=sorted((dict(poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
+        a_venir=sorted((dict(id=str(f.get("id")), poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
                              provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"),
-                             forfait=out_of(f))
+                             forfait=out_of(f), attente=str(f.get("id")) in waiting)
                         for f in fixtures + forfeited if f.get("score_home") is None),
                        key=lambda r: r["date"] or "9999")[:40],
         equipes=profiles, joueurs=players, duos=pairs(with_sheet), plans=PLANS,

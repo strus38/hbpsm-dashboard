@@ -289,6 +289,8 @@ def seal(today=None):
                                        ensure_ascii=False).encode("utf-8")).hexdigest()
     previous = read_json(PUBLIE / "manifeste.json", {}) or {}
     changed = previous.get("empreinte") != digest or not (PUBLIE / "hbpsm.enc").exists()
+    # la dernière collecte réussie (pipeline/collect.py ; un recalcul ne collecte pas : celle d'avant reste)
+    ran = (read_json(DATA / collect.REUSSIE, {}) or {}).get("le") or previous.get("collecte")
     cfg = page_config(config)
     public_seance = json.dumps(seance, ensure_ascii=False, indent=1)
     public_board = json.dumps(public_summary(data), ensure_ascii=False, indent=1)
@@ -316,7 +318,9 @@ def seal(today=None):
         write_json(PUBLIE / "etat.enc", vault.encrypt(state, secret))
         write_json(PUBLIE / "manifeste.json", dict(format="hbpsm-manifeste", v=1, maj=now,
                                                    empreinte=digest, app=cfg["app"],
-                                                   historique=hist_digest if hist else None))
+                                                   historique=hist_digest if hist else None, collecte=ran))
+    elif ran != previous.get("collecte"):   # rien de nouveau, mais le site a été relu : la page le dit
+        write_json(PUBLIE / "manifeste.json", dict(previous, collecte=ran))
     release = changed and data["meta"]["matchs"] > 0
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
