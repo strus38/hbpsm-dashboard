@@ -308,6 +308,10 @@ button.risk{border:0;font:inherit;cursor:help;line-height:inherit}
 .bilan summary::-webkit-details-marker{display:none}
 .bilan p{margin:.5em 0}
 .matchcard.moi{text-align:left}
+.dernier{margin:16px 0 8px;border-left:4px solid var(--accent)}.dernier h3{margin:14px 0 4px;font-size:1rem}.dernier p{margin:.45em 0}
+.dm-when{margin:0;font:600 .95rem var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.dm-score{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0 2px}.dm-score b{font:700 2.4rem var(--display);color:var(--heading)}
+.dm-res{text-align:center}.dm-moi{padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .moi-adv{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:1.1rem}
 .moi-statut{display:inline-block;margin:6px 0;padding:3px 10px;border-radius:99px;font-weight:600;background:rgba(127,127,127,.15)}
 .moi-statut.in{background:color-mix(in srgb,var(--win) 22%,transparent)}
@@ -663,7 +667,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "fb3df7625e31", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "a40b895145d7", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1527,6 +1531,41 @@ function bilanBlock(now = new Date()){
   if(ax.length) h += '<p><b>À travailler cette semaine</b> : '+ax.map(a => esc(a.titre)).join(" · ")+'.</p>';
   return h + '<div class="edit noprint"><button class="btn ghost" data-share-bilan="1">📤 Partager le bilan en image</button></div></details>';
 }
+// Ma semaine : le dernier match mis en avant (demande de l'auteur, 12/10/2026 : mieux comprendre son déroulement) :
+// score et mi-temps, l'écart au score but après but, les buts par tranche de 10 minutes, ce que j'y ai fait, buteurs,
+// gardiens, discipline, pronostic. Les mêmes faits que le bilan de la Semaine (bilanFacts), qui garde le détail.
+function lastMatchCard(me){
+  const f = bilanFacts();
+  if(!f) return "";
+  const {x, rows, scorers, gks, deux, jaunes, rouges, day} = f, px = PRONOS().find(q => String(q.id) === String(x.id) && q.apres);
+  const a = (px || {}).apres || {}, mine = rows.find(o => o.p.cle === me), sl = a.periodes;
+  let h = '<section class="panel dernier"><p class="dm-when">Dernier match · '+esc(roundOf(x))+' · '+esc(fmtDate(day))+'</p>'
+    + '<p class="dm-score">'+logo(D.meta.club, "md")+'<b>'+x.bp+' – '+x.bc+'</b>'+logo(x.adversaire, "md")+'</p>'
+    + '<p class="dm-res"><span class="form"><i class="'+x.res+'">'+x.res+'</i></span> '+({V: "Victoire", D: "Défaite", N: "Match nul"}[x.res] || "")
+    + ' contre <b>'+esc(teamShort(x.adversaire))+'</b> '+(x.domicile ? "à domicile" : "à l'extérieur")
+    + (a.mt ? ' · mi-temps <b>'+a.mt[0]+' – '+a.mt[1]+'</b>' : '')+'</p>';
+  if(x.correction) h += '<p class="small muted">Feuille corrigée à la demande de l\'entraîneur : '+esc(x.correction)+' min.</p>';
+  if(mine){
+    const j = mine.j, gk = isGK(mine.p);
+    h += '<p class="dm-moi">Vous : '+(gk ? '<b>'+(j.arrets || 0)+'</b> arrêt'+((j.arrets || 0) > 1 ? "s" : "")+(j.pct != null ? ' ('+j.pct+' %)' : '')
+        + (j.pris != null ? ', '+j.pris+' but'+(j.pris > 1 ? "s" : "")+' pris' : '')
+      : '<b>'+(j.buts || 0)+'</b> but'+((j.buts || 0) > 1 ? "s" : "")+(j.tirs ? ' sur '+j.tirs+' tir'+(j.tirs > 1 ? "s" : "") : ''))
+      + (j.deux_min ? ', '+j.deux_min+' × 2 min' : '')+(j.jaunes ? ' · '+carton("j", j.jaunes) : '')+(j.rouges ? ' · '+carton("r", j.rouges) : '')+'.</p>';
+  } else if(me && String(me).startsWith("R:")) h += '<p class="small muted">Vous n\'étiez pas sur la feuille.</p>';
+  h += '<h3>Le fil du match</h3>' + (courseChart(x.courbe) || '<p class="small muted">Le déroulé de la feuille n\'est pas lu.</p>');
+  if(sl){
+    const d = sl[0].map((v, i) => v - sl[1][i]), hi = d.indexOf(Math.max(...d)), lo = d.indexOf(Math.min(...d));
+    h += periods({periodes_bp: sl[0], periodes_bc: sl[1]}, "Buts par tranche de 10 minutes", 0, "ce match")
+      + '<p class="small">'+(d[hi] > 0 ? 'Meilleur moment : <b>'+TRANCHES[hi]+' min</b> ('+sl[0][hi]+' – '+sl[1][hi]+')' : 'Aucune tranche gagnée')
+      + (d[lo] < 0 ? ' ; plus difficile : <b>'+TRANCHES[lo]+' min</b> ('+sl[0][lo]+' – '+sl[1][lo]+')' : ' ; aucune tranche perdue')+'.</p>';
+  }
+  if(scorers.length) h += '<p><b>Buteurs</b> : '+scorers.map(o => esc(firstName(o.p))+' '+o.j.buts).join(", ")+'.</p>';
+  if(gks.length) h += '<p><b>Gardiens</b> : '+gks.map(o => esc(firstName(o.p))+' '+(o.j.arrets || 0)+' arrêt'+((o.j.arrets || 0) > 1 ? "s" : "")+(o.j.pct != null ? ' ('+o.j.pct+' %)' : '')).join(", ")+'.</p>';
+  h += '<p><b>Discipline</b> : '+(deux ? deux+' × 2 min' : 'aucune exclusion')+(jaunes ? ' · '+carton("j", jaunes) : '')+(rouges ? ' · '+carton("r", rouges) : '')
+    + ((a.deux_min || [])[1] != null ? ' ; eux : '+a.deux_min[1]+' × 2 min' : '')+'.</p>';
+  if(px) h += '<p class="small"><b>Pronostic</b> : '+pronoShort(px)+'.</p>';
+  return h + '<div class="edit noprint"><button class="btn ghost" data-tab="semaine">Tout le bilan</button><button class="btn ghost" data-share-bilan="1">📤 Partager en image</button></div></section>';
+}
 // L'image du bilan, pour le groupe de l'équipe (demande de l'auteur, 06/10/2026) : fabriquée dans l'appareil,
 // rien n'est publié ; prénoms seulement ; logos pris dans le résumé public, où ils sont intégrés (le serveur
 // des logos ne permet pas de les dessiner) ; à défaut, les initiales
@@ -1693,9 +1732,11 @@ function viewMoi(){
   const me = stored(MOI) || "", P = PLAN, p = byCle(me);
   let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meBlock();
   h += installCard();
-  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre vote pour l\'homme du match, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>';
+  const last = lastMatchCard(me), f = bilanFacts(), fresh = !!f && (new Date() - new Date(f.day + "T12:00")) / 86400000 <= 4;
+  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre vote pour l\'homme du match, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>' + last;
   h += annulesNote();
   if(!COACH && p) h += votesBlock(me);
+  if(fresh) h += last;   // les jours qui suivent le match : en tête
   const status = r => {
     if(!p) return ["", ""];
     if(injured(p, r.m)) return ["hurt", "🩹 blessé"];
@@ -1720,6 +1761,7 @@ function viewMoi(){
     h += '<h2>Les prochains matchs</h2><div class="panel"><ul class="plain moi-list">'+P.map(r => { const [c, txt] = status(r);
       return '<li><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+' <span class="small muted">'+esc(fmtDate(r.m.date, r.m.provisoire))+'</span><br><span class="moi-statut '+c+'">'+txt+'</span></li>'; }).join("")+'</ul></div>';
   }
+  if(!fresh) h += last;
   if(D.caisse){
     const L = ledger(), b = L.bal[me] || {du: 0, paye: 0, cotise: false}, reste = Math.round(((b.du || 0) - (b.paye || 0)) * 100) / 100;
     const mine = L.fines.filter(f => f.joueur === me && f.regle !== "cotisation").slice(-5).reverse();
@@ -2101,13 +2143,13 @@ function opponent(){
   if(!adv || !names.includes(adv)) adv = names[0] || null;
   return {adv, names};
 }
-function periods(e, title = "Buts par tranche de 10 minutes", top = 0){
+function periods(e, title = "Buts par tranche de 10 minutes", top = 0, note = "moyenne par match"){
   if(!e.periodes_bp) return "";
   const max = Math.max(1, top, ...e.periodes_bp, ...e.periodes_bc);
   const lab = ["0-10","10-20","20-30","30-40","40-50","50-60"];
   return '<h3 style="margin-top:14px">'+esc(title)+'</h3><div class="bars">'
     + lab.map((l,i)=>'<div><span class="pair"><i class="f" style="height:'+(64*e.periodes_bp[i]/max)+'px"></i><i class="a" style="height:'+(64*e.periodes_bc[i]/max)+'px"></i></span>'+l+'</div>').join("")
-    + '</div><p class="legend"><i class="f" style="margin-left:0"></i>marqués<i class="a"></i>encaissés (moyenne par match)</p>';
+    + '</div><p class="legend"><i class="f" style="margin-left:0"></i>marqués<i class="a"></i>encaissés ('+esc(note)+')</p>';
 }
 function common(adv){
   const us = D.equipes[D.meta.club], them = D.equipes[adv];
