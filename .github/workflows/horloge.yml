@@ -8,6 +8,8 @@
 # la file d'attente de la collecte (groupe « collecte »), où ils prendraient la place d'une collecte ou d'un
 # recalcul en attente : ce workflow ne fait que lancer « Collecte quotidienne ».
 # Minute 7 plutôt que 0 : GitHub retarde le plus les lancements programmés du début de l'heure.
+# Constaté le 11/10/2026 : 2 passages sur 12 partis, avec plus de six heures de retard. Remplacé par deux tâches de
+# cron-job.org (README, « Déclenchement ») ; à retirer une fois leurs premiers passages vérifiés.
 name: Horloge de la collecte
 
 on:

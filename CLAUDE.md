@@ -83,7 +83,12 @@ En local : `python -m venv .venv`, `.venv/Scripts/python -m pip install -r requi
 Rester léger avec le site de la fédération : deux poules, une seconde entre deux pages, ne pas relire
 une journée dont toutes les feuilles sont lues. Horaire (demande de l'auteur, 11/10/2026 ; avant : une fois
 par jour du dimanche au vendredi) : dimanche et lundi toutes les deux heures de 6 h à 22 h, du mardi au
-samedi à 6 h, 12 h et 18 h, heure de Paris. `horloge.yml` porte chaque horaire en UTC pour l'heure d'été et
+samedi à 6 h, 12 h et 18 h, heure de Paris. Déclenchement par deux tâches de cron-job.org (demande de l'auteur,
+12/10/2026 ; fuseau `Europe/Paris`, POST de `workflow_dispatch` sur weekly.yml, configuration dans le README,
+« Déclenchement ») avec un jeton à grain fin limité à ce dépôt (Actions : écriture), qui n'existe que chez
+cron-job.org et, facultatif, en secret `HBPSM_JETON_DECLENCHEUR` (santé : échéance). Le 11/10/2026, `horloge.yml`
+n'est parti que 2 fois sur 12, avec plus de six heures de retard : à retirer dès que les premiers passages de
+cron-job.org sont vérifiés. `horloge.yml` porte chaque horaire en UTC pour l'heure d'été et
 pour l'heure d'hiver et ne lance `weekly.yml` (plus de `schedule` dans celui-ci) que sur la ligne dont la
 première heure tombe à 6 h à Paris ce jour-là, et pas si une collecte attend déjà ; ses passages sans objet
 restent hors du groupe `collecte`, où ils prendraient la place d'une collecte ou d'un recalcul en attente.

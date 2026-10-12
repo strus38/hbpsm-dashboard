@@ -134,6 +134,8 @@ def main(argv=None):
         tokens["des propositions"] = token_days(os.environ["HBPSM_JETON_CN"], cn)
     if os.environ.get("HBPSM_JETON_PUBLICATION"):   # facultatif : le jeton de l'entraîneur et des trésoriers
         tokens["de publication"] = token_days(os.environ["HBPSM_JETON_PUBLICATION"], os.environ.get("GITHUB_REPOSITORY"))
+    if os.environ.get("HBPSM_JETON_DECLENCHEUR"):   # facultatif : la copie du jeton de cron-job.org, qui lance la collecte
+        tokens["de cron-job.org"] = token_days(os.environ["HBPSM_JETON_DECLENCHEUR"], os.environ.get("GITHUB_REPOSITORY"))
     alerts = [] if failed else checks(config, read_json(DATA / "fixtures.json", []) or [], load_matches(),
                                       read_json(DATA / "rapport_extraction.json", {}) or {}, today, tokens)
     if failed:

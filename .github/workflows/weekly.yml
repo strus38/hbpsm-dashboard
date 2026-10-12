@@ -9,9 +9,10 @@ name: Collecte quotidienne
 run-name: ${{ inputs.recalcul && 'Recalcul après les choix de l''entraîneur' || 'Collecte quotidienne' }}
 
 on:
-  # lancée par « Horloge de la collecte » (horloge.yml, à l'heure de Paris : dimanche et lundi toutes les deux heures
-  # de 6 h à 22 h, les autres jours à 6 h, 12 h et 18 h ; les feuilles arrivent dans le désordre, une journée n'est
-  # close que lorsque toutes sont lues), par « Choix de l'entraîneur » (recalcul) ou à la main
+  # lancée à l'heure de Paris (dimanche et lundi toutes les deux heures de 6 h à 22 h, les autres jours à 6 h, 12 h et
+  # 18 h ; les feuilles arrivent dans le désordre, une journée n'est close que lorsque toutes sont lues) par deux tâches
+  # de cron-job.org (README, « Déclenchement ») et, tant qu'elles ne sont pas vérifiées, par « Horloge de la collecte »
+  # (horloge.yml) ; par « Choix de l'entraîneur » (recalcul) ou à la main
   workflow_dispatch:
     inputs:
       url_poule_71:
@@ -89,6 +90,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           HBPSM_JETON_CN: ${{ secrets.HBPSM_JETON_CN }}
           HBPSM_JETON_PUBLICATION: ${{ secrets.HBPSM_JETON_PUBLICATION }}
+          HBPSM_JETON_DECLENCHEUR: ${{ secrets.HBPSM_JETON_DECLENCHEUR }}   # facultatif : la copie du jeton de cron-job.org
         run: python -m pipeline.sante || echo "::warning::Santé du tableau de bord non vérifiée"
 
       - name: Enregistrer dans le dépôt (code, réglages, fichiers chiffrés)

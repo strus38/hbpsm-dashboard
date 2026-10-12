@@ -48,10 +48,38 @@ une phrase courte se devine par essais successifs.
 
 Ensuite la collecte tourne seule, à l'heure de Paris (demande de l'auteur, 11/10/2026) : le dimanche
 et le lundi toutes les deux heures de 6 h à 22 h, du mardi au samedi à 6 h, 12 h et 18 h. Les feuilles
-arrivent dans le désordre, et une journée n'est close que lorsque toutes ses feuilles sont lues. GitHub
-ne programme qu'en UTC : le workflow « Horloge de la collecte » (`horloge.yml`) porte chaque horaire pour
-l'heure d'été et pour l'heure d'hiver, et ne lance « Collecte quotidienne » que sur celui de la saison
-du jour (sauf si une collecte attend déjà son tour). GitHub peut retarder un lancement programmé. Dates et heures sont celles de Paris. Quand les données changent,
+arrivent dans le désordre, et une journée n'est close que lorsque toutes ses feuilles sont lues. Elle est
+lancée par deux tâches de cron-job.org (ci-dessous) : les lancements programmés de GitHub partaient avec
+des heures de retard, ou pas du tout. Le workflow « Horloge de la collecte » (`horloge.yml`, chaque
+horaire en UTC pour l'heure d'été et pour l'heure d'hiver) reste en place le temps de vérifier les
+premiers passages de cron-job.org.
+
+### Déclenchement (cron-job.org)
+
+1. **Un jeton GitHub à grain fin**, réservé à cela (Settings > Developer settings > Fine-grained
+   tokens) : propriétaire `strus38`, seulement le dépôt `hbpsm-dashboard`, permission
+   **Actions : Read and write** (Metadata : lecture, ajoutée d'office), échéance d'un an. Il ne fait que
+   lancer les workflows de ce dépôt ; s'il fuit, on peut lancer des collectes (les adresses de poules
+   ne sont acceptées que sur ffhandball.fr), pas modifier le code ni lire les données.
+2. **Facultatif, conseillé** : la même valeur en secret `HBPSM_JETON_DECLENCHEUR` du dépôt. La santé du
+   tableau de bord prévient alors un mois avant son échéance (issue « Tableau de bord : alerte »).
+3. **Deux tâches** sur cron-job.org, identiques sauf l'horaire :
+
+| Réglage | Valeur |
+|---|---|
+| URL | `https://api.github.com/repos/strus38/hbpsm-dashboard/actions/workflows/weekly.yml/dispatches` |
+| Horaire, tâche 1 | personnalisé : dimanche et lundi, heures 6, 8, 10, 12, 14, 16, 18, 20, 22, minute 0 |
+| Horaire, tâche 2 | personnalisé : mardi à samedi, heures 6, 12, 18, minute 0 |
+| Fuseau horaire | `Europe/Paris` (heure d'été et d'hiver comprises) |
+| Méthode | `POST` |
+| En-têtes | `Accept: application/vnd.github+json`, `Authorization: Bearer <le jeton>`, `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`, `User-Agent: hbpsm-collecte` |
+| Corps | `{"ref":"main"}` |
+| Réponse attendue | `204` (rien d'autre) |
+| Notifications | en cas d'échec, au retour à la normale, si la tâche est désactivée |
+
+Un « Test run » de la tâche doit répondre 204, et une « Collecte quotidienne » apparaître dans
+l'onglet Actions. Une réponse 401 : jeton expiré ou mal copié ; 403 ou 404 : permission Actions ou
+dépôt pas choisis. Dates et heures sont celles de Paris. Quand les données changent,
 une Release « Données du … » est créée.
 
 ## Pour les entraîneurs
