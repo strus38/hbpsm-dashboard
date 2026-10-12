@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (65 tests au 11/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (66 tests au 12/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -689,6 +689,13 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   d'avant). Page : `COLLECTE`, `APPORT` (« hbpsm:collecte » en JSON, aussi hors connexion), `status()` « à jour · HH:MM ·
   dernière collecte HH:MM » (jour devant si ce n'est pas aujourd'hui, `whenTime`) et un point vert (nouveaux résultats
   ou feuilles) ou orange (rien de nouveau) ; le détail au survol, et dans `sourceText`.
+- Feuilles fausses (demande de l'auteur, 12/10/2026 : J2 à Sablons, tous les arrêts sur le gardien sorti à la mi-temps) :
+  `corrections` dans config.yml, par identifiant de match, numéros de maillot et minutes seulement (jamais de nom) ;
+  `analyze.apply_corrections` au chargement des matchs (la feuille lue reste telle quelle dans data/) : arrêts du
+  déroulé au gardien en place, tableau recompté si le déroulé a tous les arrêts, entrées et sorties de gardien
+  ajoutées (`corrige`, hors présence au jeu) pour des buts encaissés exacts ; `correction` (signature sans nom) sur
+  le match, `meta.corrections`, `derniers[].correction` (note du bilan) ; le bilan de pronostic figé se refait quand
+  la correction change ; nouveauté « correction ». Correction de la J2 : n° 16 de 0 à 30 min, n° 1 de 30 à 60.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

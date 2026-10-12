@@ -385,7 +385,9 @@ def record(saison, profiles, club, current, past, cal, config, roster, players, 
     gardiens = frozenset(p["cle"] for p in players if p.get("gardien"))
     for mid, e in kept.items():
         x, avant = played.get(mid), e.get("avant")
-        if not x or not avant or (e.get("apres") or {}).get("v") == V and e["apres"].get("feuille"):
+        # figé une fois la feuille lue, sauf si elle a été corrigée depuis (config.yml, corrections)
+        if not x or not avant or ((e.get("apres") or {}).get("v") == V and e["apres"].get("feuille")
+                                  and e["apres"].get("correction") == x.get("correction")):
             continue
         side = "home" if is_club(x["home"]["name"], config) else "away"
         before = x.get("date") or "9999"
@@ -397,6 +399,8 @@ def record(saison, profiles, club, current, past, cal, config, roster, players, 
         sugg = sel.get("proposee") or sel.get("auto")
         e["apres"] = reality(x, side, avant, cal, (us, them), keyf, mine, cles, gardiens, sugg,
                              "publication" if sel.get("proposee") else "collecte")
+        if x.get("correction"):
+            e["apres"]["correction"] = x["correction"]
     # les plus récents ; un match qui n'a plus lieu (date passée, jamais joué) finit par sortir
     order = sorted(kept, key=lambda k: (kept[k].get("avant") or {}).get("date") or "")
     kept = {k: kept[k] for k in order[-GARDE:]}

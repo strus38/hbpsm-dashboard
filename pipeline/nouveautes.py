@@ -56,6 +56,12 @@ def compare(prev, data):
     if res or sheets:   # et ceux qu'on attend encore : des équipes comptent un match de moins (demande de l'auteur, 11/10/2026)
         items.append(dict(t="poules", resultats=res, feuilles=sheets,
                           attendus=sum(len(v.get("attendus") or []) for v in (data.get("poules") or {}).values())))
+    # une feuille du club corrigée à la demande de l'auteur (config.yml, corrections) : statistiques recalculées
+    fixed = set((prev.get("meta") or {}).get("corrections") or [])
+    agenda = _ids(data.get("agenda"))
+    for mid in (data.get("meta") or {}).get("corrections") or []:
+        if mid not in fixed and mid in agenda:
+            items.append(dict(_match(agenda[mid]), t="correction"))
     s, ps = data.get("saison") or {}, prev.get("saison") or {}
     if s.get("rang") is not None and ps.get("rang") is not None and s["rang"] != ps["rang"]:
         items.append(dict(t="rang", avant=ps["rang"], apres=s["rang"], poule=s.get("poule")))

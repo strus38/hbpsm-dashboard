@@ -90,6 +90,41 @@ def keepers_conceded(match, side):
     return out, not exact
 
 
+def apply_corrections(matches, config):
+    """Feuilles de match fausses, corrigées à la demande de l'auteur (config.yml, corrections : numéros de maillot et
+    minutes, jamais de nom). gardiens : qui était dans les buts du club, de la minute de à la minute a. Les arrêts du
+    déroulé vont au gardien en place, et le tableau est recompté quand le déroulé a tous les arrêts ; ses entrées et
+    sorties (gk_in, gk_out, marquées corrige : hors présence au jeu) donnent les buts encaissés exacts, comme sur les
+    anciennes feuilles (keepers_conceded). Chaque match corrigé porte correction (sa signature, sans nom) ; renvoie
+    leurs identifiants."""
+    fixes = {str(c.get("match")): c for c in config.get("corrections") or []}
+    done = []
+    for m in matches:
+        c = fixes.get(str(m.get("id")))
+        side = next((s for s in ("home", "away") if is_club((m.get(s) or {}).get("name"), config)), None)
+        if not c or not c.get("gardiens") or side is None:
+            continue
+        spans = sorted((60 * float(g["de"]), 60 * float(g["a"]), g["num"]) for g in c["gardiens"])
+        nums = {n for *_, n in spans}
+        keeper = lambda t: next((n for lo, hi, n in spans if lo < t <= hi or lo == t == 0), None)
+        events = [e for e in m.get("events") or [] if not (e.get("side") == side and e["type"] in ("gk_in", "gk_out"))]
+        for e in events:
+            if e.get("side") == side and e["type"] == "save" and keeper(e["t"]) is not None:
+                e["num"] = keeper(e["t"])
+        for lo, hi, n in spans:   # une demi-seconde après la limite : un but à la 30e minute pile reste au premier
+            events += [dict(t=lo + 0.5 if lo else 0, side=side, type="gk_in", num=n, corrige=True),
+                       dict(t=hi + 0.5, side=side, type="gk_out", num=n, corrige=True)]
+        m["events"] = sorted(events, key=lambda e: e["t"])
+        saves = Counter(e["num"] for e in events if e.get("side") == side and e["type"] == "save")
+        sheet = [p for p in (m.get("players") or {}).get(side, []) if p.get("num") in nums]
+        if sum(saves[n] for n in nums) == sum(p.get("saves") or 0 for p in sheet):
+            for p in sheet:
+                p["saves"] = saves.get(p["num"], 0)
+        m["correction"] = "gardiens " + ", ".join(f"n° {n} {lo / 60:g}-{hi / 60:g}" for lo, hi, n in spans)
+        done.append(str(m["id"]))
+    return done
+
+
 def save_pct(saves, conceded):
     """Pourcentage d'arrêts sur les tirs cadrés subis (arrêts + buts pris), arrondi."""
     return round(100 * saves / (saves + conceded)) if saves + conceded else None
@@ -783,8 +818,8 @@ def player_stats(with_sheet, weight_of):
                     clutch[e.get("num")] += 1
                 prev = e.get("score") or prev
         buckets = defaultdict(set)
-        for e in events:
-            if e.get("side") == side and e.get("num") is not None:
+        for e in events:   # une entrée ou sortie de gardien d'une correction n'est pas une action
+            if e.get("side") == side and e.get("num") is not None and not e.get("corrige"):
                 buckets[e["num"]].add(min(5, int(e["t"] // 600)))
         conceded, estimated = keepers_conceded(m, side)
         for p in m["players"][side]:
@@ -1104,7 +1139,8 @@ def last_matches(current, past, roster, n=3):
             who[key] = dict(buts=pl.get("goals") or 0, arrets=pl.get("saves") or 0)
         out.append(dict(id=str(m.get("id")), date=m.get("date"), adversaire=opp, domicile=side == "home",
                         bp=gf, bc=ga, res=outcome(gf, ga), journee=m.get("journee"), coupe=m.get("coupe"),
-                        tour=m.get("tour"), saison=m.get("saison"), joueurs=who, courbe=score_curve(m, side)))
+                        tour=m.get("tour"), saison=m.get("saison"), joueurs=who, courbe=score_curve(m, side),
+                        correction=m.get("correction")))
     return out
 
 
@@ -1611,6 +1647,7 @@ def analyze(today=None, roster=None):
     matches = [m for m in load_matches() if m.get("played")
                and m["home"].get("score") is not None and m["away"].get("score") is not None
                and m["home"].get("name") and m["away"].get("name")]
+    corrected = apply_corrections(matches, config)   # feuilles fausses, corrigées à la demande de l'auteur
     fixtures = read_json(DATA / "fixtures.json", []) or []
     # la feuille peut donner le score avant que la page de la poule (en cache) ne l'affiche
     scored = {m["id"]: m for m in matches}
@@ -1777,7 +1814,7 @@ def analyze(today=None, roster=None):
                   matchs=len(matches), feuilles=n_fdme, effectif=squad,
                   gardiens=int(config.get("gardiens_feuille", 2)), postes_clefs=config.get("postes_clefs") or [],
                   prudence=PRUDENCE,
-                  club_matchs=len(club_matches), club_feuilles=len(with_sheet),
+                  club_matchs=len(club_matches), club_feuilles=len(with_sheet), corrections=corrected,
                   historique=[x.get("saison") for x in seasons],
                   ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since,
                   exclusion=dict(zip(("cout", "n"), exclusion_cost(

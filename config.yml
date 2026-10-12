@@ -58,6 +58,14 @@ propositions:
 # la saison, et sortent de la planification.
 forfaits:
   - "P16M DIV2 RTE NORD DROME HANDBALL 2"   # 05/10/2026
+# Feuilles de match fausses, corrigées à la demande de l'auteur : numéros de maillot et minutes seulement, jamais
+# de nom (le dépôt est public). gardiens : qui était dans les buts du club, de la minute « de » à la minute « a » ;
+# ses arrêts et les buts encaissés vont au gardien en place (analyze.apply_corrections).
+corrections:
+  - match: "2727558"   # J2, 10/10/2026, à Sablons : la feuille met les 8 arrêts sur le n° 16, sorti à la mi-temps (12/10/2026)
+    gardiens:
+      - {num: 16, de: 0, a: 30}
+      - {num: 1, de: 30, a: 60}
 # true = garde quelques captures dans raw/sample pour régler les extracteurs
 # (raw/ n'est jamais versionné : il part dans l'archive chiffrée « brut » du lancement)
 echantillons_debug: true

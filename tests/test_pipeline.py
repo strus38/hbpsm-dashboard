@@ -311,6 +311,25 @@ def test_joueurs_adverses(sandbox):
     assert e["passe"]["continuite"] == dict(deja=1, sur=2)
 
 
+def test_feuille_corrigee_gardiens():
+    """Une feuille fausse (demande de l'auteur, 12/10/2026 : tous les arrêts sur le gardien sorti à la mi-temps) :
+    corrigée par numéros et minutes, chaque gardien a ses arrêts et ses buts encaissés, sans présence au jeu inventée."""
+    config = dict(common.load_config(), corrections=[dict(match="7", gardiens=[dict(num=16, de=0, a=30), dict(num=1, de=30, a=60)])])
+    club = config["club"]["motifs"][0]
+    gk = lambda num, saves: dict(num=num, name=f"GARDIEN Invente{num}", goals=0, pen_goals=0, shots=0, saves=saves, yellow=0, two_min=0, red=0)
+    ev = ([dict(t=t, side="away", type="save", num=16) for t in (300, 1200, 2000, 3000)]
+          + [dict(t=t, side="home", type="goal", score=[k + 1, 0]) for k, t in enumerate((600, 1800, 1900, 2500, 3500))])
+    m = dict(id="7", poule="71", journee=2, date="2026-10-10T20:30", played=True, home=dict(name="CLUB ECHO", score=5, ht=2),
+             away=dict(name=club, score=9, ht=4), players=dict(home=[], away=[gk(16, 4), gk(1, 0)]), events=ev)
+    other = json.loads(json.dumps(dict(m, id="8")))
+    assert an.apply_corrections([m, other], config) == ["7"] and "correction" not in other
+    assert {p["num"]: p["saves"] for p in m["players"]["away"]} == {16: 2, 1: 2}
+    assert an.keepers_conceded(m, "away") == ({16: 2, 1: 3}, False)   # le but de la 30e minute pile reste au premier
+    assert m["correction"] == "gardiens n° 16 0-30, n° 1 30-60" and "Invente" not in m["correction"]
+    stats = {p["nom"]: p for p in an.player_stats([(m, "away", "CLUB ECHO", 9, 5)], lambda *a: 1.0)[0].values()}
+    assert stats["GARDIEN Invente16"]["tranches"] == 2 and stats["GARDIEN Invente1"]["tranches"] == 2   # 0-10 et 20-30, 30-40 et 50-60
+
+
 def test_pronostics_gardes_puis_compares(sandbox, monkeypatch):
     """Le pronostic de chaque match du club est gardé jusqu'au coup d'envoi, puis confronté à la feuille ;
     les saisons lues apprennent au modèle l'avantage du terrain et le poids des présents."""
