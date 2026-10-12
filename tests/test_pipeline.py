@@ -573,8 +573,17 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.click("nav.tabs button[data-tab=semaine]")
         page.click("nav.tabs button[data-tab=moi]")
         assert "Choisissez qui vous êtes" in page.inner_text("main")
+        # le dernier match mis en avant (demande de l'auteur, 12/10/2026) : score, mi-temps, fil du match, tranches
+        assert page.locator(".dernier").count() == 1 and "Dernier match" in page.text_content(".dernier")
         page.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle); render(true)")
         assert page.locator(".moi-statut").count() == 1 + page.evaluate("PLAN.length") and "Ma caisse noire" in page.inner_text("main")
+        page.evaluate("localStorage.setItem('hbpsm:moi', bilanFacts().rows[0].p.cle); render(true)")
+        last = page.inner_text(".dernier")
+        assert "mi-temps 12 – 10" in last and "Le fil du match" in last and "Buteurs" in last and "Vous :" in last
+        assert "Meilleur moment : 50-60 min (6 – 1)" in last and "plus difficile : 0-10 min (1 – 6)" in last and "prévu" in last
+        assert page.locator(".dernier svg.score").count() == 1 and page.locator(".dernier .bars > div").count() == 6
+        page.evaluate("localStorage.setItem('hbpsm:moi', 'R:ABSENT INVENTE'); render(true)")   # pas sur la feuille
+        assert "Vous n'étiez pas sur la feuille" in page.inner_text(".dernier")
         page.evaluate("localStorage.removeItem('hbpsm:moi')")
         # santé : un bandeau quand quelque chose cloche ; les jetons, pour l'entraîneur et les trésoriers seulement
         page.evaluate("""SANTE = {etat: "alerte", alertes: [{niveau: "alerte", code: "poule-71", message: "Poule 71 : aucune rencontre lue."},

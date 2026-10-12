@@ -459,7 +459,10 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   choix que pour proposer une amende, « hbpsm:moi ») : prochain match (statut proposé / retenu / repos /
   absent / blessé, rendez-vous, agenda, Maps), les 4 matchs, sa caisse (reste à payer, dernières amendes,
   cotisation, anniversaire), ses chiffres. Le rendez-vous de l'entraîneur part avec ses choix (`rdv`, vérifié
-  par `choix.check`) ; `rdvOf` le lit pour tous.
+  par `choix.check`) ; `rdvOf` le lit pour tous. Dernier match mis en avant (demande de l'auteur, 12/10/2026 : mieux
+  comprendre son déroulement) : `lastMatchCard` (mêmes faits que le bilan, `bilanFacts`, plus mi-temps et tranches de
+  `pronostics.apres`, et la ligne « Vous : » du joueur), en tête 4 jours après le match, ensuite sous le prochain
+  match ; aussi sans identité choisie. `periods(…, note)` sert aussi pour un seul match.
 - Onglet Saison (demande de l'auteur, 06/10/2026 : « Matchs à gagner » trop long, surtout sur téléphone) :
   une barre par match de championnat, haute des points de chance en jeu, match clé en jaune, journée, lieu
   et victoire estimée dessous, le calcul au toucher (`stakesChart`, `stakeWhy`) ; le détail match par match
