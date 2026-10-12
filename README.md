@@ -407,6 +407,10 @@ gardé ses joueurs retrouve son propre bilan.
 - **Ma semaine** (onglet « Moi ») : chaque joueur choisit une fois qui il est sur son appareil et voit
   son prochain match (proposé, retenu par l'entraîneur, au repos, absent ou blessé), le rendez-vous,
   l'ajout à l'agenda et le gymnase, ses quatre prochains matchs, sa caisse noire et ses chiffres.
+  Le **dernier match** y est mis en avant (en tête les quatre jours qui suivent, ensuite sous le prochain
+  match) : score et mi-temps, ce que le joueur y a fait, l'écart au score but après but, les buts par
+  tranche de 10 minutes (meilleur moment, plus difficile), buteurs, gardiens, discipline des deux
+  équipes et pronostic ; « Tout le bilan » mène à la Semaine.
 - **Bilan du match** : dès que la feuille du dernier match est lue, l'onglet Semaine s'ouvre sur son
   bilan : buteurs, gardiens, discipline, écart avec le choix de l'entraîneur, chances d'atteindre
   l'objectif avant et après, axes de travail de la semaine.
