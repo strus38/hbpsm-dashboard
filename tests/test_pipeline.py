@@ -844,7 +844,7 @@ def test_page_publiee_dechiffre(sandbox, monkeypatch):
         page.click("nav.tabs button[data-tab=adv]")
         # une projection, pas un face-à-face : chacun sur ses propres matchs
         main = page.inner_text("main")
-        assert "Projection : nos chiffres face aux leurs" in main and "Pas un résultat entre nos deux équipes" in main
+        assert "Projection : nos chiffres face aux leurs" in main and "Une projection, pas le résultat d'un match entre nous" in main
         assert page.locator(".vs td.mieux").count() > 0
         # tous leurs joueurs, vus cette saison ; chacun s'ouvre sur sa fiche (demande de l'auteur, 11/10/2026)
         n = page.evaluate("D.equipes[document.getElementById('adv').value].joueurs.length")
