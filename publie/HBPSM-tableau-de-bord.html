@@ -663,7 +663,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "0dcb444f0db0", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "a3148b1e39f5", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1505,6 +1505,7 @@ function bilanBlock(now = new Date()){
   let h = '<details class="panel bilan"'+(fresh ? " open" : "")+'><summary><b>Bilan · '+esc(roundShort(x))+' contre '+esc(teamShort(x.adversaire))+'</b> '
     + '<span class="form"><i class="'+x.res+'">'+x.res+'</i></span> '+x.bp+'-'+x.bc+'</summary>'
     + '<p>'+({V: "Victoire", D: "Défaite", N: "Match nul"}[x.res] || "")+' '+x.bp+'-'+x.bc+(x.domicile ? " à domicile" : " à l'extérieur")+', '+esc(fmtDate(day))+' ; '+rows.length+' joueurs sur la feuille.</p>';
+  if(x.correction) h += '<p class="small muted">Feuille corrigée à la demande de l\'entraîneur : '+esc(x.correction)+' min.</p>';
   h += courseChart(x.courbe);
   const px = PRONOS().find(p => String(p.id) === String(x.id) && p.apres);
   if(px) h += '<details class="prono-bilan"><summary><b>Pronostic et réalité</b> : '+pronoShort(px)+'</summary>'+pronoCompare(px)+'</details>';
@@ -2604,6 +2605,7 @@ function nouvItem(x){   // [texte, onglet]
     case "poules": return ['📊 Nos poules : '+[x.resultats ? x.resultats+' résultat'+(x.resultats > 1 ? "s" : "") : '',
         x.feuilles ? x.feuilles+' feuille'+(x.feuilles > 1 ? "s" : "")+' lue'+(x.feuilles > 1 ? "s" : "") : ''].filter(Boolean).join(", ")
       + ' de plus : forces des adversaires recalculées'+(x.attendus ? ' ; '+x.attendus+' résultat'+(x.attendus > 1 ? "s" : "")+' encore attendu'+(x.attendus > 1 ? "s" : "") : ''), "adv"];
+    case "correction": return ['✏️ Feuille corrigée pour '+nouvMatch(x)+' (gardiens) : statistiques des gardiens, notes et pronostics recalculés', "joueurs"];
     case "rang": return [(x.apres < x.avant ? '📈' : '📉')+' Classement : <b>'+ord(x.apres)+'</b> ('+ord(x.avant)+' avant)', "saison"];
     case "chances": return ['🎯 Chances de '+esc(objectif(x.cible))+' : '+x.avant+' % → <b>'+x.apres+' %</b>', "saison"];
     case "match": return ['🗓️ Nouveau match : '+esc(roundOf(x))+' '+(x.domicile ? "contre " : "à ")+esc(teamShort(x.adversaire || ""))

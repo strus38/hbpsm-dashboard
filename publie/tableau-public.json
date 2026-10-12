@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-11 22:13",
+ "genere": "2026-10-12 07:28",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -246,10 +246,10 @@
   "gardiens": [
    {
     "num": 1,
-    "m": 1,
-    "arrets": 11,
-    "pris": 10,
-    "pct": 52,
+    "m": 2,
+    "arrets": 15,
+    "pris": 26,
+    "pct": 37,
     "estime": true
    },
    {
@@ -263,9 +263,9 @@
    {
     "num": 16,
     "m": 1,
-    "arrets": 8,
-    "pris": 27,
-    "pct": 23,
+    "arrets": 4,
+    "pris": 11,
+    "pct": 27,
     "estime": false
    }
   ],
