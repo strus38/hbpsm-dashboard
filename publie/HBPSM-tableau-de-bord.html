@@ -663,7 +663,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "a3148b1e39f5", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "fb3df7625e31", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -2253,9 +2253,10 @@ function versus(e){
   const direct = (u.matches || []).filter(m => m.adv === e.equipe).map(m => m.res+" "+m.bp+"-"+m.bc+(m.dom ? " à domicile" : " à l'extérieur"));
   const n = k => k+" match"+(k > 1 ? "s" : "");
   let h = '<h2>Projection : nos chiffres face aux leurs</h2><div class="panel">'
-    + '<p class="note">Pas un résultat entre nos deux équipes : chacune avec ses moyennes de la saison, sur ses propres matchs de championnat ('
+    + '<p class="note">Une projection, pas le résultat d\'un match entre nous : chaque équipe avec ses moyennes de la saison, sur ses propres matchs de championnat ('
     + n(u.j)+' pour nous, '+n(e.j)+' pour eux), contre des adversaires différents. Côte à côte, elles donnent une idée de ce que pourrait être le match, pas une certitude.'
-    + (direct.length ? ' Déjà joué contre eux cette saison : <b>'+esc(direct.join(", "))+'</b>.' : ' Nous ne les avons pas encore joués cette saison.')
+    + (direct.length ? ' Notre vrai match contre eux cette saison : <b>'+esc(direct.join(", "))+'</b> (il compte dans les moyennes des deux équipes).'
+      : ' Nous ne les avons pas encore joués cette saison.')
     + (u.j !== e.j ? ' Pas le même nombre de matchs : des moyennes par match, donc comparables, mais celles sur moins de matchs sont moins sûres.' : '')+'</p>'
     + pronoLive(e)
     + '<div class="scroll"><table class="vs"><thead><tr><th></th><th>'+esc(D.meta.club_court)+'<br><small class="muted">sur nos '+n(u.j)+'</small></th>'
