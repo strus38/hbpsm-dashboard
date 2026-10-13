@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-13 13:43",
+ "genere": "2026-10-13 19:48",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -701,6 +701,20 @@
     "forme": [
      "D"
     ],
+    "forfait": null
+   },
+   {
+    "rang": 8,
+    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
+    "pts": 0,
+    "j": 0,
+    "v": 0,
+    "n": 0,
+    "d": 0,
+    "bp": 0,
+    "bc": 0,
+    "diff": 0,
+    "forme": [],
     "forfait": null
    }
   ]
