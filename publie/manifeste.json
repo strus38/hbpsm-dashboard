@@ -1,11 +1,11 @@
 {
  "format": "hbpsm-manifeste",
  "v": 1,
- "maj": "2026-10-13T21:14:21Z",
- "empreinte": "1459fda67dbf4cc7486dc3445e8f00f65b238638e0f2ede4887f14f1a33a66f3",
+ "maj": "2026-10-14T09:30:17Z",
+ "empreinte": "378d94b6d9676b0a13c154a720945d84233a8b4297294c276e5351b7ce0855dd",
  "app": "a40b895145d7",
  "historique": "ce4232ea0b4aec2de3125a6c9eab7ac45c96cd441ae21ceaf4d99b22f71e2f50",
- "collecte": "2026-10-13T21:13:54Z",
+ "collecte": "2026-10-14T09:29:54Z",
  "apport": {
   "resultats": 0,
   "feuilles": 0
