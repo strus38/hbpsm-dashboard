@@ -29,6 +29,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
 
 from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, paris_now, read_json, write_json
 
@@ -220,8 +221,29 @@ def finished(fixtures, known, now):
         for f in fixtures)
 
 
-def crawl_poule(poule, known, old, now, is_ours=None, only=None):
-    """Rencontres et classement d'une poule. Une journée close n'est pas relue.
+def missing_results(official, held, known, teams=None):
+    """Matchs joués que la fédération compte à une équipe (colonne J de son classement) et dont nous n'avons pas le
+    résultat : {équipe (nom normalisé): nombre}. Seule trace d'un résultat arrivé dans une journée close : match remis
+    puis joué, équipe ajoutée à la poule, journée refaite par la ligue. held : nos rencontres de la poule ; teams : les
+    seules équipes dont nous gardons tous les matchs (un adversaire de coupe), toutes sinon."""
+    played = Counter(norm(f[side]) for f in held if f.get("score_home") is not None or known.get(f["id"])
+                     for side in ("home", "away") if f.get(side))
+    gap = {}
+    for row in (official or {}).get("lignes") or []:
+        name, n = norm(row[1]) if len(row) > 1 else "", score(row[3]) if len(row) > 3 else None
+        if name and n and n > played[name] and (teams is None or name in teams):
+            gap[name] = n - played[name]
+    return gap
+
+
+def crawl_poule(poule, known, old, now, is_ours=None, only=None, before=None):
+    """Rencontres et classement d'une poule. Une journée close n'est pas relue, sauf quand la ligue a pu la changer
+    (poule 72 refaite le 14/10/2026 : une équipe de plus, journées closes jamais relues) : la fédération compte des
+    matchs joués dont nous n'avons pas le résultat (missing_results), son classement change d'équipes, ou c'est la
+    première vérification. Alors toutes les journées closes sont relues, une fois par nouvel écart (before :
+    classement officiel du passage précédent, qui garde l'écart, « manquants » ; il reste s'il ne s'explique pas, un
+    forfait compté par la fédération par exemple).
+    Une rencontre pas encore jouée que le site a retirée d'une journée relue est ôtée de old.
     now : date et heure de Paris, '2026-10-04T19:30'.
     is_ours : reconnaît le club, dont on lit aussi le gymnase des prochains matchs.
     only : ne garder que certaines rencontres (celles d'un adversaire de coupe, par exemple)."""
@@ -231,33 +253,74 @@ def crawl_poule(poule, known, old, now, is_ours=None, only=None):
     days = journees(first)
     official = standings(first, base)
     current = first.get("competitions---rencontre-list") or {}
-    lists, closed, pages = {}, 0, 0
+    lists, shut, pages = {}, [], 0
+
+    def read(n):
+        nonlocal pages
+        pages += 1
+        data = page_data(f"{base}journee-{n}/", f"{pid}_journee_{n}")
+        lists[n] = (data.get("competitions---rencontre-list") or {}).get("rencontres") or []
+
+    def found():
+        got = {}
+        for n, rows in lists.items():
+            for r in rows:
+                if r.get("ext_rencontreId"):
+                    fx = fixture(r, pid, base, days.get(n))
+                    if only is None or only(fx):
+                        got[fx["id"]] = fx
+        return got
+
+    def held():
+        """Nos rencontres de la poule : celles d'avant, remplacées par celles lues à ce passage."""
+        return list({**{f["id"]: f for f in old.values() if str(f.get("poule")) == pid}, **found()}.values())
+
     if str(current.get("selected_numero_journee") or "").isdigit():   # celle que montre la page de la poule
         lists[int(current["selected_numero_journee"])] = current.get("rencontres") or []
     for n in sorted(days):
         if n in lists:
             continue
-        before = [f for f in old.values() if str(f.get("poule")) == pid and f.get("journee") == n]
-        if finished(before, known, now):
-            closed += 1
-            continue
-        pages += 1
-        data = page_data(f"{base}journee-{n}/", f"{pid}_journee_{n}")
-        lists[n] = (data.get("competitions---rencontre-list") or {}).get("rencontres") or []
-    fixtures = {}
-    for n, rows in lists.items():
-        for r in rows:
-            if r.get("ext_rencontreId"):
-                fx = fixture(r, pid, base, days.get(n))
-                if only is None or only(fx):
-                    fixtures[fx["id"]] = fx
+        if finished([f for f in old.values() if str(f.get("poule")) == pid and f.get("journee") == n], known, now):
+            shut.append(n)
+        else:
+            read(n)
+    if official:
+        mine = held()
+        teams = None if only is None else \
+            set.intersection(*({norm(f["home"]), norm(f["away"])} for f in mine)) if mine else set()
+        gap = missing_results(official, mine, known, teams)
+        names = lambda table: {norm(r[1]) for r in (table or {}).get("lignes") or [] if len(r) > 1}
+        why = None
+        if not shut:
+            pass
+        elif gap and gap != (before or {}).get("manquants"):
+            why = "la fédération compte des matchs joués que nous n'avons pas"
+        elif "manquants" not in (before or {}):
+            why = "première vérification des journées closes"
+        elif names(official) != names(before):   # poule refaite par la ligue : ses journées closes aussi
+            why = "équipe ajoutée ou retirée"
+        if why:
+            print(f"[collecte] poule {pid}: {why}, journées closes relues")
+            for n in shut:
+                read(n)
+            shut = []
+            gap = missing_results(official, held(), known, teams)
+        official["manquants"] = gap
+    # une rencontre à venir que le site a retirée (poule refaite, match déplacé) : elle ne doit plus compter
+    shown = {str(r["ext_rencontreId"]) for rows in lists.values() for r in rows if r.get("ext_rencontreId")}
+    gone = [k for k, f in old.items() if str(f.get("poule")) == pid and lists.get(f.get("journee"))
+            and str(f["id"]) not in shown and f.get("score_home") is None and not known.get(f["id"])]
+    for k in gone:
+        del old[k]
+    fixtures = found()
     if is_ours:
         add_venues(fixtures, old, is_ours)
     sheets = fetch_sheets(fixtures, known, now)
     print(f"[collecte] poule {pid}: {len(lists)} journées lues sur {len(days)} ({pages} pages de journée, "
-          f"{closed} close{'s' if closed > 1 else ''} non relue{'s' if closed > 1 else ''}), "
+          f"{len(shut)} close{'s' if len(shut) > 1 else ''} non relue{'s' if len(shut) > 1 else ''}), "
           f"{len(fixtures)} rencontres, {sheets} feuilles téléchargées, "
-          f"classement officiel {'oui' if official else 'non'}")
+          f"classement officiel {'oui' if official else 'non'}"
+          + (f", {len(gone)} rencontre(s) retirée(s) du site" if gone else ""))
     return fixtures, official
 
 
@@ -294,10 +357,11 @@ def pretty_label(text):
     return t[:1].upper() + t[1:]
 
 
-def crawl_rivals(config, known, old, now):
+def crawl_rivals(config, known, old, now, before=None):
     """Adversaires de coupe venus d'une autre poule : retrouvés dans les compétitions voisines,
     leurs matchs de championnat (et leurs feuilles) seulement, pour leur fiche dans Adversaires.
-    Marqués « externe » : ils n'entrent jamais dans le classement de nos poules."""
+    Marqués « externe » : ils n'entrent jamais dans le classement de nos poules.
+    before : classements officiels du passage précédent ({poule: classement})."""
     ours = lambda t: is_club(t, config)
     league = {norm(f[s]) for f in old.values() if not f.get("coupe") and not f.get("externe")
               for s in ("home", "away") if f.get(s)}
@@ -323,7 +387,8 @@ def crawl_rivals(config, known, old, now):
             pid = f"ext-{p['ext_pouleId']}"
             label = pretty_label(f"{phase}, {clean(p.get('libelle'))}".strip(", "))
             got, official = crawl_poule(dict(id=pid, url=f"{comp}poule-{p['ext_pouleId']}/"), known, old, now,
-                                        only=lambda f, n=name: n in (norm(f["home"]), norm(f["away"])))
+                                        only=lambda f, n=name: n in (norm(f["home"]), norm(f["away"])),
+                                        before=(before or {}).get(pid))
             for f in got.values():
                 f["externe"], f["niveau"] = label, level
             fixtures.update(got)
@@ -394,7 +459,8 @@ def main():
         if not poule.get("url"):
             continue
         try:
-            fixtures, official = crawl_poule(poule, known, old, now, lambda t: is_club(t, config))
+            fixtures, official = crawl_poule(poule, known, old, now, lambda t: is_club(t, config),
+                                             before=officials.get(poule["id"]))
         except (urllib.error.URLError, OSError) as exc:  # site injoignable : l'état précédent reste valable
             print(f"[collecte] poule {poule['id']}: {exc}", file=sys.stderr)
             missing.append(poule["id"])
@@ -408,7 +474,7 @@ def main():
         except (urllib.error.URLError, OSError) as exc:  # la coupe attendra le prochain passage
             print(f"[collecte] {cup.get('nom')}: {exc}", file=sys.stderr)
     try:   # les adversaires de coupe venus d'ailleurs : leur fiche, hors classement
-        rivals, rival_tables = crawl_rivals(config, known, old, now)
+        rivals, rival_tables = crawl_rivals(config, known, old, now, officials)
         old.update(rivals)
         officials.update(rival_tables)
     except (urllib.error.URLError, OSError) as exc:

@@ -213,13 +213,79 @@ def test_bout_en_bout_faux_site(sandbox, monkeypatch):
         # second passage : journées closes et feuilles déjà lues ne sont pas redemandées
         known = {f["id"]: True for f in played}
         Quiet.seen.clear()
-        again, _ = collect.crawl_poule(poule, known, fixtures, now)
+        again, _ = collect.crawl_poule(poule, known, fixtures, now, before=official)
         assert len(again) >= 21 and not any("/fdm/" in p for p in Quiet.seen)
         assert not any(f"journee-{d}/" in p for p in Quiet.seen for d in (1, 2, 3))
     finally:
         server.shutdown()
     d = an.analyze("2026-10-04")
     assert d["prochain"] and d["meta"]["feuilles"] == len(played) and d["joueurs"]
+
+
+def test_journee_close_refaite_par_la_ligue(monkeypatch):
+    """Une journée close n'est pas relue, sauf quand la fédération compte des matchs joués dont nous n'avons pas le
+    résultat (match ajouté après coup) ou que la poule change d'équipes (poule 72 refaite le 14/10/2026) : alors une
+    fois par nouvel écart. Une rencontre à venir retirée du site disparaît."""
+    days = json.dumps([dict(journee_numero=n, date_debut=d) for n, d in ((1, "2026-10-03"), (2, "2026-10-10"), (3, "2026-11-07"))])
+    row = lambda rid, j, dom, ext, sd=None, se=None: dict(ext_rencontreId=rid, journeeNumero=str(j), date=f"2026-10-{2 + 7 * j:02d}T20:00:00+02:00",
+                                                         equipe1Libelle=dom, equipe2Libelle=ext,
+                                                         equipe1Score=None if sd is None else str(sd), equipe2Score=None if se is None else str(se))
+    site = {1: [row("11", 1, "Club Alpha", "Club Bravo", 30, 20), row("12", 1, "Club Charlie", "Club Delta", 25, 25)],
+            2: [row("21", 2, "Club Alpha", "Club Charlie", 28, 27), row("22", 2, "Club Bravo", "Club Delta", 22, 31)],
+            3: [row("31", 3, "Club Alpha", "Club Delta"), row("32", 3, "Club Bravo", "Club Charlie")]}
+    joue = {"Club Alpha": 2, "Club Bravo": 2, "Club Charlie": 2, "Club Delta": 2}
+    pages = []
+
+    def fake(url, name):
+        pages.append(url)
+        n = int(url.rstrip("/").rsplit("-", 1)[1]) if "/journee-" in url else 3
+        table = [dict(place=str(i), equipe_libelle=t, point="0", joue=str(j)) for i, (t, j) in enumerate(joue.items(), 1)]
+        return {"competitions---rencontre-list": {"poule": {"journees": days}, "selected_numero_journee": str(n),
+                                                  "rencontres": site[n]},
+                "competitions---mini-classement-or-ads": {"classements": table}}
+
+    monkeypatch.setattr(collect, "page_data", fake)
+    monkeypatch.setattr(collect, "fetch_sheets", lambda fixtures, known, now: 0)
+    poule, now = dict(id="71", url="https://exemple/poule-1/"), "2026-10-16T07:00"
+    old, known = {}, {}
+    got, official = collect.crawl_poule(poule, known, old, now)
+    old.update(got)
+    known.update({k: True for k, f in got.items() if f["score_home"] is not None})
+    assert official["manquants"] == {}
+    # journées 1 et 2 closes : une première vérification, puis, rien de changé, seule la page de la poule (qui montre
+    # la 3e) est lue
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=dict(lignes=official["lignes"]))
+    assert len(pages) == 3
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=official)
+    old.update(got)
+    assert pages == [poule["url"]] and official["manquants"] == {}
+    # une équipe ajoutée à la poule, sans match joué : ses matchs ont pu entrer dans les journées closes
+    joue["Club Golf"] = 0
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=official)
+    assert len(pages) == 3 and official["manquants"] == {}
+    # la ligue ajoute une équipe et son match de la 2e journée, déjà joué : la fédération le compte
+    site[2].append(row("23", 2, "Club Echo", "Club Alpha", 24, 26))
+    joue.update({"Club Alpha": 3, "Club Echo": 1})
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=official)
+    old.update(got)
+    assert got["23"]["score_home"] == 24 and len(pages) == 3 and official["manquants"] == {}
+    known["23"] = True
+    # un écart qui ne s'explique pas (un forfait compté par la fédération) : relu une fois, gardé, plus relu ensuite
+    joue["Club Foxtrot"] = 1
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=official)
+    assert len(pages) == 3 and official["manquants"] == {"CLUB FOXTROT": 1}
+    pages.clear()
+    got, official = collect.crawl_poule(poule, known, old, now, before=official)
+    assert pages == [poule["url"]] and official["manquants"] == {"CLUB FOXTROT": 1}
+    # une rencontre à venir retirée de la page de sa journée : plus dans nos rencontres
+    site[3].pop()
+    got, _ = collect.crawl_poule(poule, known, old, now, before=official)
+    assert "32" not in old and "32" not in got and "31" in old and "11" in old
 
 
 def test_course_au_classement(sandbox):
@@ -2095,7 +2161,7 @@ def test_adversaire_de_coupe_venu_d_ailleurs(monkeypatch):
     monkeypatch.setattr(collect, "page_data", lambda url, name: voisine)
     calls = []
 
-    def poule(p, known, old, now, is_ours=None, only=None):
+    def poule(p, known, old, now, is_ours=None, only=None, before=None):
         calls.append(p)
         rows = [dict(id="1", home="CLUB LOINTAIN", away="CLUB TIERS"), dict(id="2", home="CLUB TIERS", away="CLUB AUTRE")]
         return {r["id"]: r for r in rows if only(r)}, {"entetes": [], "lignes": []}
