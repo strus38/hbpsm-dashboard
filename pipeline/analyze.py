@@ -208,16 +208,29 @@ def rank_teams(teams, results, last=None):
     return order
 
 
-def awaited(f, now):
+REPORTE = 4   # jours sans résultat après le coup d'envoi : le match n'a pas eu lieu (remis, à reprogrammer)
+
+
+def awaited(f, now, stale=REPORTE):
     """Match joué dont le résultat n'est pas encore connu (demande de l'auteur, 11/10/2026 : les feuilles arrivent les
     unes après les autres ; un temps, des équipes ont plus de matchs comptés que d'autres) : coup d'envoi passé ou,
-    horaire à confirmer, week-end de la journée fini. now : « AAAA-MM-JJTHH:MM », heure de Paris."""
+    horaire à confirmer, week-end de la journée fini. now : « AAAA-MM-JJTHH:MM », heure de Paris.
+    Toujours sans résultat stale jours après, il n'a pas eu lieu : remis ou à reprogrammer (postponed ; poule 72 refaite
+    le 14/10/2026 : les matchs de l'équipe ajoutée aux journées 1 et 2, datés d'avant son arrivée). stale=None : attendu
+    quoi qu'il arrive (notre match dont l'entraîneur a publié la feuille)."""
     if f.get("score_home") is not None or not f.get("date") or not now:
         return False
     d = str(f["date"])
-    if f.get("date_provisoire") or len(d) < 16:
-        return now >= (dt.date.fromisoformat(d[:10]) + dt.timedelta(days=2)).isoformat() + "T00:00"
-    return now >= d[:16]
+    start = (dt.date.fromisoformat(d[:10]) + dt.timedelta(days=2)).isoformat() + "T00:00" \
+        if f.get("date_provisoire") or len(d) < 16 else d[:16]
+    if now < start:
+        return False
+    return stale is None or now < (dt.datetime.fromisoformat(start) + dt.timedelta(days=stale)).strftime("%Y-%m-%dT%H:%M")
+
+
+def postponed(f, now):
+    """Match daté du passé, toujours sans résultat REPORTE jours après : remis ou à reprogrammer, encore à jouer."""
+    return awaited(f, now, None) and not awaited(f, now)
 
 
 def standings(matches, teams=()):
@@ -1155,7 +1168,7 @@ def unread_club_matches(fixtures, read, choix, config, now):
         if mid in read or not (dom or is_club(f.get("away"), config)):
             continue
         joueurs = ((choix or {}).get(mid) or {}).get("joueurs")
-        if not joueurs or not (f.get("score_home") is not None or awaited(f, now)):
+        if not joueurs or not (f.get("score_home") is not None or awaited(f, now, None)):
             continue
         gf, ga = (f.get("score_home"), f.get("score_away")) if dom else (f.get("score_away"), f.get("score_home"))
         out.append(dict(id=mid, date=f.get("date"), adversaire=f["away"] if dom else f["home"], domicile=dom,
@@ -1647,8 +1660,16 @@ def analyze(today=None, roster=None):
     matches = [m for m in load_matches() if m.get("played")
                and m["home"].get("score") is not None and m["away"].get("score") is not None
                and m["home"].get("name") and m["away"].get("name")]
-    corrected = apply_corrections(matches, config)   # feuilles fausses, corrigées à la demande de l'auteur
     fixtures = read_json(DATA / "fixtures.json", []) or []
+    # une équipe renommée par la fédération en cours de saison (poule 72, 16/10/2026 : « DRAC ISERE 38 HANDBALL- 2 »
+    # devenue « …- 1 ») : le nom du calendrier, relu à chaque collecte, l'emporte sur celui d'une feuille déjà lue
+    named = {str(f.get("id")): f for f in fixtures}
+    for m in matches:
+        f = named.get(str(m.get("id"))) or {}
+        for side in ("home", "away"):
+            if f.get(side) and m[side]["name"] != f[side]:
+                m[side]["name"] = f[side]
+    corrected = apply_corrections(matches, config)   # feuilles fausses, corrigées à la demande de l'auteur
     # la feuille peut donner le score avant que la page de la poule (en cache) ne l'affiche
     scored = {m["id"]: m for m in matches}
     for f in fixtures:
@@ -1856,7 +1877,7 @@ def analyze(today=None, roster=None):
                                                   + [caisse.COACH], config.get("saison") or "")),
         a_venir=sorted((dict(id=str(f.get("id")), poule=str(f.get("poule")), journee=f.get("journee"), date=f.get("date"),
                              provisoire=bool(f.get("date_provisoire")), dom=f.get("home"), ext=f.get("away"),
-                             forfait=out_of(f), attente=str(f.get("id")) in waiting)
+                             forfait=out_of(f), attente=str(f.get("id")) in waiting, reporte=postponed(f, now))
                         for f in fixtures + forfeited if f.get("score_home") is None),
                        key=lambda r: r["date"] or "9999")[:40],
         equipes=profiles, joueurs=players, duos=pairs(with_sheet), plans=PLANS,

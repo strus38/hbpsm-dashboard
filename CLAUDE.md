@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (67 tests au 16/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (68 tests au 16/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -358,7 +358,8 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   (de 14 en coupe à 12, deux sortent déjà).
 - Noms courts : deux joueurs de même nom et même initiale : `playerShort` allonge
   le prénom (« Isi. Exemple »).
-- Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71) : `forfaits` dans
+- Forfait général (demande de l'auteur, 05/10/2026 : Nord Drôme 2, poule 71 ; retiré le 16/10/2026, l'équipe a joué
+  la J2 contre Tain 2, 22-39, capture du site envoyée par l'auteur : `forfaits: []`) : `forfaits` dans
   config.yml, le site ne le dit pas. L'équipe reste au classement, en gris, en bas et sans rang
   (`poule_view(gone)`, `forfait` sur la ligne, aussi dans le résumé public) ; ses matchs sortent du
   classement, de la simulation (6 équipes), des matchs à préparer et de la planification ; « À
@@ -714,8 +715,15 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   quand il change d'équipes, ou au premier passage avec cette règle ; une fois par nouvel écart (`manquants`, gardé
   dans le classement officiel de data/official_standings.json : un forfait compté par la fédération ne fait pas relire
   à chaque passage). Une rencontre à venir retirée d'une journée relue sort de data/fixtures.json (avant, elle y
-  restait pour toujours). Pas vérifié sur le vrai site depuis le conteneur de claude.ai (ffhandball.fr y est bloqué) :
-  lire la ligne « journées closes relues » du prochain passage.
+  restait pour toujours). Premier passage (16/10/2026, 14 h 25) : journées closes relues dans les trois poules ; poule 72
+  à 56 rencontres (4 par journée sur les 14) ; ses deux matchs ajoutés aux journées 1 et 2 sans score ni feuille (404).
+  Capture du site envoyée par l'auteur le même jour : le classement fédéral de la poule 72 a 8 équipes ; « DRAC ISERE 38
+  HANDBALL- 2 » y est devenue « …- 1 » (3 points), notre feuille de la J2 gardait l'ancien nom (9 équipes dans la page).
+  `analyze` reprend le nom du calendrier pour un match déjà lu (même identifiant). Un match daté du passé, sans résultat
+  `REPORTE` = 4 jours après le coup d'envoi, n'est plus attendu (`awaited(stale=)`) mais à reprogrammer (`postponed`,
+  `a_venir[].reporte`, « pas joué à cette date : à reprogrammer » dans À venir) ; nos matchs dont l'entraîneur a publié
+  la feuille restent attendus (`unread_club_matches`, `stale=None`). Effet possible : `same_team` suit le numéro
+  d'équipe, l'équipe de Drac Isère passe pour l'équipe 1 dans l'historique.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

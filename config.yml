@@ -56,8 +56,9 @@ propositions:
 # Forfait général pour la saison (constaté par l'auteur, le site ne le dit pas) : l'équipe reste
 # affichée, en gris et sans rang ; ses matchs ne comptent ni au classement ni dans les chances de
 # la saison, et sortent de la planification.
-forfaits:
-  - "P16M DIV2 RTE NORD DROME HANDBALL 2"   # 05/10/2026
+# « P16M DIV2 RTE NORD DROME HANDBALL 2 », inscrite le 05/10/2026, retirée le 16/10/2026 : elle a joué la J2
+# contre Tain 2 (22-39, feuille sur le site).
+forfaits: []
 # Feuilles de match fausses, corrigées à la demande de l'auteur : numéros de maillot et minutes seulement, jamais
 # de nom (le dépôt est public). gardiens : qui était dans les buts du club, de la minute « de » à la minute « a » ;
 # ses arrêts et les buts encaissés vont au gardien en place (analyze.apply_corrections).

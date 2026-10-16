@@ -304,7 +304,10 @@ plus, quatre matchs par journée au lieu de trois) : les journées closes sont r
 classement de la fédération compte, à une équipe, des matchs joués dont la collecte n'a pas le
 résultat, ou quand il change d'équipes ; une fois par nouvel écart (un écart qui ne s'explique pas,
 un forfait compté par la fédération par exemple, est gardé et ne fait plus relire). Une rencontre
-à venir que le site a retirée d'une journée relue disparaît.
+à venir que le site a retirée d'une journée relue disparaît. Une équipe renommée par la fédération
+prend son nouveau nom partout, y compris sur les feuilles déjà lues. Un match daté du passé et
+toujours sans résultat quatre jours après n'est plus « attendu » : il n'a pas eu lieu et reste à
+reprogrammer.
 La feuille se télécharge à l'adresse tirée de son code (`fdm.fdme.ffhandball.fr/W/A/G/W/WAGWUHC.pdf`),
 sans ouvrir la page de la rencontre. Les pages passent par un cache d'une à deux heures : un
 score absent de la page est pris sur la feuille, et un classement fédéral qui compte moins de
