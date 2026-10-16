@@ -300,6 +300,33 @@ def test_course_au_classement(sandbox):
 
 
 
+def test_poule_refaite_par_la_ligue(sandbox):
+    """Poule 72, 16/10/2026 : une équipe renommée par la fédération (le calendrier relu porte le nouveau nom, la feuille
+    déjà lue l'ancien) n'apparaît qu'une fois, sous le nouveau nom ; un match daté du passé et toujours sans résultat
+    quatre jours après n'est plus attendu : à reprogrammer, encore à jouer."""
+    demo(sandbox)
+    fixtures = common.read_json(sandbox / "data" / "fixtures.json")
+    before = {r["equipe"]: r for r in an.analyze("2026-10-04")["poules"]["71"]["classement"]}
+    old = next(t for t in before if t != demo_data.CLUB and before[t]["j"])
+    new = old + " NOUVEAU NOM"
+    for f in fixtures:
+        for side in ("home", "away"):
+            if f[side] == old:
+                f[side] = new
+    later = next(f for f in fixtures if f["poule"] == "71" and f["score_home"] is None and demo_data.CLUB not in (f["home"], f["away"]))
+    later["date"] = "2026-09-26T20:30"
+    common.write_json(sandbox / "data" / "fixtures.json", fixtures)
+    d = an.analyze("2026-10-04")
+    rows = {r["equipe"]: r for r in d["poules"]["71"]["classement"]}
+    assert old not in rows and rows[new]["j"] == before[old]["j"] and rows[new]["pts"] == before[old]["pts"]
+    assert later["id"] not in {a["id"] for a in d["poules"]["71"]["attendus"]}
+    mark = next(a for a in d["a_venir"] if a["id"] == later["id"])
+    assert mark["reporte"] and not mark["attente"]
+    assert not any(a["reporte"] for a in d["a_venir"] if a["id"] != later["id"])
+    assert an.awaited(dict(date="2026-10-10T20:30"), "2026-10-14T20:29") and not an.awaited(dict(date="2026-10-10T20:30"), "2026-10-14T20:30")
+    assert an.postponed(dict(date="2026-10-10T20:30"), "2026-10-14T20:30") and an.awaited(dict(date="2026-10-10T20:30"), "2026-10-20T00:00", None)
+
+
 def test_resultats_attendus(sandbox, monkeypatch):
     """Les feuilles n'arrivent pas toutes en même temps (demande de l'auteur, 11/10/2026) : un match joué dont le
     résultat manque est attendu ; les équipes qui l'ont joué comptent un match de moins, leurs points attendus les
