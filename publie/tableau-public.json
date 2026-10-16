@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-16 14:27",
+ "genere": "2026-10-16 15:55",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -64,7 +64,7 @@
    4.0
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (32,8 buts/match, médiane 29,0) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (32,8 buts/match, médiane 27,2) : priorité à la discipline et à l'impact collectif.",
   "niveau": 1,
   "poule_libelle": "1re division masculine P16 AURA, poule 6",
   "forfait": null,
@@ -192,7 +192,7 @@
    4.5
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 29,0) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 27,2) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -336,18 +336,19 @@
   "cible": 2,
   "rang": 1,
   "pts": 6,
-  "restants": 8,
-  "proba": 93,
+  "restants": 10,
+  "proba": 91,
   "proba_tout": 100,
   "rangs": [
-   78.2,
-   15.2,
-   4.7,
-   1.5,
-   0.3,
-   0.1
+   70.2,
+   21.2,
+   6.0,
+   1.9,
+   0.6,
+   0.1,
+   0.0
   ],
-  "pts_max": 30,
+  "pts_max": 36,
   "matchs": [
    {
     "journee": null,
@@ -371,9 +372,22 @@
     "adversaire": "HBC ST DONAT",
     "domicile": true,
     "p_victoire": 87,
-    "enjeu": 18,
+    "enjeu": 22,
     "cle": true,
-    "rang_adv": 2
+    "rang_adv": 3
+   },
+   {
+    "journee": 4,
+    "coupe": null,
+    "tour": null,
+    "date": "2026-11-14T18:00",
+    "provisoire": false,
+    "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+    "domicile": false,
+    "p_victoire": 86,
+    "enjeu": 13,
+    "cle": false,
+    "rang_adv": 7
    },
    {
     "journee": 6,
@@ -383,10 +397,10 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 63,
+    "p_victoire": 53,
     "enjeu": 12,
     "cle": false,
-    "rang_adv": 4
+    "rang_adv": 2
    },
    {
     "journee": 7,
@@ -397,9 +411,9 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 82,
-    "enjeu": 16,
+    "enjeu": 20,
     "cle": true,
-    "rang_adv": 3
+    "rang_adv": 4
    },
    {
     "journee": 8,
@@ -410,7 +424,7 @@
     "adversaire": "HBC PILAT-2",
     "domicile": false,
     "p_victoire": 75,
-    "enjeu": 10,
+    "enjeu": 12,
     "cle": false,
     "rang_adv": 6
    },
@@ -423,7 +437,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 91,
-    "enjeu": 13,
+    "enjeu": 16,
     "cle": false,
     "rang_adv": 5
    },
@@ -436,9 +450,22 @@
     "adversaire": "HBC ST DONAT",
     "domicile": false,
     "p_victoire": 72,
-    "enjeu": 13,
+    "enjeu": 16,
     "cle": false,
-    "rang_adv": 2
+    "rang_adv": 3
+   },
+   {
+    "journee": 11,
+    "coupe": null,
+    "tour": null,
+    "date": "2027-01-30",
+    "provisoire": true,
+    "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+    "domicile": true,
+    "p_victoire": 96,
+    "enjeu": 20,
+    "cle": true,
+    "rang_adv": 7
    },
    {
     "journee": 13,
@@ -448,10 +475,10 @@
     "provisoire": true,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
-    "p_victoire": 81,
-    "enjeu": 18,
-    "cle": true,
-    "rang_adv": 4
+    "p_victoire": 74,
+    "enjeu": 17,
+    "cle": false,
+    "rang_adv": 2
    },
    {
     "journee": 14,
@@ -461,10 +488,10 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 63,
-    "enjeu": 10,
+    "p_victoire": 64,
+    "enjeu": 16,
     "cle": false,
-    "rang_adv": 3
+    "rang_adv": 4
    }
   ]
  },
@@ -489,6 +516,23 @@
    },
    {
     "rang": 2,
+    "equipe": "HB TAIN VION TOURNON 2",
+    "pts": 6,
+    "j": 2,
+    "v": 2,
+    "n": 0,
+    "d": 0,
+    "bp": 69,
+    "bc": 46,
+    "diff": 23,
+    "forme": [
+     "V",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
     "equipe": "HBC ST DONAT",
     "pts": 4,
     "j": 2,
@@ -505,7 +549,7 @@
     "forfait": null
    },
    {
-    "rang": 3,
+    "rang": 4,
     "equipe": "BIEVRE HANDBALL",
     "pts": 4,
     "j": 2,
@@ -518,22 +562,6 @@
     "forme": [
      "V",
      "D"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 4,
-    "equipe": "HB TAIN VION TOURNON 2",
-    "pts": 3,
-    "j": 1,
-    "v": 1,
-    "n": 0,
-    "d": 0,
-    "bp": 30,
-    "bc": 24,
-    "diff": 6,
-    "forme": [
-     "V"
     ],
     "forfait": null
    },
@@ -571,18 +599,20 @@
     "forfait": null
    },
    {
-    "rang": null,
+    "rang": 7,
     "equipe": "P16M DIV2 RTE NORD DROME HANDBALL 2",
-    "pts": 0,
-    "j": 0,
+    "pts": 1,
+    "j": 1,
     "v": 0,
     "n": 0,
-    "d": 0,
-    "bp": 0,
-    "bc": 0,
-    "diff": 0,
-    "forme": [],
-    "forfait": true
+    "d": 1,
+    "bp": 22,
+    "bc": 39,
+    "diff": -17,
+    "forme": [
+     "D"
+    ],
+    "forfait": null
    }
   ],
   "72": [
@@ -656,7 +686,7 @@
    },
    {
     "rang": 5,
-    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 2",
+    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
     "pts": 3,
     "j": 1,
     "v": 1,
@@ -716,20 +746,6 @@
     "diff": 0,
     "forme": [],
     "forfait": null
-   },
-   {
-    "rang": 9,
-    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
-    "pts": 0,
-    "j": 0,
-    "v": 0,
-    "n": 0,
-    "d": 0,
-    "bp": 0,
-    "bc": 0,
-    "diff": 0,
-    "forme": [],
-    "forfait": null
    }
   ]
  },
@@ -771,10 +787,19 @@
    "se": 41
   },
   {
+   "poule": "71",
+   "journee": 2,
+   "date": "2026-10-10T18:00",
+   "dom": "P16M DIV2 RTE NORD DROME HANDBALL 2",
+   "ext": "HB TAIN VION TOURNON 2",
+   "sd": 22,
+   "se": 39
+  },
+  {
    "poule": "72",
    "journee": 2,
    "date": "2026-10-10T16:30",
-   "dom": "P16M DIV - DRAC ISERE 38 HANDBALL- 2",
+   "dom": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
    "ext": "USVIZILLE HB",
    "sd": 29,
    "se": 20
