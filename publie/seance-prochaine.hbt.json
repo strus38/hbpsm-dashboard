@@ -1,14 +1,14 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-15T19:53:28.000Z",
+ "exporteLe": "2026-10-16T05:25:03.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-10-15",
+   "id": "tableau-de-bord-2026-10-16",
    "titre": "Préparer P16M DIV - NORD DROME HANDBALL",
-   "date": "2026-10-16",
+   "date": "2026-10-20",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
    "objectifSeance": "Avant P16M DIV - NORD DROME HANDBALL (Coupe de France, 1er tour, sam. 17 oct., à l’extérieur). 1) Tenir la deuxième mi-temps [Préparation physique] : Écart de 7,0 en première mi-temps, 4,5 en seconde. Adversaire : 32,8 buts marqués et 24,8 encaissés par match ; à surveiller : n° 4 (5,0 buts/match), n° 5 (4,8 buts/match).",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-15T19:53:28.000Z",
-   "modifieLe": "2026-10-15T19:53:28.000Z"
+   "creeLe": "2026-10-16T05:25:03.000Z",
+   "modifieLe": "2026-10-16T05:25:03.000Z"
   }
  }
 }
