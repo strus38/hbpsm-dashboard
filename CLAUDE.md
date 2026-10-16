@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (66 tests au 12/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (67 tests au 16/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -81,7 +81,8 @@ Le dépôt GitHub est vide au 04/10/2026 : rien n'a encore été poussé.
 
 En local : `python -m venv .venv`, `.venv/Scripts/python -m pip install -r requirements-dev.txt`.
 Rester léger avec le site de la fédération : deux poules, une seconde entre deux pages, ne pas relire
-une journée dont toutes les feuilles sont lues. Horaire (demande de l'auteur, 11/10/2026 ; avant : une fois
+une journée dont toutes les feuilles sont lues, sauf si la ligue a pu la changer (voir « Journées closes changées par
+la ligue »). Horaire (demande de l'auteur, 11/10/2026 ; avant : une fois
 par jour du dimanche au vendredi) : dimanche et lundi toutes les deux heures de 6 h à 22 h, du mardi au
 samedi à 6 h, 12 h et 18 h, heure de Paris. Déclenchement par deux tâches de cron-job.org (demande de l'auteur,
 12/10/2026 ; fuseau `Europe/Paris`, POST de `workflow_dispatch` sur weekly.yml, configuration dans le README,
@@ -704,6 +705,17 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   ajoutées (`corrige`, hors présence au jeu) pour des buts encaissés exacts ; `correction` (signature sans nom) sur
   le match, `meta.corrections`, `derniers[].correction` (note du bilan) ; le bilan de pronostic figé se refait quand
   la correction change ; nouveauté « correction ». Correction de la J2 : n° 16 de 0 à 30 min, n° 1 de 30 à 60.
+- Journées closes changées par la ligue (question de l'auteur, 16/10/2026 : « pourquoi les dernières feuilles n'ont pas
+  été récupérées ? l'application n'est pas à jour face aux poules 71 et 72 ») : les journées 1 et 2 se sont closes le
+  14/10 au matin ; le soir, la ligue a refait la poule 72 (journal de la collecte : 48 rencontres sur 12 journées au lieu
+  de 36, 4 matchs par journée ; « DRAC ISERE 38 HANDBALL- 1 » apparue dans notre classement le 13/10, « ISLE D'ABEAU
+  SG3 » le 14/10) et une journée close n'était jamais relue. `collect.crawl_poule(before=)` relit les journées closes quand le classement de
+  la fédération compte à une équipe des matchs joués dont la collecte n'a pas le résultat (`missing_results`, colonne J),
+  quand il change d'équipes, ou au premier passage avec cette règle ; une fois par nouvel écart (`manquants`, gardé
+  dans le classement officiel de data/official_standings.json : un forfait compté par la fédération ne fait pas relire
+  à chaque passage). Une rencontre à venir retirée d'une journée relue sort de data/fixtures.json (avant, elle y
+  restait pour toujours). Pas vérifié sur le vrai site depuis le conteneur de claude.ai (ffhandball.fr y est bloqué) :
+  lire la ligne « journées closes relues » du prochain passage.
 - Tout le calcul lourd se fait dans la collecte sur GitHub ; la page ne fait que la feuille
   proposée, la force alignée et le risque (formules dans le README). Ouverte, elle relit `publie/manifeste.json`
   toutes les dix minutes (`VERIF` dans `pipeline/publish.py`), au retour au premier plan et au

@@ -299,6 +299,12 @@ JSON dans le HTML servi (`<smartfire-component name="competitions---rencontre-li
 attributes="…">`). Elle lit la page de la poule, puis chaque journée pas encore close (une
 journée est close quand toutes ses feuilles sont lues), soit une quinzaine de pages par poule
 en début de saison et de moins en moins ensuite, avec une pause d'une seconde entre deux.
+La ligue peut pourtant changer une journée close (poule 72 refaite le 14/10/2026 : une équipe de
+plus, quatre matchs par journée au lieu de trois) : les journées closes sont relues quand le
+classement de la fédération compte, à une équipe, des matchs joués dont la collecte n'a pas le
+résultat, ou quand il change d'équipes ; une fois par nouvel écart (un écart qui ne s'explique pas,
+un forfait compté par la fédération par exemple, est gardé et ne fait plus relire). Une rencontre
+à venir que le site a retirée d'une journée relue disparaît.
 La feuille se télécharge à l'adresse tirée de son code (`fdm.fdme.ffhandball.fr/W/A/G/W/WAGWUHC.pdf`),
 sans ouvrir la page de la rencontre. Les pages passent par un cache d'une à deux heures : un
 score absent de la page est pris sur la feuille, et un classement fédéral qui compte moins de
