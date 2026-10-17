@@ -1,157 +1,199 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-10-17 15:43",
+ "genere": "2026-10-17 20:28",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
- "feuilles": 2,
+ "feuilles": 3,
  "prochain": {
-  "id": "2734133",
-  "date": "2026-10-17T18:00",
+  "id": "2727563",
+  "date": "2026-11-07T21:00",
   "provisoire": false,
   "salle": {
-   "nom": "SALLE OMNISPORTS",
-   "rue": "RUE DU LEVANT",
-   "code_postal": "26140",
-   "ville": "ST RAMBERT D ALBON"
+   "nom": "GYMNASE LA SAULAIE",
+   "rue": "AVENUE DE LA SAULAIE",
+   "code_postal": "38160",
+   "ville": "ST MARCELLIN"
   },
-  "adversaire": "P16M DIV - NORD DROME HANDBALL",
-  "domicile": false,
-  "journee": 1,
-  "poule": "coupe",
-  "coupe": "Coupe de France",
-  "tour": "1ER TOUR",
-  "p_victoire": 34,
-  "enjeu": null,
-  "cle": false,
-  "rang_adv": null
+  "adversaire": "HBC ST DONAT",
+  "domicile": true,
+  "journee": 3,
+  "poule": "71",
+  "coupe": null,
+  "tour": null,
+  "p_victoire": 87,
+  "enjeu": 22,
+  "cle": true,
+  "rang_adv": 3
  },
  "adversaire": {
-  "equipe": "P16M DIV - NORD DROME HANDBALL",
-  "poule": "ext-190237",
-  "j": 4,
-  "bp_moy": 32.8,
-  "bc_moy": 24.8,
+  "equipe": "HBC ST DONAT",
+  "poule": "71",
+  "j": 2,
+  "bp_moy": 23.0,
+  "bc_moy": 25.5,
   "forme": [
-   "V",
-   "N",
-   "V",
-   "D"
+   "D",
+   "V"
   ],
-  "mt1_bp": 15.2,
-  "mt2_bp": 17.5,
+  "mt1_bp": 10.5,
+  "mt2_bp": 12.5,
   "mt1_bc": 12.0,
-  "mt2_bc": 12.8,
-  "deux_min_moy": 5.0,
-  "jaunes_moy": 1.5,
-  "rouges": 1,
-  "arrets_pct": 29,
+  "mt2_bc": 13.5,
+  "deux_min_moy": 1.5,
+  "jaunes_moy": 0.5,
+  "rouges": 0,
+  "arrets_pct": 28,
   "periodes_bp": [
-   5.2,
-   5.0,
-   5.0,
-   5.8,
-   6.5,
-   5.2
+   3.5,
+   2.5,
+   4.0,
+   3.5,
+   4.0,
+   5.5
   ],
   "periodes_bc": [
+   5.0,
+   2.5,
    4.5,
-   2.8,
-   4.5,
-   5.2,
-   3.8,
-   4.0
+   5.5,
+   3.0,
+   5.0
   ],
-  "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (32,8 buts/match, médiane 27,2) : priorité à la discipline et à l'impact collectif.",
-  "niveau": 1,
-  "poule_libelle": "1re division masculine P16 AURA, poule 6",
+  "plan": "equilibre",
+  "plan_raison": "Adversaire dans la moyenne des deux poules : pondération équilibrée.",
+  "niveau": null,
+  "poule_libelle": null,
   "forfait": null,
   "buteurs": [
    {
-    "num": 4,
-    "buts": 20,
-    "pen": 0,
-    "m": 4,
-    "moy": 5.0,
-    "tirs": 30,
-    "reussite": 67
-   },
-   {
-    "num": 5,
-    "buts": 19,
-    "pen": 1,
-    "m": 4,
-    "moy": 4.8,
-    "tirs": 27,
-    "reussite": 70
-   },
-   {
-    "num": 10,
-    "buts": 19,
-    "pen": 6,
-    "m": 4,
-    "moy": 4.8,
-    "tirs": 34,
-    "reussite": 56
-   },
-   {
-    "num": 2,
-    "buts": 17,
-    "pen": 0,
-    "m": 4,
-    "moy": 4.2,
+    "num": 55,
+    "buts": 13,
+    "pen": 7,
+    "m": 2,
+    "moy": 6.5,
     "tirs": 25,
-    "reussite": 68
+    "reussite": 52
    },
    {
-    "num": 13,
-    "buts": 15,
+    "num": 36,
+    "buts": 9,
+    "pen": 2,
+    "m": 2,
+    "moy": 4.5,
+    "tirs": 22,
+    "reussite": 41
+   },
+   {
+    "num": 23,
+    "buts": 7,
     "pen": 0,
-    "m": 4,
-    "moy": 3.8,
-    "tirs": 18,
-    "reussite": 83
+    "m": 2,
+    "moy": 3.5,
+    "tirs": 12,
+    "reussite": 58
+   },
+   {
+    "num": 45,
+    "buts": 5,
+    "pen": 0,
+    "m": 2,
+    "moy": 2.5,
+    "tirs": 14,
+    "reussite": 36
+   },
+   {
+    "num": 7,
+    "buts": 5,
+    "pen": 0,
+    "m": 2,
+    "moy": 2.5,
+    "tirs": 9,
+    "reussite": 56
    }
   ],
   "gardiens": [
    {
-    "num": 16,
-    "m": 3,
-    "arrets": 31,
-    "pris": 79,
-    "pct": 28,
-    "estime": true
-   },
-   {
-    "num": 16,
-    "m": 1,
-    "arrets": 9,
-    "pris": 13,
-    "pct": 41,
-    "estime": false
-   },
-   {
     "num": 1,
-    "m": 1,
-    "arrets": 1,
-    "pris": 7,
-    "pct": 12,
-    "estime": true
+    "m": 2,
+    "arrets": 20,
+    "pris": 51,
+    "pct": 28,
+    "estime": false
    }
   ],
-  "passe": null,
+  "passe": {
+   "saison": "2025-2026",
+   "niveau": 0,
+   "division": "2e division",
+   "j": 18,
+   "v": 7,
+   "n": 3,
+   "d": 8,
+   "bp_moy": 29.9,
+   "bc_moy": 28.6,
+   "rangs": [
+    {
+     "poule": "POULE 5A",
+     "rang": 5,
+     "equipes": 8
+    },
+    {
+     "poule": "POULE 5 BASSE",
+     "rang": 2,
+     "equipes": 5
+    }
+   ],
+   "face_a_face": [
+    {
+     "date": "2025-11-02T16:00",
+     "phase": "POULE 5A",
+     "dom": false,
+     "score": "26-37",
+     "res": "D"
+    },
+    {
+     "date": "2026-01-17T21:00",
+     "phase": "POULE 5A",
+     "dom": true,
+     "score": "33-35",
+     "res": "D"
+    }
+   ],
+   "continuite": {
+    "deja": 7,
+    "sur": 10
+   },
+   "feuilles": 18,
+   "buteurs": [
+    {
+     "num": 36,
+     "buts": 152,
+     "present": true
+    },
+    {
+     "num": 55,
+     "buts": 103,
+     "present": true
+    },
+    {
+     "num": 7,
+     "buts": 68,
+     "present": true
+    }
+   ]
+  },
   "origines": {
    "saison": "2025-2026",
-   "vus": 15,
-   "retrouves": 3,
+   "vus": 10,
+   "retrouves": 7,
    "equipes": [
     {
-     "equipe": "FAR HANDBALL",
+     "equipe": "HBC ST DONAT",
      "niveau": 0,
      "division": "2e division",
-     "joueurs": 3
+     "joueurs": 7
     }
    ]
   },
@@ -293,8 +335,8 @@
    ],
    "face_a_face": [],
    "continuite": {
-    "deja": 12,
-    "sur": 14
+    "deja": 16,
+    "sur": 19
    },
    "feuilles": 19,
    "buteurs": [
@@ -317,14 +359,14 @@
   },
   "origines": {
    "saison": "2025-2026",
-   "vus": 14,
-   "retrouves": 12,
+   "vus": 19,
+   "retrouves": 16,
    "equipes": [
     {
      "equipe": "HANDBALL PAYS DE ST MARCELLIN",
      "niveau": 0,
      "division": "2e division",
-     "joueurs": 12
+     "joueurs": 16
     }
    ]
   },
@@ -340,9 +382,9 @@
   "proba": 91,
   "proba_tout": 100,
   "rangs": [
-   70.2,
-   21.2,
-   6.0,
+   69.8,
+   21.4,
+   6.2,
    1.9,
    0.6,
    0.1,
@@ -350,19 +392,6 @@
   ],
   "pts_max": 36,
   "matchs": [
-   {
-    "journee": null,
-    "coupe": "Coupe de France",
-    "tour": "1ER TOUR",
-    "date": "2026-10-17T18:00",
-    "provisoire": false,
-    "adversaire": "P16M DIV - NORD DROME HANDBALL",
-    "domicile": false,
-    "p_victoire": 34,
-    "enjeu": null,
-    "cle": false,
-    "rang_adv": null
-   },
    {
     "journee": 3,
     "coupe": null,
@@ -398,7 +427,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
     "p_victoire": 53,
-    "enjeu": 12,
+    "enjeu": 13,
     "cle": false,
     "rang_adv": 2
    },
@@ -411,7 +440,7 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 82,
-    "enjeu": 20,
+    "enjeu": 21,
     "cle": true,
     "rang_adv": 4
    },
@@ -437,7 +466,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 91,
-    "enjeu": 16,
+    "enjeu": 15,
     "cle": false,
     "rang_adv": 5
    },
@@ -450,7 +479,7 @@
     "adversaire": "HBC ST DONAT",
     "domicile": false,
     "p_victoire": 72,
-    "enjeu": 16,
+    "enjeu": 15,
     "cle": false,
     "rang_adv": 3
    },
@@ -463,7 +492,7 @@
     "adversaire": "P16M DIV2 RTE NORD DROME HANDBALL 2",
     "domicile": true,
     "p_victoire": 96,
-    "enjeu": 20,
+    "enjeu": 19,
     "cle": true,
     "rang_adv": 7
    },
@@ -488,7 +517,7 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 64,
+    "p_victoire": 63,
     "enjeu": 16,
     "cle": false,
     "rang_adv": 4
