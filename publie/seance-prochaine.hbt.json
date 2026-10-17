@@ -1,12 +1,12 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-10-16T19:33:49.000Z",
+ "exporteLe": "2026-10-17T08:32:44.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-10-16",
+   "id": "tableau-de-bord-2026-10-17",
    "titre": "Préparer P16M DIV - NORD DROME HANDBALL",
    "date": "2026-10-20",
    "equipe": "Seniors garçons",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-10-16T19:33:49.000Z",
-   "modifieLe": "2026-10-16T19:33:49.000Z"
+   "creeLe": "2026-10-17T08:32:44.000Z",
+   "modifieLe": "2026-10-17T08:32:44.000Z"
   }
  }
 }
