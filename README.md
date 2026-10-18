@@ -522,7 +522,9 @@ tous les autres, entraîneur compris.
   planification : un absent annoncé sort ; si assez de joueurs sont annoncés présents (10 joueurs de champ
   et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon, tous les présents sont sur la
   feuille, jamais mis au repos (ni rotation, ni série des gardiens, ni règle des deux changements), et les
-  sans-réponse complètent. Un clic de l'entraîneur prime. Le journal est chiffré avec la phrase du club : comme le
+  sans-réponse complètent. Un clic de l'entraîneur prime. Chaque case de la planification porte un point (vert :
+  présent, rouge : absent, anneau gris : pas encore renseigné), chaque match son décompte, et la feuille de la
+  Semaine et de la Convocation dit qui n'a pas encore répondu (entraîneur et celui qui tient les présences seulement). Le journal est chiffré avec la phrase du club : comme le
   mode entraîneur, c'est un usage, pas un verrou.
 - Plus d'amende « pas de réponse » proposée automatiquement (pas de `amendes_depuis` dans
   `config.yml`) : les trésoriers les mettent à la main s'il le faut.
