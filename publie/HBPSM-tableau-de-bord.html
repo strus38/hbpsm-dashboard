@@ -667,7 +667,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "47f87ce99051", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "bc5d314aabc3", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -864,8 +864,8 @@ const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringi
 const gone = (p, m) => !!p.jusqu_au && (m.date || "9999").slice(0, 10) > p.jusqu_au;
 const untilText = p => "disponible jusqu'au " + new Date(p.jusqu_au + "T12:00").toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"});
 // la présence annoncée (09/10/2026) : absent s'il est annoncé absent ; pas encore renseigné alors que d'autres, assez
-// nombreux, sont annoncés présents : la feuille se fait parmi eux (entraîneur et celui qui tient les présences) ; ce
-// que l'entraîneur a saisi ici prime
+// nombreux, sont annoncés présents : la feuille se fait parmi eux (entraîneur et celui qui tient les présences) ; moins
+// nombreux, ils y sont tous et les sans-réponse complètent (planning, 18/10/2026) ; ce que l'entraîneur a saisi ici prime
 const availOf = (p, m) => {
   if(!dispo(p) || gone(p, m) || injured(p, m) || declaredAbsent(p, m)) return "a";
   const l = localAv(p, m);
@@ -1035,7 +1035,16 @@ function planning(){
   const P = H.map((m, k) => {
     const size = sizeOf(m);
     const pool = D.joueurs.filter(p => availOf(p, m) !== "a" && pinOf(p, m) !== "out");
-    const pinned = pool.filter(p => pinOf(p, m) === "in");
+    const pinned = pool.filter(p => pinOf(p, m) === "in"), presents = [];
+    // les annoncés présents (demande de l'auteur, 18/10/2026) : tant qu'ils ne sont pas plus nombreux que les places
+    // (gardiens d'un côté, joueurs de champ de l'autre), tous sont sur la feuille, jamais mis au repos ; les sans-réponse
+    // complètent, les absents n'y sont pas ; plus nombreux, la feuille se fait parmi eux (restricts)
+    for(const gk of [true, false]){
+      const slots = gk ? nGK : size - nGK;
+      const firm = pool.filter(p => isGK(p) === gk && !pinned.includes(p) && saidPresent(p, m)).sort((a, b) => val(b, m) - val(a, m));
+      if(firm.length <= slots) presents.push(...firm.slice(0, Math.max(0, slots - pinned.filter(p => isGK(p) === gk).length)));
+    }
+    pinned.push(...presents);
     const sure = pool.filter(p => availOf(p, m) === "d" && !pinned.includes(p)).sort((a, b) => val(b, m) - val(a, m));
     const unsure = pool.filter(p => availOf(p, m) === "i" && !pinned.includes(p)).sort((a, b) => val(b, m) - val(a, m));
     const pick = (gk, n) => {
@@ -1062,7 +1071,7 @@ function planning(){
       const fill = (gk, n) => { for(const p of [...sure, ...unsure]) if(isGK(p) === gk && (gk ? gks : field).length < n && !gks.includes(p) && !field.includes(p)) (gk ? gks : field).push(p); };
       if(broken.length){ fill(true, nGK); fill(false, size - gks.length); }
     } else { gks = pick(true, nGK); field = pick(false, Math.min(size, sizeOf({})) - gks.length); }   // les places de coupe en plus : en 1 bis
-    return {m, k, size, pinned, sure, unsure, gks, field, rotated: [], resting: [], extra: [], why: {}, forced: [], serie: [], partage: [], peu: null, fixed: !!fixed, broken};
+    return {m, k, size, pinned, presents, sure, unsure, gks, field, rotated: [], resting: [], extra: [], why: {}, forced: [], serie: [], partage: [], peu: null, fixed: !!fixed, broken};
   });
   // domicile et extérieur : que personne ne joue que d'un côté ; excess > 0 : il a déjà plus de
   // matchs du côté de ce match (saison jouée et propositions comprises)
@@ -1222,7 +1231,7 @@ function planning(){
     prev = team();
   }
   // 3. force et risque de chaque feuille
-  const out = P.map(({m, k, size, gks, field, rotated, resting, extra, why, fixed, broken, forced, peu, serie, gbSuite, partage}) => {
+  const out = P.map(({m, k, size, gks, field, rotated, resting, extra, why, fixed, broken, forced, peu, serie, gbSuite, partage, presents}) => {
     gks.sort((a, b) => val(b, m) - val(a, m)); field.sort((a, b) => val(b, m) - val(a, m));
     const sel = [...gks, ...field];
     // force : valeur des retenus rapportée à l'équipe type (les meilleurs, tout le monde présent)
@@ -1252,7 +1261,7 @@ function planning(){
       : broken.length ? "a_revoir"
       : pub && keyset(pub) === mine && (!local || keyset(local) === mine) ? "publiee" : "attente";
     const valideLe = (local || pub || {}).le || null;
-    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, costGoals, goalsAdj, impact, level, rotated, resting, extra, why, forced, peu, serie, gbSuite, partage, postes, postesOk, fixed, broken, etat, valideLe,
+    return {m, k, sel, gks, field, ok, size, nGK, force, pAdj, costGoals, goalsAdj, impact, level, rotated, resting, extra, why, forced, peu, serie, gbSuite, partage, presents, postes, postesOk, fixed, broken, etat, valideLe,
             rested: regulars.filter(p => !sel.includes(p) && availOf(p, m) === "d"),
             missing: size - sel.length, missingGK: nGK - gks.length};
   });
@@ -1850,6 +1859,7 @@ function viewPlanif(){
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
+          : sel && !r.fixed && r.presents.includes(p) ? w+" : annoncé présent ; tant qu'ils ne remplissent pas la feuille, tous les présents y sont"
           : ext ? "entre : la coupe permet "+r.size+" joueurs sur la feuille, une place pour qui doit encore jouer au moins "+q+" des "+n+" matchs"
           : rot && r.partage.includes(p) ? "entre : en début de saison, le temps de jeu se partage entre gardiens, à la place de "+other.nom
           : rest && r.partage.includes(p) ? "au repos : en début de saison, le temps de jeu se partage entre gardiens, laisse sa place à "+other.nom
@@ -1860,7 +1870,8 @@ function viewPlanif(){
           : rot ? "entre par rotation : doit jouer au moins "+q+" des "+n+" matchs, placé sur un des matchs les plus abordables"+vs+", à la place de "+other.nom+samePoste(p, other)
           : rest ? "au repos par rotation : a le plus joué sur ces "+n+" matchs, laisse sa place à "+other.nom+samePoste(p, other)
           : sel && depOf(p) ? w+" en dépannage : pas assez d'autres joueurs disponibles pour ce match, ou pour un poste clef"
-          : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match")
+          : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match"
+            + (!r.fixed && r.presents.length && seesAll() && ownCall(p, r.m) && playerSays(p, r.m) === "attente" ? ", pas encore renseigné : complète les présents" : ""))
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
         const why = what + (said ? " · annoncé présent" : "");
         h += '<div><button class="cell '+cls+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
@@ -3360,6 +3371,8 @@ function restricts(m, gk){
 const ownCall = (p, m) => dispo(p) && !gone(p, m) && !injured(p, m) && !declaredAbsent(p, m) && !localAv(p, m);
 const saidAbsent = (p, m) => ownCall(p, m) && playerSays(p, m) === "absent";
 const noAnswerOut = (p, m) => ownCall(p, m) && !["present", "absent"].includes(playerSays(p, m)) && restricts(m, isGK(p));
+// annoncé présent : sa réponse, ou l'entraîneur qui l'a dit disponible ici (comme dans restricts)
+const saidPresent = (p, m) => availOf(p, m) === "d" && (localAv(p, m) === "d" || (!localAv(p, m) && playerSays(p, m) === "present"));
 function tally(e){   // qui est annoncé présent, absent, pas encore renseigné
   const out = {present: [], absent: [], attente: [], sans: []};
   for(const p of squad()) if(concerned(p, e)) out[statusOf(p.cle, e).etat].push(p);
