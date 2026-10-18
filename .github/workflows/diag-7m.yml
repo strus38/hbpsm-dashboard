@@ -1,0 +1,31 @@
+# Diagnostic ponctuel (branche diag-7m, à supprimer ensuite) : comment les feuilles écrivent un 7 m manqué.
+# N'écrit que diag/feuilles-7m.json, sans aucun nom (voir outils/diag_7m.py), sur cette branche seulement.
+name: Diagnostic 7 m
+on:
+  push:
+    branches: [diag-7m]
+    paths: [outils/diag_7m.py, .github/workflows/diag-7m.yml]
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Collecte (feuilles téléchargées, jamais versionnées)
+        run: python -m pipeline.collect > /dev/null 2>&1 || true
+      - name: Diagnostic
+        env:
+          HBPSM_EFFECTIF: ${{ secrets.HBPSM_EFFECTIF }}
+        run: python -m outils.diag_7m
+      - name: Enregistrer
+        run: |
+          git config user.name "hbpsm-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diag/feuilles-7m.json
+          git commit -m "Diagnostic 7 m" && git push
