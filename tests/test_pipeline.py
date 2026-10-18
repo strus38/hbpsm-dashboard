@@ -2353,6 +2353,40 @@ def test_caisse_propositions():
     assert (check["id"], check["regle"], check["tireurs"], len(check["feuille"])) == ("m_penalty:m1:check", "m_penalty", [], 3)
 
 
+def test_penalties_manques():
+    """La feuille ne nomme jamais un 7 m manqué : un tir manqué d'un tireur de 7 m (du match ou de la saison) est
+    « probable » juste après une sanction adverse (ou à la même seconde), « possible » sinon ; les probables sont
+    précomptés, un « Tir non cadré » probable compte hors cadre. Les autres joueurs ne sont jamais suspects."""
+    home = [dict(name="Isidore EXEMPLE", num=7, goals=3, pen_goals=2, shots=6),
+            dict(name="Jean MODELE", num=9, goals=1, pen_goals=0, shots=4),
+            dict(name="Basile TIREUR", num=10, goals=2, pen_goals=0, shots=3)]
+    ev = [dict(t=300, side="away", type="two_min", num=4), dict(t=300, side="home", type="miss", num=7),       # probable
+          dict(t=900, side="home", type="miss", num=7),                                                       # possible
+          dict(t=1200, side="away", type="yellow", num=5), dict(t=1205, side="home", type="miss", num=9),     # pas tireur
+          dict(t=1500, side="home", type="miss", num=10, nc=True), dict(t=1500, side="away", type="red", num=3),  # probable, hors cadre
+          dict(t=2000, side="home", type="two_min", num=7), dict(t=2001, side="home", type="miss", num=10)]  # sanction des nôtres
+    m = dict(id="m2", date="2026-10-17T20:00", players={"home": home, "away": []}, events=ev)
+    older = dict(id="m1", date="2026-10-10T20:00", events=[],
+                 players={"home": [dict(name="Basile TIREUR", num=10, goals=1, pen_goals=1, shots=1)], "away": []})
+    props = caisse.proposals([(older, "home", "Club Alpha", 20, 19), (m, "home", "Club Bravo", 25, 24)], {}, [], "2026-2027")
+    check = next(p for p in props if p.get("check") and p["match"] == "m2")
+    t = {x["joueur"]: x for x in check["tireurs"]}
+    isidore, basile = an.name_key("Isidore EXEMPLE"), an.name_key("Basile TIREUR")
+    assert set(t) == {isidore, basile}
+    assert (t[isidore]["marques"], t[isidore]["manques"], [s["niveau"] for s in t[isidore]["soupcons"]]) == (2, 1, ["probable", "possible"])
+    assert (t[basile]["habituel"], t[basile]["manques"], t[basile]["hors_cadre"]) == (1, 1, 1)
+    assert [(s["minute"], s["niveau"]) for s in t[basile]["soupcons"]] == [(26, "probable"), (34, "possible")]
+    assert [x["joueur"] for x in check["tireurs"]] == [isidore, basile]
+
+
+def test_tir_non_cadre():
+    """« Tir non cadré NOM Prénom » : le tireur est retrouvé et le tir marqué hors cadre ; « But 7m » marqué `pen`."""
+    ev = parse_fdme.parse_events("12:03 3 - 2 Tir non cadré DUPONT Jean 12:40 4 - 2 But 7m MARTIN Paul")
+    assert [(e["type"], e["actor"], e.get("nc"), e.get("pen")) for e in ev] == [
+        ("miss", "DUPONT Jean", True, None), ("pen_goal", "MARTIN Paul", None, True)]
+    out = parse_fdme.attribute(ev, {"home": [dict(name="DUPONT Jean", num=4), dict(name="MARTIN Paul", num=7)], "away": []})
+    assert [(e["num"], e.get("nc"), e.get("pen")) for e in out] == [(4, True, None), (7, None, True)]
+
 def test_noms_ancienne_feuille():
     """Ancienne feuille : nom et prénom collés, nom parfois répété après le prénom, prénom en minuscules."""
     cases = {"DUPONTjean-DUPONT": "DUPONT Jean", "MARTIN-DUPRÉlouis-hilarion": "MARTIN-DUPRÉ Louis-Hilarion",

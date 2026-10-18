@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (68 tests au 18/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (70 tests au 18/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -175,9 +175,17 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   (trésoriers, entraîneur : choix de l'auteur) ; boîte d'envoi locale `hbpsm:caisse-envoi`
   jusqu'à publication. Propositions : `caisse.proposals` (feuilles) + « Bon point ! » calculé dans
   la page ; une proposition validée a l'id « v:<proposition> », refusée « r:<proposition> ».
-  Penalties manqués (introuvables sur la feuille : colonne « 7m » = buts sur 7 m, aucun libellé
-  d'échec) : une proposition « m_penalty:<match>:check » par match (tireurs, joueurs de la
-  feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). Cotisations : carte à part,
+  Penalties manqués : une proposition « m_penalty:<match>:check » par match (tireurs, joueurs de la
+  feuille), traitée dans la carte « Gérard Penaldo » (`penaltyOps`). La feuille ne nomme jamais un 7 m manqué
+  (vérifié le 18/10/2026 sur 17 vraies feuilles par un diagnostic sans nom : « But 7m »
+  seulement ; colonne « 7m » = buts sur 7 m ; un 7 m raté s'écrit « Tir », « Tir non cadré » ou « Arrêt »).
+  Demande de l'auteur (18/10/2026 : « les penalty ratés sont très mal détectés ») : `caisse.penalties_of` signale
+  chaque tir manqué d'un tireur de 7 m (marqué dans le match ou la saison) ; « probable » quand une sanction
+  adverse le précède ou tombe à la même seconde (mesuré : 25 % des buts sur 7 m, 3 % des autres buts, soit environ
+  une chance sur deux), précompté dans la carte (`penSeed`, hors cadre si « Tir non cadré ») ; « possible » sinon,
+  signalé avec sa minute (`penLine`). Le trésorier confirme ou corrige. `parse_fdme` lit « Tir non cadré » (avant,
+  le nom du tireur gardait « non cadré » devant lui) et marque `nc` ; `LECTURE` = 2 fait relire une fois les
+  feuilles de nos matchs lues avant. Cotisations : carte à part,
   « Payé » = amende + paiement ; hors podium et hors compte des amendes.
   Le jeton étant partagé, `collect.set_urls` n'accepte que des adresses ffhandball.fr.
   Propositions de tous (demande de l'auteur, 06/10/2026) : n'importe qui ayant la phrase propose une

@@ -27,7 +27,7 @@ TIME = r"(?:\d{1,2}:)?\d{1,2}:\d{2}"  # « 59:32 », puis « 01:00:00 » à la 6
 EVENT_RE = re.compile(r"(?<![\d:])(%s)\s+(\d{1,2})\s*-\s*(\d{1,2})\s+(.+?)"
                       r"(?=\s+%s\s+\d{1,2}\s*-\s*\d{1,2}\s|$)" % (TIME, TIME))
 ACTIONS = [  # (début de l'action, type) — du plus précis au plus général ; None = ignorée
-    ("BUT 7M", "pen_goal"), ("BUT", "goal"), ("TIR 7M", "miss"), ("TIR", "miss"),
+    ("BUT 7M", "pen_goal"), ("BUT", "goal"), ("TIR NON CADRE", "miss"), ("TIR 7M", "miss"), ("TIR", "miss"),
     ("ARRET 7M", "save"), ("ARRET", "save"),
     # trois sanctions à ne pas confondre : avertissement (carton jaune), exclusion de 2 minutes,
     # disqualification (carton rouge, que le carton bleu complète d'un rapport)
@@ -40,6 +40,9 @@ ACTIONS = [  # (début de l'action, type) — du plus précis au plus général 
     ("ENTREE GARDIEN", "gk_in"), ("SORTIE GARDIEN", "gk_out"),
     ("COMMOTION", None), ("PROTOCOLE COMMOTION", None), ("TEMPS DE REGULATION", None),
 ]
+# version de la lecture : une feuille de notre club lue avant est relue une fois (collect.main) ; 2 = « Tir non
+# cadré » attribué à son tireur et marqué `nc`, 7 m marqués `pen` (18/10/2026)
+LECTURE = 2
 OLD_RE = re.compile(r"^(.+?)J([RV])N°(\d{1,2})(.*)$")  # « ButJRN°51DUPONTjean », ancienne feuille
 HEADERS = {"num": ("N", "NO", "NUM"), "name": ("NOM",), "goals": ("BUTS",), "pen_goals": ("7M",),
            "shots": ("TIRS",), "saves": ("ARRETS", "ARRET"), "yellow": ("AV",),
@@ -102,13 +105,17 @@ def parse_events(text, unknown=None):
             if not hit or hit[1] is None or t > 5400:  # prolongations comprises
                 continue
             event = dict(t=t, type=hit[1], score=[int(sh), int(sa)])
+            if "7M" in hit[0]:   # « But 7m » (la feuille n'écrit jamais un 7 m manqué : voir caisse.penalties_of)
+                event["pen"] = True
+            if hit[1] == "miss" and label.replace(" ", "").startswith("TIRNONCADRE"):
+                event["nc"] = True   # « Tir non cadré » (relevé sur les feuilles 2026-2027)
             if old:  # l'ancienne feuille donne l'équipe et le numéro
                 event.update(actor=split_name(" ".join(mask(old.group(4)).split())) or None,
                              side="home" if old.group(2) == "R" else "away", num=int(old.group(3)))
             elif hit[1] == "timeout":  # « Temps mort Visiteur », ou « TempsMortd'EquipeVisiteur » (ancienne)
                 compact = label.replace(" ", "")
                 event["actor"] = "Visiteur" if "VISITEUR" in compact else "Recevant" if "RECEVANT" in compact else None
-            else:
+            else:   # le nom suit le libellé (« Tir non cadré DUPONT Jean » : trois mots à retirer)
                 event["actor"] = " ".join(mask(rest).split()[len(hit[0].split()):]) or None
             events.append(event)
     events.sort(key=lambda e: e["t"])
@@ -194,7 +201,7 @@ def attribute(events, players):
                 side, num = by_score, None
             prev = e["score"]
         out.append(dict(t=e["t"], side=side, type=e["type"], num=num, score=e["score"],
-                        actor=e["actor"]))
+                        actor=e["actor"], **{k: True for k in ("pen", "nc") if e.get(k)}))
     return out
 
 
@@ -283,7 +290,7 @@ def build_match(fx, parsed=None):
                     match["home"]["score"], match["away"]["score"], *parsed["final"]))
         # une feuille ne compte comme lue que si le match a un score : sinon on la relira
         match["source"].update(fdme=parsed["quality"]["source_joueurs"] != "aucune" and match["played"],
-                               qualite=parsed["quality"])
+                               qualite=parsed["quality"], lecture=LECTURE)
         # contrôle de cohérence : total des buts des joueurs = score
         for side in ("home", "away"):
             total = sum(p["goals"] for p in match["players"][side])

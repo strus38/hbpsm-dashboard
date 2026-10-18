@@ -17,6 +17,7 @@ import datetime as dt
 import json
 import os
 import sys
+from collections import Counter
 
 from . import common, vault
 from .common import match_name, name_key, read_json, write_json
@@ -114,6 +115,57 @@ def _who(name, roster):
     return "R:" + rkey if rkey else name_key(name)
 
 
+FAUTE = ("two_min", "yellow", "red")   # sanction adverse qui accompagne souvent un 7 m
+
+
+def penalties_of(m, side, roster, takers=None):
+    """Les 7 m de notre équipe dans un match : ({joueur: marqués}, [tirs manqués suspects]).
+    La feuille ne nomme jamais un 7 m manqué (17 feuilles 2026-2027 lues le 18/10/2026 : « But 7m » seulement ;
+    un 7 m raté s'écrit « Tir », « Tir non cadré » ou « Arrêt » du gardien). Suspect : un tir manqué d'un tireur de
+    7 m (marqué dans ce match ou dans la saison, `takers`). « probable » si une sanction adverse (2 min, avertissement,
+    disqualification) le précède immédiatement ou tombe à la même seconde : mesuré sur ces feuilles, c'est le cas de
+    25 % des buts sur 7 m contre 3 % des autres buts, soit environ une chance sur deux d'un 7 m pour un tir manqué
+    d'un tireur habituel ; « possible » sinon (environ une sur cinq)."""
+    sheet = (m.get("players") or {}).get(side) or []
+    by_num = {p.get("num"): _who(p.get("name"), roster) for p in sheet if p.get("num") is not None}
+    scored = {_who(p.get("name"), roster): p.get("pen_goals") for p in sheet if p.get("pen_goals")}
+    events = sorted(m.get("events") or [], key=lambda e: e.get("t") or 0)
+    suspects = []
+    for i, e in enumerate(events):
+        who = by_num.get(e.get("num"))
+        if e.get("side") != side or e.get("type") != "miss" or not who:
+            continue
+        if not scored.get(who) and not (takers or {}).get(who):
+            continue
+        near = [x for x in events if x is not e and x.get("t") == e.get("t")] + events[max(0, i - 1):i]
+        foul = any(x.get("type") in FAUTE and x.get("side") and x.get("side") != side for x in near)
+        suspects.append(dict(joueur=who, minute=(e.get("t") or 0) // 60 + 1, niveau="probable" if foul else "possible",
+                             hors_cadre=bool(e.get("nc"))))
+    return scored, suspects
+
+
+def penalty_check(m, side, where, roster, takers):
+    """La carte « Gérard Penaldo » d'un match : tireurs du match et tireurs habituels de la saison présents sur la
+    feuille, chacun avec ses 7 m marqués et ses tirs manqués suspects ; les « probables » sont précomptés,
+    un trésorier confirme ou corrige."""
+    sheet = (m.get("players") or {}).get(side) or []
+    feuille = [_who(p.get("name"), roster) for p in sheet]
+    scored, suspects = penalties_of(m, side, roster, takers)
+    order = list(dict.fromkeys(list(scored) + [s["joueur"] for s in suspects]
+                               + [w for w in feuille if takers.get(w)]))
+    tireurs = []
+    for w in order:
+        mine = [s for s in suspects if s["joueur"] == w]
+        prob = [s for s in mine if s["niveau"] == "probable"]
+        tireurs.append(dict(joueur=w, marques=scored.get(w, 0), manques=len(prob),
+                            hors_cadre=sum(s["hors_cadre"] for s in prob), habituel=takers.get(w, 0),
+                            soupcons=[dict(minute=s["minute"], niveau=s["niveau"], hors_cadre=s["hors_cadre"]) for s in mine]))
+    tireurs.sort(key=lambda t: (-t["marques"], -t["manques"], -len(t["soupcons"]), -t["habituel"]))
+    return dict(id=f"m_penalty:{m['id']}:check", regle="m_penalty", check=True, joueur=None, n=1, montant=None,
+                date=(m.get("date") or "")[:10], match=m["id"], motif=f"penalties {where}", tireurs=tireurs,
+                feuille=feuille)
+
+
 def proposals(with_sheet, roster, members, saison):
     """Les amendes que les feuilles de match permettent de proposer (à valider par un trésorier),
     chacune justifiée par son point du règlement ; plus la cotisation de chacun pour la saison."""
@@ -125,10 +177,14 @@ def proposals(with_sheet, roster, members, saison):
                         montant=None if r["montant"] is None else r["montant"] * n,
                         date=(date or (m or {}).get("date") or "")[:10], match=m and m["id"], motif=motif))
 
+    takers = Counter()   # tireurs de 7 m de la saison : 7 m marqués (colonne « 7m » du tableau)
+    for m, side, *_ in with_sheet:
+        for p in (m.get("players") or {}).get(side) or []:
+            takers[_who(p.get("name"), roster)] += p.get("pen_goals") or 0
     for m, side, opp, gf, ga in with_sheet:
         if gf is None or ga is None:
             continue
-        where = f"contre {opp}" + (f" ({m['coupe']})" if m.get("coupe") else "")
+        where =f"contre {opp}" + (f" ({m['coupe']})" if m.get("coupe") else "")
         for p in (m.get("players") or {}).get(side, []):
             who, two, red = _who(p.get("name"), roster), p.get("two_min") or 0, p.get("red") or 0
             if two >= 2:
@@ -147,15 +203,7 @@ def proposals(with_sheet, roster, members, saison):
             add("m_heros", _who(scorer.get("name"), roster), f"dernier but du match {where}", m)
         if gf - ga >= 20:
             add("m_fessee", COACH, f"victoire {gf}-{ga} {where}", m)
-        # la feuille ne dit pas qu'un 7 m est manqué (« But 7m » seulement) : on le demande, match
-        # par match, en proposant ceux qui en ont marqué
-        sheet = m["players"][side]
-        out.append(dict(id=f"m_penalty:{m['id']}:check", regle="m_penalty", check=True, joueur=None, n=1, montant=None,
-                        date=(m.get("date") or "")[:10], match=m["id"], motif=f"penalties {where}",
-                        tireurs=[dict(joueur=_who(p.get("name"), roster), marques=p.get("pen_goals") or 0,
-                                      rates=max(0, (p.get("shots") or 0) - (p.get("goals") or 0)) if p.get("shots") else None)
-                                 for p in sheet if p.get("pen_goals")],
-                        feuille=[_who(p.get("name"), roster) for p in sheet]))
+        out.append(penalty_check(m, side, where, roster, takers))
     for cle in members:
         add("cotisation", cle, f"cotisation de la saison {saison}", date=f"{saison[:4]}-09-01")
     return out

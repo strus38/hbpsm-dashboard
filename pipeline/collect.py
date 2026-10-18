@@ -32,6 +32,7 @@ import urllib.request
 from collections import Counter
 
 from .common import DATA, MATCHES, RAW, ROOT, is_club, load_config, norm, paris_now, read_json, write_json
+from .parse_fdme import LECTURE
 
 # l'heure (UTC) du dernier passage réussi, les deux poules lues : la publication la met au manifeste, que la page relit
 # (demande de l'auteur, 11/10/2026 : à côté de « à jour », quand a eu lieu la dernière collecte réussie)
@@ -441,7 +442,10 @@ def main():
     known = {}
     for p in MATCHES.glob("*.json"):
         m = json.loads(p.read_text("utf-8"))
-        known[m["id"]] = (m.get("source") or {}).get("fdme") and not (m.get("source") or {}).get("demo")
+        src = m.get("source") or {}
+        stale = (src.get("lecture") or 1) < LECTURE and any(   # nos feuilles lues par une lecture plus ancienne
+            is_club((m.get(s) or {}).get("name"), config) for s in ("home", "away"))
+        known[m["id"]] = src.get("fdme") and not src.get("demo") and not stale
     old = {f["id"]: f for f in (read_json(DATA / "fixtures.json", []) or []) if not f.get("demo")}
     officials = read_json(DATA / "official_standings.json", {}) or {}
     now = paris_now().strftime("%Y-%m-%dT%H:%M")
