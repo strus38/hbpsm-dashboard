@@ -593,7 +593,12 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   l'entraîneur passe avant. Infobulle : « annoncé présent ; tant qu'ils ne remplissent pas la feuille, tous les présents
   y sont », « pas encore renseigné : complète les présents ». Vu par l'entraîneur, celui qui tient les présences et la
   proposition publiée (`pipeline/suggestions.py`, page ouverte en `#entraineur`) ; un joueur voit toujours une
-  suggestion qui ignore les réponses des autres (confidentialité du 09/10/2026). Un clic sur la case d'un absent par sa réponse le
+  suggestion qui ignore les réponses des autres (confidentialité du 09/10/2026). Réponses visibles dans les suggestions
+  (demande de l'auteur, 18/10/2026 : « on n'identifie toujours pas quels joueurs se sont mis présents ou pas ») pour
+  l'entraîneur et celui qui tient les présences (`seesAll`) : `presMark` (p, a, n) ; point sur chaque case de la
+  planification (`.cell.pm-p` vert plein, `pm-a` rouge, `pm-n` anneau creux gris ; légende), « · présent / sans rép. »
+  dans la case du téléphone, décompte en tête de chaque match (`presCount`, d'après `tally`), point sur les puces de la
+  feuille (`squadChips` : Semaine, Convocation, `pmDot`) et « N sur la feuille sans réponse : … » dessous. Un clic sur la case d'un absent par sa réponse le
   retient quand même (`dm` « d »). Tableau de l'entraîneur (`boardBlock`) : sur la feuille, ont dit venir, sans
   réponse, absents (motif, retard) ; « Retenir » / « Retirer » (`moveSel`, comme `cycleCell`) ; séances
   (`trainingsBlock`) : joueurs de champ + gardiens annoncés, listes, « Pas d'entraînement ce jour-là ».

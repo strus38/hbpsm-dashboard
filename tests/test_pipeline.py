@@ -1720,6 +1720,7 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
 
         # 4. les joueurs ne voient pas leurs présences ; l'entraîneur, si : en planification, sans onglet Présences
         assert a.evaluate(f"playerSays(byCle({json.dumps(k1)}), PLAN[0].m)") == "attente"
+        assert a.evaluate(f"presMark(byCle({json.dumps(k1)}), PLAN[0].m)") is None and "pmk" not in a.evaluate("squadChips(PLAN[0])")
         assert b.evaluate(f"availOf(byCle({json.dumps(k2)}), PLAN[0].m)") == "d" and "absent" not in b.inner_text("main .moi-statut")
         assert m.evaluate(f"availOf(byCle({json.dumps(k2)}), PLAN[0].m)") == "a"
         c = device("#entraineur&presences")
@@ -1741,6 +1742,15 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert c.evaluate("PLAN[0].sel.length") == 12 and not c.evaluate(f"PLAN[0].sel.includes(byCle({json.dumps(k2)}))")
         assert c.evaluate("PLAN[0].sel.filter(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'attente').length") == 6
         assert "tous les présents y sont" in c.get_attribute(f".plan button.cell[data-cell='{mid}|{low[0]}']", "title")
+        # qui a répondu quoi se voit sur chaque case (demande de l'auteur, 18/10/2026) : point vert, rouge ou gris, le
+        # décompte en tête du match, et sur la feuille de la Semaine et de la Convocation
+        cell = lambda k: c.get_attribute(f".plan button.cell[data-cell='{mid}|{k}']", "class")
+        nr_k = c.evaluate("PLAN[0].sel.find(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'attente').cle")
+        assert "pm-p" in cell(low[0]) and "pm-a" in cell(k2) and "pm-n" in cell(nr_k)
+        assert "pas encore renseigné" in c.get_attribute(f".plan button.cell[data-cell='{mid}|{nr_k}']", "title")
+        assert "6 présents, 1 absent, 7 pas encore renseignés" in c.get_attribute(".plan .prs", "title")
+        chips = c.evaluate("squadChips(PLAN[0])")
+        assert chips.count("pmk pm-n") >= 6 and "sur la feuille sans réponse" in chips
         c.evaluate("PRESJ.ops = window.__ops; DECL = null; render(true)")
         assert c.evaluate("PLAN[0].sel.every(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'present')")
         # l'entraîneur publie un blessé et un rendez-vous : celui qui tient les présences n'y touchera pas
