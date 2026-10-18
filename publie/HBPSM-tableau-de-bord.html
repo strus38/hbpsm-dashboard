@@ -673,7 +673,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "4a0d2b32b9ea", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "82e0ace64b1d", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -2994,26 +2994,36 @@ function cotisationBlock(L){   // qui a payé sa cotisation ; la carte disparaî
     + (dehors.length ? '<p class="small muted">Hors caisse : '+dehors.map(c => esc(memberName(c))
         + (w && L.sortis[c] ? ' <button class="link" data-creint="'+esc(c)+'">réintégrer</button>' : '')).join(", ")+'</p>' : '')+'</div>';
 }
-function penaltyBlock(L){   // la feuille ne dit pas qu'un 7 m est manqué : on le demande, match par match
+function penaltyBlock(L){   // 7 m manqués relevés sur la feuille (préremplis), à confirmer match par match
   const open = openProps(L, p => p.check), w = canWrite();
   if(!open.length) return "";
   const r = RULE("m_penalty"), rh = RULE("m_penalty_hors_cadre");
   return sec("penalties", "Penalties")+r.emoji+' Gérard Penaldo</h2><div class="panel">'
-    + '<p class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+' '+esc(rh.texte)+' La feuille de match ne dit pas qu\'un penalty est manqué : '+(w ? "indiquez-le ici, match par match." : "les trésoriers l\'indiquent ici.")+'</p>'
-    + open.map(p => { const st = PENS[p.id] = PENS[p.id] || {};
+    + '<p class="small muted article">'+esc(ruleLine(r))+' — '+esc(r.texte)+' '+esc(rh.texte)+' La feuille ne dit pas qu\'un penalty est manqué : un tir manqué d\'un tireur de penalty juste après une sanction adverse est compté d\'office, les autres sont signalés ; '+(w ? "vérifiez et corrigez, match par match." : "les trésoriers vérifient ici.")+'</p>'
+    + open.map(p => { const st = PENS[p.id] = PENS[p.id] || penSeed(p);
       const who = [...new Set([...(p.tireurs || []).map(t => t.joueur), ...Object.keys(st)])].filter(c => !L.out.has(c));
-      const scored = Object.fromEntries((p.tireurs || []).map(t => [t.joueur, t.marques]));
-      const missedShots = Object.fromEntries((p.tireurs || []).map(t => [t.joueur, t.rates]));
+      const T = Object.fromEntries((p.tireurs || []).map(t => [t.joueur, t]));
       const others = (p.feuille || []).filter(c => !who.includes(c) && !L.out.has(c));
       return '<div class="pen"><p><b>'+esc(p.motif.replace(/^penalties /, "Match "))+'</b> <span class="small muted">'+esc(fmtDate(p.date))+'</span></p>'
         + (who.length ? who.map(c => { const v = st[c] = st[c] || {a: 0, h: 0};
-            return '<div class="pen-l"><span><b>'+esc(memberName(c))+'</b> <span class="small muted">'+(scored[c] || 0)+((scored[c] || 0) > 1 ? " penaltys marqués" : " penalty marqué")
-                + (missedShots[c] != null ? ' · '+missedShots[c]+' tir'+(missedShots[c] > 1 ? "s" : "")+' manqué'+(missedShots[c] > 1 ? "s" : "")+' dans le match' : '')+'</span></span>'
+            return '<div class="pen-l"><span><b>'+esc(memberName(c))+'</b> <span class="small muted">'+penLine(T[c])+'</span></span>'
               + (w ? '<span class="pen-st"><span class="small">manqués</span><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|a|-1">−</button><b>'+v.a+'</b><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|a|1">+</button>'
                 + '<span class="small">dont hors cadre</span><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|h|-1">−</button><b>'+v.h+'</b><button class="btn ghost" data-cpen="'+esc(p.id)+'|'+esc(c)+'|h|1">+</button></span>' : '')+'</div>'; }).join("")
-          : '<p class="small muted">Aucun penalty marqué par nos joueurs dans ce match.</p>')
+          : '<p class="small muted">Aucun tireur de penalty sur la feuille.</p>')
         + (w ? '<div class="edit">'+(others.length ? '<select data-cpenadd="'+esc(p.id)+'"><option value="">+ autre tireur</option>'+others.map(c => '<option value="'+esc(c)+'">'+esc(memberName(c))+'</option>').join("")+'</select>' : '')
           + '<button class="btn" data-cpensave="'+esc(p.id)+'"'+(auteurOK(L) ? '' : ' disabled')+'>Enregistrer</button><button class="btn ghost" data-cpennone="'+esc(p.id)+'">Aucun manqué</button></div>' : '')+'</div>'; }).join("")+'</div>';
+}
+function penSeed(p){   // les tirs manqués « probables » (un tireur de 7 m, juste après une sanction adverse), précomptés
+  return Object.fromEntries((p.tireurs || []).filter(t => t.manques).map(t => [t.joueur, {a: t.manques, h: t.hors_cadre || 0}]));
+}
+function penLine(t){   // ce que la feuille dit d'un tireur : la feuille ne nomme jamais un 7 m manqué (caisse.penalties_of)
+  if(!t) return "ajouté à la main";
+  const m = t.marques || 0, S = t.soupcons || [], prob = S.filter(s => s.niveau === "probable"), poss = S.filter(s => s.niveau !== "probable");
+  const at = l => l.map(s => s.minute+"e"+(s.hors_cadre ? " hors cadre" : "")).join(", ");
+  const parts = [m ? m+(m > 1 ? " marqués" : " marqué") : (t.habituel ? "tireur de la saison ("+t.habituel+" marqué"+(t.habituel > 1 ? "s" : "")+"), aucun marqué ici" : "aucun marqué")];
+  if(prob.length) parts.push(prob.length+(prob.length > 1 ? " manqués probables" : " manqué probable")+" ("+at(prob)+", juste après une sanction adverse ; compté"+(prob.length > 1 ? "s" : "")+")");
+  if(poss.length) parts.push(poss.length+" tir"+(poss.length > 1 ? "s" : "")+" manqué"+(poss.length > 1 ? "s" : "")+" à vérifier ("+at(poss)+")");
+  return parts.join(" · ");
 }
 function penaltyOps(p){   // règlement : 1 € par penalty manqué à partir du 2e échec ; hors cadre, 2 € tout de suite
   const st = PENS[p.id] || {}, ops = [], le = new Date().toISOString(), date = p.date;
