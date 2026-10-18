@@ -1,4 +1,141 @@
 {
+ "signaux": {
+  "pen_gap": {
+   "0": 4,
+   "21-40": 23,
+   ">40": 40,
+   "6-20": 25,
+   "1-5": 8
+  },
+  "goal_gap": {
+   "21-40": 344,
+   "6-20": 234,
+   ">40": 244,
+   "1-5": 43,
+   "0": 12
+  },
+  "pen_2mn": {
+   "True": 3,
+   "False": 97
+  },
+  "goal_2mn": {
+   "False": 862,
+   "True": 15
+  },
+  "miss_2mn": {
+   "False": 617,
+   "True": 4
+  },
+  "miss_2mn_taker": {
+   "True": 2,
+   "False": 2
+  },
+  "miss_taker": {
+   "False": 457,
+   "True": 164
+  },
+  "pen_prev": {
+   "two_min/autre@0": 2,
+   "goal/autre": 24,
+   "miss/autre": 8,
+   "save/meme": 10,
+   "two_min/autre": 11,
+   "save/autre": 13,
+   "yellow/meme": 1,
+   "goal/meme": 6,
+   "two_min/meme": 1,
+   "yellow/autre": 5,
+   "debut": 2,
+   "two_min/autre@1-5": 7,
+   "miss/meme": 4,
+   "save/meme@0": 1,
+   "miss/meme@1-5": 1,
+   "pen_goal/autre": 3,
+   "miss/meme@0": 1
+  },
+  "goal_prev": {
+   "save/meme": 101,
+   "goal/autre": 305,
+   "miss/meme": 43,
+   "save/autre": 55,
+   "two_min/meme": 14,
+   "pen_goal/meme": 17,
+   "goal/meme": 126,
+   "miss/autre@1-5": 6,
+   "miss/meme@1-5": 7,
+   "pen_goal/autre": 32,
+   "miss/autre": 77,
+   "two_min/autre": 14,
+   "debut": 7,
+   "goal/autre@1-5": 2,
+   "yellow/autre": 9,
+   "goal/meme@1-5": 1,
+   "save/autre@1-5": 9,
+   "save/meme@1-5": 12,
+   "two_min/autre@1-5": 3,
+   "timeout/meme": 15,
+   "yellow/meme@1-5": 1,
+   "timeout/autre": 5,
+   "pen_goal/autre@0": 1,
+   "goal/autre@0": 3,
+   "miss/autre@0": 2,
+   "yellow/meme": 2,
+   "two_min/autre@0": 3,
+   "timeout/autre@0": 1,
+   "timeout/meme@0": 1,
+   "yellow/autre@1-5": 2,
+   "save/autre@0": 1
+  },
+  "miss_prev": {
+   "debut": 6,
+   "miss/autre": 65,
+   "goal/meme": 55,
+   "save/meme": 89,
+   "goal/autre": 235,
+   "yellow/meme": 2,
+   "miss/meme": 22,
+   "save/autre": 34,
+   "two_min/autre": 18,
+   "pen_goal/meme": 9,
+   "yellow/autre": 7,
+   "pen_goal/autre": 24,
+   "two_min/meme": 9,
+   "two_min/autre@1-5": 4,
+   "timeout/autre@1-5": 1,
+   "save/autre@1-5": 8,
+   "timeout/meme": 16,
+   "timeout/autre": 3,
+   "miss/meme@1-5": 3,
+   "miss/autre@1-5": 1,
+   "goal/autre@0": 1,
+   "save/meme@1-5": 4,
+   "two_min/autre@0": 3,
+   "timeout/meme@1-5": 1,
+   "goal/meme@0": 1
+  },
+  "miss_taker_prev": {
+   "goal/meme": 14,
+   "goal/autre": 59,
+   "miss/meme": 7,
+   "two_min/autre": 6,
+   "miss/autre": 14,
+   "save/autre": 5,
+   "save/meme": 33,
+   "two_min/meme": 3,
+   "yellow/autre": 1,
+   "timeout/autre": 3,
+   "pen_goal/autre": 6,
+   "save/autre@1-5": 2,
+   "miss/autre@1-5": 1,
+   "goal/autre@0": 1,
+   "two_min/autre@0": 1,
+   "two_min/autre@1-5": 2,
+   "timeout/meme": 2,
+   "debut": 1,
+   "yellow/meme": 1,
+   "pen_goal/meme": 2
+  }
+ },
  "feuilles": 17,
  "libelles": [
   [
