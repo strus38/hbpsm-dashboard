@@ -1,0 +1,352 @@
+{
+ "feuilles": 17,
+ "libelles": [
+  [
+   "BUT",
+   856
+  ],
+  [
+   "TIR",
+   550
+  ],
+  [
+   "ARRET",
+   376
+  ],
+  [
+   "BUT 7M",
+   99
+  ],
+  [
+   "2MN",
+   98
+  ],
+  [
+   "TIR NON CADRE",
+   65
+  ],
+  [
+   "AVERTISSEMENT",
+   30
+  ],
+  [
+   "TEMPS MORT VISITEUR",
+   25
+  ],
+  [
+   "TEMPS MORT RECEVANT",
+   21
+  ],
+  [
+   "BUT E",
+   17
+  ],
+  [
+   "COMMOTION",
+   5
+  ],
+  [
+   "ARRET TEMPS SCORE ACTION",
+   3
+  ],
+  [
+   "TIR E",
+   3
+  ],
+  [
+   "BUT TEMPS SCORE ACTION",
+   2
+  ],
+  [
+   "BUT PERIODE 2",
+   2
+  ],
+  [
+   "TIR PERIODE 2",
+   2
+  ],
+  [
+   "TIR TEMPS SCORE ACTION",
+   1
+  ],
+  [
+   "BUT 7M E",
+   1
+  ]
+ ],
+ "cases": [
+  [
+   "7M=d",
+   58
+  ],
+  [
+   "ARRETS=d",
+   29
+  ],
+  [
+   "ARRETS=dd",
+   18
+  ],
+  [
+   "BUTS=d",
+   267
+  ],
+  [
+   "BUTS=dd",
+   6
+  ],
+  [
+   "TIRS=d",
+   273
+  ],
+  [
+   "TIRS=dd",
+   35
+  ]
+ ],
+ "entetes": [
+  [
+   "1106215 TNAVECER BULC | LLABDNAH EMORD DRON VID M61P |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   2
+  ],
+  [
+   "1106215 RUETISIV BULC | LLABDNAH EMORD DRON VID M61P |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   2
+  ],
+  [
+   "4208315 RUETISIV BULC | SIOTNOP BULC LLABDNAH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   2
+  ],
+  [
+   "7106215 RUETISIV BULC | SIANAMOR BULC LLABDNAH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "8207015 TNAVECER BULC | EHCEDRA XUEIRYE ENOHR BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "1106215 TNAVECER BULC | LLABDNAH EMORD DRON VID M6L1LPA |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "2407015 RUETISIV BULC | BDNAH ELANOIDIREM EHCEDRA ETNET |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "4007015 TNAVECER BULC | BH SEGROEG TS SEMRAHC SA |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9308315 TNAVECER BULC | NILLECRAM TS ED SYAP BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "0302415 RUETISIV BULC | 2 TALIP CBH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "0708315 TNAVECER BULC | LLABDNAH ERVEIB ECI |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "4307015 RUETISIV BULC | RUAM TNIAS AIDOHR SNOLBAS VID M |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9107015 TNAVECER BULC | 2 NONRUOT NOIV NIAT BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "8206215 RUETISIV BULC | TANOD TS CBH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "4307015 TNAVECER BULC | RUAM TNIAS AIDOHR SNOLBAS VID M |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9308315 RUETISIV BULC | 61P NILLECRAM TS ED SYAP BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "2106215 TNAVECER BULC | LLABDNAH EMORD DRON ETR 2VID M61 |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9107015 RUETISIV BULC | P 2 NONRUOT NOIV NIAT BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "8206215 TNAVECER BULC | TANOD TS CBH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "0708315 RUETISIV BULC | LLABDNAH ERVEIB |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "5308315 TNAVECER BULC | BH ELLIZIVSU EIV |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9008315 RUETISIV BULC | ELBUOC SNERIHC ETNETNE ETR M6 |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "1208315 TNAVECER BULC | 2 LLABDNAH NALYEM |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "4108315 RUETISIV BULC | ENEMOD CR |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "0408315 TNAVECER BULC | SEDIORF SERRET ERVEIB DNAH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9008315 TNAVECER BULC | ELBUOC SNERIHC ETNETNE ETR M6 |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "1208315 RUETISIV BULC | 1P 2 LLABDNAH NALYEM |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "6108315 TNAVECER BULC | 2 LLABDNAH 83 ERESI CARD VID M61P |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "5308315 RUETISIV BULC | BH ELLIZIVSU |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "4108315 TNAVECER BULC | ENEMOD CR |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ],
+  [
+   "9308315 RUETISIV BULC | NILLECRAM TS ED SYAP BH |  | CAPT |  | N | NOM PRENOM NOM D USAGE |  |  |  |  | LICENCE |  | TYPE | JFL |  | BUTS | 7M |  | TIRS |  | ARRETS | AV |  | 2 |  | DIS",
+   1
+  ]
+ ],
+ "lignes_7m_hors_deroule": [
+  [
+   "CAPT N NOM PRENOM NOM D USAGE LICENCE TYPE JFL BUTS 7M TIRS ARRETS AV DIS",
+   34
+  ],
+  [
+   "A",
+   3
+  ],
+  [
+   "A X",
+   1
+  ]
+ ],
+ "par_feuille": [
+  {
+   "pen_tableau": 5,
+   "deroule_7m": {
+    "BUT 7M": 5
+   }
+  },
+  {
+   "pen_tableau": 6,
+   "deroule_7m": {
+    "BUT 7M": 6
+   }
+  },
+  {
+   "pen_tableau": 4,
+   "deroule_7m": {
+    "BUT 7M": 4
+   }
+  },
+  {
+   "pen_tableau": 5,
+   "deroule_7m": {
+    "BUT 7M": 5
+   }
+  },
+  {
+   "pen_tableau": 9,
+   "deroule_7m": {
+    "BUT 7M": 9
+   }
+  },
+  {
+   "pen_tableau": 9,
+   "deroule_7m": {
+    "BUT 7M": 9
+   }
+  },
+  {
+   "pen_tableau": 8,
+   "deroule_7m": {
+    "BUT 7M": 8
+   }
+  },
+  {
+   "pen_tableau": 6,
+   "deroule_7m": {
+    "BUT 7M": 6
+   }
+  },
+  {
+   "pen_tableau": 2,
+   "deroule_7m": {
+    "BUT 7M": 2
+   }
+  },
+  {
+   "pen_tableau": 3,
+   "deroule_7m": {
+    "BUT 7M": 3
+   }
+  },
+  {
+   "pen_tableau": 5,
+   "deroule_7m": {
+    "BUT 7M": 5
+   }
+  },
+  {
+   "pen_tableau": 6,
+   "deroule_7m": {
+    "BUT 7M": 6
+   }
+  },
+  {
+   "pen_tableau": 10,
+   "deroule_7m": {
+    "BUT 7M": 10
+   }
+  },
+  {
+   "pen_tableau": 6,
+   "deroule_7m": {
+    "BUT 7M": 6
+   }
+  },
+  {
+   "pen_tableau": 7,
+   "deroule_7m": {
+    "BUT 7M": 6,
+    "BUT 7M E": 1
+   }
+  },
+  {
+   "pen_tableau": 6,
+   "deroule_7m": {
+    "BUT 7M": 6
+   }
+  },
+  {
+   "pen_tableau": 3,
+   "deroule_7m": {
+    "BUT 7M": 3
+   }
+  }
+ ]
+}
