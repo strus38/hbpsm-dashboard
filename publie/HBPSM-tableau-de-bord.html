@@ -490,6 +490,12 @@ nav.tabs .nav-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-wi
 .ecarts li{padding:6px 0;border-top:1px dashed var(--rule)}.ecarts li:first-child{border-top:0}.b-plus{color:var(--win)}.b-moins{color:var(--loss)}
 .vote .vote-elu{font-size:1.15rem;margin:6px 0}.vote p:first-child{margin-top:0}
 .cell.nr{opacity:.55}
+.cell{position:relative}
+.cell.pm-p::after,.cell.pm-a::after,.cell.pm-n::after{content:"";position:absolute;top:-6px;right:-6px;width:13px;height:13px;box-sizing:border-box;border-radius:50%;border:2.5px solid var(--surface)}
+.pm-p::after,i.pmk.pm-p{background:var(--win)}.pm-a::after,i.pmk.pm-a{background:var(--loss)}
+.cell.pm-n::after{background:var(--surface);border:2.5px solid var(--muted)}i.pmk.pm-n{box-shadow:inset 0 0 0 2px var(--muted)}
+i.pmk{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.plan .prs{display:inline-block;margin-top:3px;font-size:.72rem;white-space:nowrap}.plan .h .prs b{display:inline;font-size:.72rem;color:inherit;margin-right:5px}.prs-l b{margin-right:5px}
 .picker input[type=date],#cmontant,.comptes input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:5px 7px}
 .compte{border-top:1px solid var(--rule)}.cgroupe + .compte{border-top:0}
 .compte summary{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 104px;gap:12px;align-items:center;padding:9px 0}
@@ -667,7 +673,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "bc5d314aabc3", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "4a0d2b32b9ea", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -1438,8 +1444,10 @@ function viewSemaine(){
   return h;
 }
 function squadChips(r){
-  const chip = p => '<span class="'+(isGK(p)?"gb":"")+(r.rotated.includes(p)?" rot":"")+(availOf(p, r.m)==="i"?" unsure":"")+'"><b>'+esc(p.num ?? "–")+'</b> '+esc(p.nom)+(isGK(p)?' <small>GB</small>':'')+'</span>';
+  const chip = p => '<span class="'+(isGK(p)?"gb":"")+(r.rotated.includes(p)?" rot":"")+(availOf(p, r.m)==="i"?" unsure":"")+'">'+pmDot(p, r.m)+'<b>'+esc(p.num ?? "–")+'</b> '+esc(p.nom)+(isGK(p)?' <small>GB</small>':'')+'</span>';
+  const nr = r.sel.filter(p => presMark(p, r.m) === "n");
   return '<div class="sel12'+(!COACH && r.etat === "suggestion" ? " sugg" : "")+'">'+r.sel.map(chip).join("")+'</div>'
+    + (seesAll() ? '<p class="small muted">'+presCount(r.m).replace('class="prs"', 'class="prs-l"')+' · '+(nr.length ? nr.length+' sur la feuille sans réponse : '+esc(nr.map(p => p.nom).join(", ")) : "tous ceux de la feuille ont répondu")+'</p>' : "")
     + (r.ok ? "" : '<p class="note">'+esc(advice(r))+'</p>');
 }
 function startSeven(r){
@@ -1830,7 +1838,7 @@ function viewPlanif(){
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
       + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key"><span class="tl">Match clé</span><span class="ts">Clé</span></span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
-      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+'</div></div>').join("")
+      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+(seesAll() ? '<br>'+presCount(r.m) : '')+'</div></div>').join("")
     + '<div class="h" title="Matchs où il est proposé (retenu une fois la feuille validée par l\'entraîneur)"><span class="tl">proposé</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
@@ -1847,7 +1855,7 @@ function viewPlanif(){
         const man = pin || (S.dm[r.m.id] || {})[p.cle];
         const rot = r.rotated.includes(p), rest = r.resting.includes(p) && !sel, other = r.why[p.cle], ext = sel && r.extra.includes(p);
         const hurt = injured(p, r.m), hb = hurt ? blesses()[p.cle] : null, fin = gone(p, r.m);
-        const nr = av === "a" && noAnswerOut(p, r.m), said = av !== "a" && seesAll() && ownCall(p, r.m) && playerSays(p, r.m) === "present";
+        const nr = av === "a" && noAnswerOut(p, r.m), mk = presMark(p, r.m);
         const cls = hurt ? "a hurt" : av === "a" ? (nr ? "a nr" : "a") : sel ? "in" : rest ? "rest" : av === "i" ? "i" : "";
         const sym = hurt ? "✚" : av === "a" ? "✕" : sel ? (rot || ext ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
         const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
@@ -1873,9 +1881,10 @@ function viewPlanif(){
           : sel ? (av === "i" ? w+", mais incertain" : w+" : parmi les mieux notés disponibles pour ce match"
             + (!r.fixed && r.presents.length && seesAll() && ownCall(p, r.m) && playerSays(p, r.m) === "attente" ? ", pas encore renseigné : complète les présents" : ""))
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
-        const why = what + (said ? " · annoncé présent" : "");
-        h += '<div><button class="cell '+cls+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
-          + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? (nr ? "sans rép." : "absent") : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")+'</span>' : '')+'</button></div>';
+        const why = what + (mk && !what.includes(PM_TXT[mk]) && !(mk === "a" && what.startsWith("absent annoncé")) ? " · "+PM_TXT[mk] : "");
+        h += '<div><button class="cell '+cls+(mk ? " pm-"+mk : "")+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
+          + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? (nr ? "sans rép." : "absent") : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")
+            + (mk && av !== "a" ? " · "+({p: "présent", a: "absent", n: "sans rép."})[mk] : "")+'</span>' : '')+'</button></div>';
       }
       const a = P.apps(p), low = q && a < P.need(p);
       h += '<div class="small'+(low ? " low" : " muted")+'" style="text-align:center"'+(low ? ' title="Moins que le minimum : pas assez de matchs abordables où il est disponible"' : '')+'>'+a+'/'+n+'</div>';
@@ -1893,7 +1902,7 @@ function viewPlanif(){
     + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
 
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
+  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) '+(seesAll() ? '<span>· le point dit ce que le joueur a répondu :</span> <span class="cell pm-p"></span> présent <span class="cell pm-a"></span> absent <span class="cell pm-n"></span> pas encore renseigné ·' : '')+' <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
     + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
@@ -3373,6 +3382,21 @@ const saidAbsent = (p, m) => ownCall(p, m) && playerSays(p, m) === "absent";
 const noAnswerOut = (p, m) => ownCall(p, m) && !["present", "absent"].includes(playerSays(p, m)) && restricts(m, isGK(p));
 // annoncé présent : sa réponse, ou l'entraîneur qui l'a dit disponible ici (comme dans restricts)
 const saidPresent = (p, m) => availOf(p, m) === "d" && (localAv(p, m) === "d" || (!localAv(p, m) && playerSays(p, m) === "present"));
+// ce que le joueur a répondu, montré dans les suggestions à l'entraîneur et à celui qui tient les présences (demande de
+// l'auteur, 18/10/2026 : « on n'identifie toujours pas quels joueurs se sont mis présents ou pas ») : "p" présent, "a"
+// absent, "n" pas encore renseigné ; null pour les autres (confidentialité), hors effectif, indisponible ou blessé
+const presMark = (p, m) => {
+  if(!seesAll() || !String(p.cle).startsWith("R:") || !dispo(p) || gone(p, m) || injured(p, m)) return null;
+  const s = playerSays(p, m);
+  return s === "present" ? "p" : s === "absent" ? "a" : "n";
+};
+const PM_TXT = {p: "annoncé présent", a: "annoncé absent", n: "pas encore renseigné"};
+const pmDot = (p, m) => { const k = presMark(p, m); return k ? '<i class="pmk pm-'+k+'" title="'+PM_TXT[k]+'"></i>' : ""; };
+// en tête d'un match : combien de présents, d'absents, de sans-réponse (mêmes joueurs que la liste des présences)
+const presCount = m => { if(!seesAll()) return "";
+  const t = tally(evMatch(m)), n = t.attente.length + t.sans.length;
+  return '<span class="prs" title="Présences annoncées : '+t.present.length+' présent'+(t.present.length > 1 ? "s" : "")+', '+t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+', '+n+' pas encore renseigné'+(n > 1 ? "s" : "")+'">'
+    + '<i class="pmk pm-p"></i><b>'+t.present.length+'</b><i class="pmk pm-a"></i><b>'+t.absent.length+'</b><i class="pmk pm-n"></i><b>'+n+'</b></span>'; };
 function tally(e){   // qui est annoncé présent, absent, pas encore renseigné
   const out = {present: [], absent: [], attente: [], sans: []};
   for(const p of squad()) if(concerned(p, e)) out[statusOf(p.cle, e).etat].push(p);
