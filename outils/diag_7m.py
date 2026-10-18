@@ -23,7 +23,7 @@ def shape(value):
     return re.sub(r"\d", "d", str(value if value is not None else "").strip())
 
 
-def main():
+def main():  # noqa
     roster_words = {w for line in (os.environ.get("HBPSM_EFFECTIF") or "").splitlines()
                     for w in norm(line.split(",")[0]).split() if len(w) >= 2}
     all_names = set(roster_words)
@@ -69,7 +69,7 @@ def main():
                 lines7[" ".join(w for w in n.split() if w not in names and w not in roster_words and not w.isdigit())] += 1
         table_pen = sum(p.get("pen_goals") or 0 for side in players.values() for p in side)
         per_match.append(dict(pen_tableau=table_pen, deroule_7m=dict(stats)))
-    out = dict(feuilles=len(pdfs), libelles=labels.most_common(), cases=sorted(cells.items()),
+    out = dict(signaux=signals(), feuilles=len(pdfs), libelles=labels.most_common(), cases=sorted(cells.items()),
                entetes=headers.most_common(), lignes_7m_hors_deroule=lines7.most_common(40), par_feuille=per_match)
     text = json.dumps(out, ensure_ascii=False, indent=1)
     # relecture : aucun mot d'un nom (3 lettres et plus) ne doit rester
@@ -84,6 +84,56 @@ def main():
     OUT.write_text(text, encoding="utf-8")
     print(f"[diag] {len(pdfs)} feuilles, {sum(labels.values())} événements, {len(labels)} libellés")
     return 0
+
+
+
+def signals():
+    """Signaux d'un 7 m sur les vraies feuilles (histogrammes seulement, aucun nom) : écart au dernier
+    événement, 2 minutes adverse à la même seconde, tireur habituel ; pour les buts 7 m et les autres buts."""
+    from pipeline.parse_fdme import attribute, parse_events
+    hist = {k: Counter() for k in ("pen_gap", "goal_gap", "pen_2mn", "goal_2mn", "miss_2mn", "miss_2mn_taker",
+                                   "miss_taker", "pen_prev", "goal_prev", "miss_prev", "miss_taker_prev")}
+    for pdf_path in sorted((RAW / "fdme").glob("*.pdf")):
+        texts, tables = [], []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                texts.append(page.extract_text() or "")
+                try:
+                    tables += page.extract_tables() or []
+                except Exception:
+                    pass
+        players = parse_tables(tables)
+        if not players:
+            continue
+        raw = parse_events("\n".join(texts))
+        ev = attribute(raw, players)
+        takers = {(s, p["num"]) for s, pl in players.items() for p in pl if p.get("pen_goals")}
+        for i, e in enumerate(ev):
+            prev = ev[i - 1]["t"] if i else 0
+            gap = e["t"] - prev
+            two = any(x["type"] == "two_min" and x["side"] and x["side"] != e["side"] and abs(x["t"] - e["t"]) <= 2
+                      for x in ev)
+            bucket = "0" if gap == 0 else "1-5" if gap <= 5 else "6-20" if gap <= 20 else "21-40" if gap <= 40 else ">40"
+            pv = ev[i - 1] if i else None
+            prv = "debut" if pv is None else pv["type"] + ("/meme" if pv["side"] == e["side"] else "/autre") + ("@0" if gap == 0 else "@1-5" if gap <= 5 else "")
+            if e["type"] == "pen_goal":
+                hist["pen_gap"][bucket] += 1
+                hist["pen_2mn"][two] += 1
+                hist["pen_prev"][prv] += 1
+            elif e["type"] == "goal":
+                hist["goal_gap"][bucket] += 1
+                hist["goal_2mn"][two] += 1
+                hist["goal_prev"][prv] += 1
+            elif e["type"] == "miss":
+                hist["miss_2mn"][two] += 1
+                tk = (e["side"], e["num"]) in takers
+                hist["miss_taker"][tk] += 1
+                hist["miss_prev"][prv] += 1
+                if tk:
+                    hist["miss_taker_prev"][prv] += 1
+                if two:
+                    hist["miss_2mn_taker"][tk] += 1
+    return {k: {str(a): b for a, b in v.items()} for k, v in hist.items()}
 
 
 if __name__ == "__main__":
