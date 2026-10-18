@@ -520,8 +520,9 @@ tous les autres, entraîneur compris.
   Semaine, calendrier des matchs marqué annulé) ; plus de planification ni de vote.
 - Les joueurs ne voient pas leurs présences, ni celles des autres ; l'entraîneur les voit dans la
   planification : un absent annoncé sort ; si assez de joueurs sont annoncés présents (10 joueurs de champ
-  et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon, comme avant, parmi tous les
-  disponibles. Un clic de l'entraîneur prime. Le journal est chiffré avec la phrase du club : comme le
+  et 2 gardiens, 12 et 2 en coupe), la feuille se fait parmi eux ; sinon, tous les présents sont sur la
+  feuille, jamais mis au repos (ni rotation, ni série des gardiens, ni règle des deux changements), et les
+  sans-réponse complètent. Un clic de l'entraîneur prime. Le journal est chiffré avec la phrase du club : comme le
   mode entraîneur, c'est un usage, pas un verrou.
 - Plus d'amende « pas de réponse » proposée automatiquement (pas de `amendes_depuis` dans
   `config.yml`) : les trésoriers les mettent à la main s'il le faut.

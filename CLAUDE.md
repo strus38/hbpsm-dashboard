@@ -42,7 +42,7 @@ d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
 ## État
 
-Testé (68 tests au 16/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (68 tests au 18/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).
@@ -584,7 +584,16 @@ Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lance
   l'étape suivante si l'auteur la veut). Les amendes proposées ne disent que « pas de réponse » ou « en retard ».
   Feuille (`availOf`) : la saisie de l'entraîneur prime ; dit absent : sort ; si assez ont dit venir (gardiens et
   joueurs de champ comptés à part : 2 et 10, 2 et 12 en coupe), la feuille se fait parmi eux (`noAnswerOut`, case
-  « sans rép. », `.cell.nr`) ; sinon l'algorithme d'avant. Un clic sur la case d'un absent par sa réponse le
+  « sans rép. », `.cell.nr`) ; sinon (demande de l'auteur, 18/10/2026 : « les présents doivent être alignés tant que
+  leur nombre est inférieur aux 12 nécessaires, les absents ne doivent pas figurer, les sans réponse peuvent être
+  suggérés ») tous les annoncés présents (`saidPresent` : leur réponse, ou « disponible » saisi par l'entraîneur) sont
+  sur la feuille, traités comme retenus (`r.pinned`, `r.presents`) : jamais mis au repos par la rotation, la série des
+  gardiens, le partage des gardiens ni la règle des 2 changements (« N changement(s) seulement » si elle ne peut plus
+  jouer) ; les sans-réponse complètent par note. Gardiens et joueurs de champ comptés à part ; un choix « retenu » de
+  l'entraîneur passe avant. Infobulle : « annoncé présent ; tant qu'ils ne remplissent pas la feuille, tous les présents
+  y sont », « pas encore renseigné : complète les présents ». Vu par l'entraîneur, celui qui tient les présences et la
+  proposition publiée (`pipeline/suggestions.py`, page ouverte en `#entraineur`) ; un joueur voit toujours une
+  suggestion qui ignore les réponses des autres (confidentialité du 09/10/2026). Un clic sur la case d'un absent par sa réponse le
   retient quand même (`dm` « d »). Tableau de l'entraîneur (`boardBlock`) : sur la feuille, ont dit venir, sans
   réponse, absents (motif, retard) ; « Retenir » / « Retirer » (`moveSel`, comme `cycleCell`) ; séances
   (`trainingsBlock`) : joueurs de champ + gardiens annoncés, listes, « Pas d'entraînement ce jour-là ».
