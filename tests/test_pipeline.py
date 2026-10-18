@@ -1730,6 +1730,19 @@ def test_presences_dans_la_page(sandbox, monkeypatch):
         assert "absent annoncé (✏️ Autre : mariage de son frère)" in c.get_attribute(f".plan button.cell[data-cell='{mid}|{k2}']", "title")
         # tous annoncés présents : la feuille se fait parmi eux
         assert c.evaluate("PLAN[0].sel.length") == 12 and c.evaluate("PLAN[0].sel.every(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'present')")
+        # moins de présents que de places (demande de l'auteur, 18/10/2026) : tous sur la feuille, même les moins bien
+        # notés, jamais au repos ; les sans-réponse complètent ; l'absent n'y est pas
+        low = c.evaluate("""(() => { const m = PLAN[0].m, ev = "M-" + m.id; window.__ops = PRESJ.ops.slice();
+          const field = D.joueurs.filter(p => !isGK(p) && statusOf(p.cle, evMatch(m)).etat === "present").sort((x, y) => val(x, m) - val(y, m));
+          const keep = new Set(field.slice(0, 4).map(p => p.cle));
+          PRESJ.ops = PRESJ.ops.filter(o => !(o.t === "dispo" && o.etat === "present" && (o.evs || []).includes(ev) && !isGK(byCle(o.joueur)) && !keep.has(o.joueur)));
+          DECL = null; render(true); return [...keep]; })()""")
+        assert len(low) == 4 and c.evaluate(f"{json.dumps(low)}.every(k => PLAN[0].sel.includes(byCle(k)))")
+        assert c.evaluate("PLAN[0].sel.length") == 12 and not c.evaluate(f"PLAN[0].sel.includes(byCle({json.dumps(k2)}))")
+        assert c.evaluate("PLAN[0].sel.filter(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'attente').length") == 6
+        assert "tous les présents y sont" in c.get_attribute(f".plan button.cell[data-cell='{mid}|{low[0]}']", "title")
+        c.evaluate("PRESJ.ops = window.__ops; DECL = null; render(true)")
+        assert c.evaluate("PLAN[0].sel.every(p => statusOf(p.cle, evMatch(PLAN[0].m)).etat === 'present')")
         # l'entraîneur publie un blessé et un rendez-vous : celui qui tient les présences n'y touchera pas
         hurt = c.evaluate(f"""(() => {{ S.blesse = {{{json.dumps(k3)}: {{de: PLAN[1].m.date, a: null}}}}; S.rdv[PLAN[0].m.id] = "19:45"; save(); render(true);
           localStorage.setItem("hbpsm:jeton", "jeton-de-test"); return publishChoices().then(() => String(PLAN[0].m.id)); }})()""")
