@@ -1,12 +1,12 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-03T22:17:32.000Z",
+ "exporteLe": "2026-11-04T12:57:27.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-11-03",
+   "id": "tableau-de-bord-2026-11-04",
    "titre": "Préparer HBC ST DONAT",
    "date": "2026-11-06",
    "equipe": "Seniors garçons",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-03T22:17:32.000Z",
-   "modifieLe": "2026-11-03T22:17:32.000Z"
+   "creeLe": "2026-11-04T12:57:27.000Z",
+   "modifieLe": "2026-11-04T12:57:27.000Z"
   }
  }
 }
