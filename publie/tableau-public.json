@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-07 12:42",
+ "genere": "2026-11-07 21:51",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -23,9 +23,9 @@
   "coupe": null,
   "tour": null,
   "p_victoire": 87,
-  "enjeu": 23,
+  "enjeu": 22,
   "cle": true,
-  "rang_adv": 3
+  "rang_adv": 4
  },
  "adversaire": {
   "equipe": "HBC ST DONAT",
@@ -234,7 +234,7 @@
    4.5
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 27,2) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 28,1) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -383,10 +383,10 @@
   "proba_tout": 100,
   "rangs": [
    69.8,
-   21.1,
-   6.5,
+   21.2,
+   6.4,
    2.0,
-   0.6,
+   0.5,
    0.1,
    0.0
   ],
@@ -401,9 +401,9 @@
     "adversaire": "HBC ST DONAT",
     "domicile": true,
     "p_victoire": 87,
-    "enjeu": 23,
+    "enjeu": 22,
     "cle": true,
-    "rang_adv": 3
+    "rang_adv": 4
    },
    {
     "journee": 4,
@@ -413,8 +413,8 @@
     "provisoire": false,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": false,
-    "p_victoire": 88,
-    "enjeu": 14,
+    "p_victoire": 87,
+    "enjeu": 15,
     "cle": false,
     "rang_adv": 7
    },
@@ -426,7 +426,7 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 53,
+    "p_victoire": 52,
     "enjeu": 13,
     "cle": false,
     "rang_adv": 2
@@ -440,9 +440,9 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 82,
-    "enjeu": 23,
+    "enjeu": 22,
     "cle": true,
-    "rang_adv": 4
+    "rang_adv": 5
    },
    {
     "journee": 8,
@@ -452,7 +452,7 @@
     "provisoire": false,
     "adversaire": "HBC PILAT-2",
     "domicile": false,
-    "p_victoire": 75,
+    "p_victoire": 80,
     "enjeu": 13,
     "cle": false,
     "rang_adv": 6
@@ -465,10 +465,10 @@
     "provisoire": true,
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
-    "p_victoire": 91,
+    "p_victoire": 88,
     "enjeu": 15,
     "cle": false,
-    "rang_adv": 5
+    "rang_adv": 3
    },
    {
     "journee": 10,
@@ -478,10 +478,10 @@
     "provisoire": true,
     "adversaire": "HBC ST DONAT",
     "domicile": false,
-    "p_victoire": 72,
-    "enjeu": 15,
+    "p_victoire": 71,
+    "enjeu": 14,
     "cle": false,
-    "rang_adv": 3
+    "rang_adv": 4
    },
    {
     "journee": 11,
@@ -491,8 +491,8 @@
     "provisoire": true,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": true,
-    "p_victoire": 96,
-    "enjeu": 22,
+    "p_victoire": 95,
+    "enjeu": 17,
     "cle": true,
     "rang_adv": 7
    },
@@ -505,7 +505,7 @@
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
     "p_victoire": 74,
-    "enjeu": 17,
+    "enjeu": 16,
     "cle": false,
     "rang_adv": 2
    },
@@ -517,10 +517,10 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 63,
-    "enjeu": 17,
+    "p_victoire": 64,
+    "enjeu": 16,
     "cle": false,
-    "rang_adv": 4
+    "rang_adv": 5
    }
   ]
  },
@@ -562,6 +562,24 @@
    },
    {
     "rang": 3,
+    "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+    "pts": 5,
+    "j": 3,
+    "v": 1,
+    "n": 0,
+    "d": 2,
+    "bp": 82,
+    "bc": 90,
+    "diff": -8,
+    "forme": [
+     "D",
+     "D",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 4,
     "equipe": "HBC ST DONAT",
     "pts": 4,
     "j": 2,
@@ -578,7 +596,7 @@
     "forfait": null
    },
    {
-    "rang": 4,
+    "rang": 5,
     "equipe": "BIEVRE HANDBALL",
     "pts": 4,
     "j": 2,
@@ -595,34 +613,18 @@
     "forfait": null
    },
    {
-    "rang": 5,
-    "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+    "rang": 6,
+    "equipe": "HBC PILAT-2",
     "pts": 2,
     "j": 2,
     "v": 0,
     "n": 0,
     "d": 2,
-    "bp": 48,
+    "bp": 43,
     "bc": 66,
-    "diff": -18,
+    "diff": -23,
     "forme": [
      "D",
-     "D"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 6,
-    "equipe": "HBC PILAT-2",
-    "pts": 1,
-    "j": 1,
-    "v": 0,
-    "n": 0,
-    "d": 1,
-    "bp": 19,
-    "bc": 32,
-    "diff": -13,
-    "forme": [
      "D"
     ],
     "forfait": null
@@ -779,6 +781,15 @@
   ]
  },
  "resultats": [
+  {
+   "poule": "71",
+   "journee": 3,
+   "date": "2026-11-07T20:00",
+   "dom": "HBC PILAT-2",
+   "ext": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
+   "sd": 24,
+   "se": 34
+  },
   {
    "poule": "72",
    "journee": 2,
