@@ -2,52 +2,60 @@
 #   - le dimanche et le lundi, toutes les deux heures de 6 h à 22 h (les feuilles du week-end arrivent) ;
 #   - du mardi au samedi, à 6 h, 12 h et 18 h.
 #
-# GitHub ne connaît que l'heure UTC : chaque horaire est écrit deux fois, pour l'heure d'été (Paris = UTC+2) et pour
-# l'heure d'hiver (UTC+1). Le premier passage de chaque ligne tombe à 6 h à Paris dans sa saison : seule la ligne
-# de la saison du jour lance la collecte, l'autre s'arrête aussitôt. Ces passages sans objet restent ici, hors de
-# la file d'attente de la collecte (groupe « collecte »), où ils prendraient la place d'une collecte ou d'un
-# recalcul en attente : ce workflow ne fait que lancer « Collecte quotidienne ».
+# Les lancements programmés de GitHub partent avec des heures de retard, ou pas du tout (pipeline/horloge.py, relevés du
+# 19/10 au 08/11/2026). Depuis le 08/11/2026 (demande de l'auteur : « rends l'horloge moins fragile »), l'horloge passe
+# toutes les heures, et chaque passage rattrape l'horaire manqué : il lance la collecte quand aucune collecte réussie
+# (`collecte` du manifeste : les deux poules lues) n'a eu lieu depuis le dernier horaire passé. Un passage sauté par
+# GitHub est donc repris au suivant, et un site de la fédération en panne (502, 504) fait réessayer d'heure en heure. Rien
+# quand une collecte est en cours ou attend son tour, ni quand l'horaire suivant arrive dans moins d'une demi-heure.
+# Les passages sans objet restent ici, hors de la file d'attente de la collecte (groupe « collecte »), où ils prendraient
+# la place d'une collecte ou d'un recalcul en attente : ce workflow ne fait que lancer « Collecte quotidienne ».
+# 4 h à 22 h UTC : 5 h à 23 h à Paris l'hiver, 6 h à minuit l'été ; chaque horaire a son passage, et ceux qui suivent.
 # Minute 7 plutôt que 0 : GitHub retarde le plus les lancements programmés du début de l'heure.
-# Constaté le 11/10/2026 : 2 passages sur 12 partis, avec plus de six heures de retard. Remplacé par deux tâches de
-# cron-job.org (README, « Déclenchement ») ; à retirer une fois leurs premiers passages vérifiés.
+# Les deux tâches de cron-job.org (README, « Déclenchement ») partent, elles, à l'heure : leurs collectes comptent ici
+# comme les autres, et l'horloge ne fait plus alors que reprendre un horaire manqué.
 name: Horloge de la collecte
 
 on:
   schedule:
-    - cron: "7 4-20/2 * * 0,1"    # dimanche, lundi : 6 h, 8 h… 22 h à Paris, heure d'été
-    - cron: "7 5-21/2 * * 0,1"    # dimanche, lundi : heure d'hiver
-    - cron: "7 4,10,16 * * 2-6"   # mardi à samedi : 6 h, 12 h, 18 h à Paris, heure d'été
-    - cron: "7 5,11,17 * * 2-6"   # mardi à samedi : heure d'hiver
+    - cron: "7 4-22 * * *"
+  workflow_dispatch:   # à la main : dit si une collecte est due, et la lance si c'est le cas
 
 permissions:
-  actions: write   # lancer la collecte
+  actions: write    # voir les collectes en cours, lancer la collecte
+  contents: read    # le manifeste (dernière collecte réussie) et pipeline/horloge.py
 
 jobs:
   lancer:
+    # depuis main seulement : lancée sur une autre branche, la collecte y écrirait ses données
+    if: github.ref_name == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Lancer la collecte quand c'est l'heure à Paris
+      # d'abord les collectes en cours, puis le manifeste : dans l'autre ordre, une collecte finie entre les deux
+      # passerait pour manquée et en ferait lancer une autre ; GitHub muet : on tente quand même
+      - name: Collectes en cours ou en attente
         env:
           GH_TOKEN: ${{ github.token }}
-          HORAIRE: ${{ github.event.schedule }}
-          BRANCHE: ${{ github.ref_name }}
         run: |
-          # première heure UTC de la ligne + décalage de Paris ce jour-là = 6 h : c'est la ligne de la saison
-          premiere=$(echo "$HORAIRE" | awk '{ split($2, h, /[^0-9]/); print h[1] }')
-          decalage=$(TZ=Europe/Paris date +%z)   # +0200 l'été, +0100 l'hiver
-          if [ $((premiere + 10#${decalage:1:2})) -ne 6 ]; then
-            echo "Horaire de l'autre saison (heure d'été ou d'hiver) : rien à faire."
-            exit 0
-          fi
-          # une collecte qui attend déjà son tour partira du dernier état : pas besoin d'une autre ; un recalcul en
-          # attente, lui, cède sa place à la collecte, qui fait tout ce qu'il fait
-          filtre='[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "requested")'
-          filtre="$filtre"' | select(.displayTitle == "Collecte quotidienne")] | length'
-          attente=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow weekly.yml --limit 20 --json status,displayTitle -q "$filtre")
-          if [ "${attente:-0}" != "0" ]; then
-            echo "Une collecte attend déjà son tour."
-          else
-            gh workflow run weekly.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCHE"
-            echo "Collecte lancée."
-          fi
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow weekly.yml --limit 20 --json status,displayTitle \
+            > "$RUNNER_TEMP/collectes.json" || echo "[]" > "$RUNNER_TEMP/collectes.json"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}   # le dernier état de la branche, pas celui du lancement
+          sparse-checkout: |
+            pipeline/horloge.py
+            publie/manifeste.json
+          sparse-checkout-cone-mode: false
+
+      - name: Une collecte est-elle due ?
+        id: due
+        run: python3 pipeline/horloge.py publie/manifeste.json "$RUNNER_TEMP/collectes.json"
+
+      - name: Lancer la collecte
+        if: steps.due.outputs.lancer == 'oui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCHE: ${{ github.ref_name }}
+        run: gh workflow run weekly.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCHE" && echo "Collecte lancée."

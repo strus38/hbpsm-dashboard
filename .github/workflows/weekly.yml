@@ -11,8 +11,8 @@ run-name: ${{ inputs.recalcul && 'Recalcul après les choix de l''entraîneur' |
 on:
   # lancée à l'heure de Paris (dimanche et lundi toutes les deux heures de 6 h à 22 h, les autres jours à 6 h, 12 h et
   # 18 h ; les feuilles arrivent dans le désordre, une journée n'est close que lorsque toutes sont lues) par deux tâches
-  # de cron-job.org (README, « Déclenchement ») et, tant qu'elles ne sont pas vérifiées, par « Horloge de la collecte »
-  # (horloge.yml) ; par « Choix de l'entraîneur » (recalcul) ou à la main
+  # de cron-job.org (README, « Déclenchement ») et, quand un horaire est manqué, par « Horloge de la collecte »
+  # (horloge.yml, pipeline/horloge.py) ; par « Choix de l'entraîneur » (recalcul) ou à la main
   workflow_dispatch:
     inputs:
       url_poule_71:

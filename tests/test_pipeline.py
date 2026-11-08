@@ -1243,21 +1243,57 @@ def test_workflows_lisibles():
 
 
 
-def test_horloge_de_la_collecte(tmp_path):
+def test_horloge_de_la_collecte(tmp_path, monkeypatch):
     """La collecte part à l'heure de Paris, été comme hiver (demande de l'auteur, 11/10/2026) : dimanche et lundi
-    toutes les deux heures de 6 h à 22 h, les autres jours à 6 h, 12 h et 18 h. Le script même du workflow, avec
-    l'heure de Paris et GitHub simulés ; pas de seconde collecte quand une attend déjà son tour."""
-    import shutil
+    toutes les deux heures de 6 h à 22 h, les autres jours à 6 h, 12 h et 18 h. GitHub saute ou retarde ses passages
+    (dimanche 08/11/2026 : rien avant 12 h 53) : l'horloge passe toutes les heures et rattrape l'horaire manqué,
+    d'après la dernière collecte réussie du manifeste ; un site en panne fait réessayer (demande de l'auteur, 08/11/2026)."""
     import subprocess
     import yaml
-    bash = shutil.which("bash")
-    if not bash:
-        pytest.skip("bash nécessaire")
+    from pipeline import horloge
+
+    def at(day, hour, minute=7, month=11, year=2026):
+        return dt.datetime(year, month, day, hour, minute, tzinfo=horloge.PARIS)
+
+    def due(now, last_ok, runs=()):
+        return horloge.decide(now, last_ok, list(runs))[0]
+
+    # les horaires, à l'heure de Paris
+    assert [s.hour for s in horloge.slots_of(dt.date(2026, 11, 8))] == list(range(6, 23, 2))   # dimanche
+    assert [s.hour for s in horloge.slots_of(dt.date(2026, 11, 9))] == list(range(6, 23, 2))   # lundi
+    assert all([s.hour for s in horloge.slots_of(dt.date(2026, 11, d))] == [6, 12, 18] for d in range(10, 15))
+    assert horloge.last_slot(at(8, 12, 13)) == at(8, 12, 0)
+    assert horloge.last_slot(at(8, 5)) == at(7, 18, 0)    # dimanche avant 6 h : samedi 18 h
+    assert horloge.last_slot(at(10, 5)) == at(9, 22, 0)   # mardi avant 6 h : lundi 22 h
+    assert horloge.next_slot(at(7, 18, 30)) == at(8, 6, 0)
+
+    hier = at(7, 21, 51)   # la dernière collecte réussie, samedi soir
+    # à l'heure : une collecte par horaire, rien entre deux
+    assert not due(at(8, 5), hier)   # avant 6 h : l'horaire de samedi 18 h est déjà fait
+    assert due(at(8, 6), hier)
+    assert not due(at(8, 7), at(8, 6, 9))
+    assert due(at(8, 8), at(8, 6, 9))
+    # GitHub a sauté les passages de 6 h à 10 h : le premier qui passe rattrape, même en retard
+    assert due(at(8, 12, 13), hier)
+    # le site de la fédération en panne (504) : la collecte a tourné sans rien lire, le passage suivant réessaie
+    assert due(at(8, 13), hier, [dict(status="completed", displayTitle=horloge.COLLECTE)])
+    # une collecte en cours ou en attente : pas une deuxième ; un recalcul n'en tient pas lieu
+    for status in ("queued", "in_progress", "waiting", "pending", "requested"):
+        assert not due(at(8, 12, 13), hier, [dict(status=status, displayTitle=horloge.COLLECTE)]), status
+    assert due(at(8, 12, 13), hier, [dict(status="in_progress", displayTitle="Recalcul après les choix de l'entraîneur")])
+    # l'horaire suivant dans moins d'une demi-heure : son propre passage s'en charge
+    assert not due(at(10, 17, 45), at(10, 6, 5))
+    assert due(at(10, 17, 25), at(10, 6, 5))
+    assert due(at(10, 18), at(10, 6, 5))
+    assert due(at(10, 12), None)   # aucune collecte réussie connue
+    # heure d'été, et le passage à l'heure d'été (dimanche 28/03/2027, 2 h -> 3 h)
+    assert horloge.last_slot(at(28, 5, month=3, year=2027)) == at(27, 18, 0, month=3, year=2027)
+    assert horloge.last_slot(dt.datetime(2027, 3, 28, 4, 7, tzinfo=dt.timezone.utc)) == at(28, 6, 0, month=3, year=2027)
+    assert due(at(28, 6, month=3, year=2027), at(27, 18, 30, month=3, year=2027))
+
+    # le workflow : chaque horaire a son passage à la minute 7, été comme hiver, et au moins un de rattrapage
     d = yaml.safe_load((ROOT_DIR / ".github" / "workflows" / "horloge.yml").read_text("utf-8"))
     crons = [c["cron"] for c in (d.get(True) or d["on"])["schedule"]]
-    body = d["jobs"]["lancer"]["steps"][0]["run"]
-    fakes = ('date() { echo "$FAUX_DECALAGE"; }\n'
-             'gh() { if [ "$1" = run ]; then echo "$FAUSSE_ATTENTE"; else echo "$*" >> "$JOURNAL"; fi; }\n')
 
     def expand(field, top):
         out = set()
@@ -1267,27 +1303,43 @@ def test_horloge_de_la_collecte(tmp_path):
             out |= set(range(int(lo), int(hi or lo) + 1, int(step or 1))) if rng != "*" else set(range(top))
         return out
 
-    def launched(cron, offset, waiting="0"):
-        log = tmp_path / "journal.txt"
-        log.unlink(missing_ok=True)
-        env = dict(os.environ, HORAIRE=cron, FAUX_DECALAGE=offset, FAUSSE_ATTENTE=waiting, JOURNAL=str(log),
-                   BRANCHE="main", GITHUB_REPOSITORY="exemple/depot", GH_TOKEN="faux")
-        subprocess.run([bash, "--noprofile", "--norc", "-eo", "pipefail", "-c", fakes + body], env=env, check=True,
-                       capture_output=True)
-        sent = log.read_text("utf-8") if log.exists() else ""
-        assert sent in ("", "workflow run weekly.yml --repo exemple/depot --ref main\n"), sent
-        return bool(sent)
+    passes = set()   # (jour de cron, 0 = dimanche ; heure UTC ; minute)
+    for cron in crons:
+        minutes, hours, dom, month, days = cron.split()
+        assert dom == month == "*", cron
+        passes |= {(j, h, m) for j in expand(days, 7) for h in expand(hours, 24) for m in expand(minutes, 60)}
+    for offset in (1, 2):   # heure d'hiver, heure d'été
+        for weekday, hours in horloge.HORAIRE.items():
+            for h in hours:
+                assert ((weekday + 1) % 7, h - offset, 7) in passes, (offset, weekday, h)
+                assert ((weekday + 1) % 7, h - offset + 1, 7) in passes, (offset, weekday, h)
+    # les collectes en cours lues avant le manifeste ; le lancement suit la décision ; depuis main seulement
+    job = d["jobs"]["lancer"]
+    assert job["if"] == "github.ref_name == 'main'"
+    steps = job["steps"]
+    lists = next(i for i, s in enumerate(steps) if "gh run list" in s.get("run", ""))
+    checkout = next(i for i, s in enumerate(steps) if s.get("uses", "").startswith("actions/checkout"))
+    assert lists < checkout
+    assert {"pipeline/horloge.py", "publie/manifeste.json"} <= set(steps[checkout]["with"]["sparse-checkout"].split())
+    decision = next(s for s in steps if "pipeline/horloge.py" in s.get("run", ""))
+    launch = next(s for s in steps if "gh workflow run weekly.yml" in s.get("run", ""))
+    assert launch["if"] == f"steps.{decision['id']}.outputs.lancer == 'oui'"
 
-    for offset, utc in (("+0200", 2), ("+0100", 1)):
-        paris = {day: set() for day in range(7)}   # 0 = dimanche, comme cron
-        for cron in crons:
-            if launched(cron, offset):
-                _, hours, _, _, days = cron.split()
-                for day in expand(days, 7):
-                    paris[day] |= {h + utc for h in expand(hours, 24)}
-        assert paris[0] == paris[1] == set(range(6, 23, 2)), (offset, paris)
-        assert all(paris[day] == {6, 12, 18} for day in range(2, 7)), (offset, paris)
-    assert not launched(crons[0], "+0200", waiting="1")   # une collecte attend déjà : elle partira du dernier état
+    # le script tel que le workflow le lance : seul, sans le paquet pipeline ni rien d'installé
+    manifest, runs, out = tmp_path / "manifeste.json", tmp_path / "collectes.json", tmp_path / "sortie.txt"
+    manifest.write_text(json.dumps(dict(collecte=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))), "utf-8")
+    runs.write_text("[]", "utf-8")
+    done = subprocess.run([sys.executable, "-I", str(ROOT_DIR / "pipeline" / "horloge.py"), str(manifest), str(runs)],
+                          cwd=tmp_path, env=dict(os.environ, GITHUB_OUTPUT=str(out)), capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+    assert out.read_text("utf-8") == "lancer=non\n" and "rien à faire" in done.stdout
+    # manifeste d'avant la collecte, journal des collectes illisible : on lance
+    manifest.write_text(json.dumps(dict(collecte="2026-11-07T20:51:35Z")), "utf-8")
+    runs.write_text("pas du json", "utf-8")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(out))
+    out.unlink()
+    assert horloge.main([str(manifest), str(runs)], now=at(8, 12, 13)) == 0
+    assert out.read_text("utf-8") == "lancer=oui\n"
 
 def test_calendrier_des_matchs(tmp_path):
     """Le calendrier auquel chacun s'abonne : les matchs du club (championnat et coupe), à l'heure de Paris,

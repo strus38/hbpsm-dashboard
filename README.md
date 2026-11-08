@@ -49,10 +49,13 @@ une phrase courte se devine par essais successifs.
 Ensuite la collecte tourne seule, à l'heure de Paris (demande de l'auteur, 11/10/2026) : le dimanche
 et le lundi toutes les deux heures de 6 h à 22 h, du mardi au samedi à 6 h, 12 h et 18 h. Les feuilles
 arrivent dans le désordre, et une journée n'est close que lorsque toutes ses feuilles sont lues. Elle est
-lancée par deux tâches de cron-job.org (ci-dessous) : les lancements programmés de GitHub partaient avec
-des heures de retard, ou pas du tout. Le workflow « Horloge de la collecte » (`horloge.yml`, chaque
-horaire en UTC pour l'heure d'été et pour l'heure d'hiver) reste en place le temps de vérifier les
-premiers passages de cron-job.org.
+lancée par deux tâches de cron-job.org (ci-dessous) : les lancements programmés de GitHub partent avec
+des heures de retard, ou pas du tout. Le workflow « Horloge de la collecte » (`horloge.yml`) sert de filet
+de sécurité : il passe toutes les heures et lance la collecte quand aucune collecte réussie n'a eu lieu
+depuis le dernier horaire (`pipeline/horloge.py`, heure de Paris). Un passage sauté par GitHub est repris
+au suivant, un site de la fédération en panne fait réessayer d'heure en heure ; les collectes de
+cron-job.org ou lancées à la main comptent comme les autres. Lancé à la main (Actions > Horloge de la
+collecte > Run workflow), il dit dans son journal si une collecte est due.
 
 ### Déclenchement (cron-job.org)
 
@@ -569,7 +572,7 @@ devient lisible qu'après une dizaine de matchs, jamais une preuve.
 Demande de l'auteur (10/10/2026) : recalculer toutes les statistiques à chaque nouvelle feuille, à chaque
 choix de l'entraîneur avant le match, et à tout ce qui peut améliorer les pronostics.
 
-- **Nouvelles feuilles** : la collecte (`horloge.yml` : dimanche et lundi toutes les deux heures, sinon trois fois par jour) recalcule tout : notes, forces
+- **Nouvelles feuilles** : la collecte (cron-job.org, sinon `horloge.yml` : dimanche et lundi toutes les deux heures, sinon trois fois par jour) recalcule tout : notes, forces
   des adversaires, modèle (terrain, buteurs absents, gardiens), pronostics, simulation de la saison,
   propositions, bilans.
 - **Choix de l'entraîneur** (feuille validée, sélection de celui qui tient les présences, blessés, absents,

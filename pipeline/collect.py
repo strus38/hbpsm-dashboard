@@ -1,5 +1,5 @@
 """Collecte sur ffhandball.fr : dimanche et lundi toutes les deux heures de 6 h à 22 h, sinon à 6 h, 12 h et 18 h
-(heure de Paris, .github/workflows/horloge.yml).
+(heure de Paris ; lancée par cron-job.org, et par pipeline/horloge.py quand un horaire est manqué).
 
 Usage : python -m pipeline.collect
 Sorties :

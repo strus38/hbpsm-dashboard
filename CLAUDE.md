@@ -87,14 +87,22 @@ par jour du dimanche au vendredi) : dimanche et lundi toutes les deux heures de 
 samedi à 6 h, 12 h et 18 h, heure de Paris. Déclenchement par deux tâches de cron-job.org (demande de l'auteur,
 12/10/2026 ; fuseau `Europe/Paris`, POST de `workflow_dispatch` sur weekly.yml, configuration dans le README,
 « Déclenchement ») avec un jeton à grain fin limité à ce dépôt (Actions : écriture), qui n'existe que chez
-cron-job.org et, facultatif, en secret `HBPSM_JETON_DECLENCHEUR` (santé : échéance). Le 11/10/2026, `horloge.yml`
-n'est parti que 2 fois sur 12, avec plus de six heures de retard : à retirer dès que les premiers passages de
-cron-job.org sont vérifiés. `horloge.yml` porte chaque horaire en UTC pour l'heure d'été et
-pour l'heure d'hiver et ne lance `weekly.yml` (plus de `schedule` dans celui-ci) que sur la ligne dont la
-première heure tombe à 6 h à Paris ce jour-là, et pas si une collecte attend déjà ; ses passages sans objet
-restent hors du groupe `collecte`, où ils prendraient la place d'une collecte ou d'un recalcul en attente.
-Minute 7 : GitHub retarde le plus le début de l'heure ; constaté avant : lancement de 05:00 UTC parti vers
-11:30-12:00 UTC (5-9/10/2026), un jour sauté (06/10).
+cron-job.org et, facultatif, en secret `HBPSM_JETON_DECLENCHEUR` (santé : échéance). Au 08/11/2026, cron-job.org
+n'avait lancé aucune collecte (aucun passage sous le compte de l'auteur depuis le 18/10, aucun à la minute 0) et
+`HBPSM_JETON_DECLENCHEUR` était vide : toutes les collectes venaient de `horloge.yml`, deux ou trois sur trois du mardi au
+samedi, deux à quatre sur neuf le dimanche et le lundi, celle de 6 h partie entre 10 h et 14 h ; le dimanche 08/11, rien
+avant 12 h 53 (et le site de la fédération en 504 à 12 h 28). Horloge refaite le 08/11/2026 (demande de l'auteur :
+« rends l'horloge moins fragile ») : un passage par heure (`7 4-22 * * *`, 5 h à 23 h à Paris l'hiver, 6 h à minuit
+l'été), et `pipeline/horloge.py` (bibliothèque standard seulement, lu par un checkout partiel) lance `weekly.yml` (plus de
+`schedule` dans celui-ci) quand aucune collecte réussie (`collecte` du manifeste : les deux poules lues) n'a eu lieu
+depuis le dernier horaire passé (`HORAIRE`, heure de Paris) : un passage sauté par GitHub est repris au suivant, un site
+en panne fait réessayer d'heure en heure. Pas de lancement quand une collecte est en cours ou attend son tour (lue avant
+le manifeste : une collecte finie entre les deux passerait pour manquée), ni quand l'horaire suivant arrive dans moins de
+30 min (`MARGE`). Les collectes de cron-job.org ou lancées à la main comptent comme les autres : l'horloge peut rester
+en filet de sécurité. Ses passages sans objet restent hors du groupe `collecte`, où ils prendraient la place d'une
+collecte ou d'un recalcul en attente ; depuis `main` seulement (`workflow_dispatch` possible pour voir sa décision).
+Minute 7 : GitHub retarde le plus le début de l'heure. Le retard de GitHub, lui, reste : seul un déclenchement de
+l'extérieur (cron-job.org) part à l'heure.
 
 ## Points ouverts
 
