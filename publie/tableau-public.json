@@ -1,11 +1,11 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-08 12:55",
+ "genere": "2026-11-08 18:15",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
- "feuilles": 3,
+ "feuilles": 4,
  "prochain": {
   "id": "2727568",
   "date": "2026-11-14T18:00",
@@ -22,9 +22,9 @@
   "poule": "71",
   "coupe": null,
   "tour": null,
-  "p_victoire": 84,
-  "enjeu": 13,
-  "cle": false,
+  "p_victoire": 86,
+  "enjeu": 8,
+  "cle": true,
   "rang_adv": 6
  },
  "adversaire": {
@@ -62,7 +62,7 @@
    7.5
   ],
   "plan": "attaque",
-  "plan_raison": "Défense adverse perméable (36,0 buts encaissés/match, médiane 27,1) : priorité aux buteurs en forme.",
+  "plan_raison": "Défense adverse perméable (36,0 buts encaissés/match, médiane 28,8) : priorité aux buteurs en forme.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -150,60 +150,79 @@
  "nous": {
   "equipe": "HB PAYS DE ST MARCELLIN",
   "poule": "71",
-  "j": 2,
-  "bp_moy": 34.5,
+  "j": 3,
+  "bp_moy": 35.0,
   "bc_moy": 23.0,
   "forme": [
    "V",
+   "V",
    "V"
   ],
-  "mt1_bp": 17.0,
-  "mt2_bp": 17.5,
-  "mt1_bc": 10.0,
-  "mt2_bc": 13.0,
-  "deux_min_moy": 3.0,
-  "jaunes_moy": 2.0,
+  "mt1_bp": 18.0,
+  "mt2_bp": 17.0,
+  "mt1_bc": 11.7,
+  "mt2_bc": 11.3,
+  "deux_min_moy": 2.3,
+  "jaunes_moy": 1.7,
   "rouges": 0,
-  "arrets_pct": 38,
+  "arrets_pct": 39,
   "periodes_bp": [
    6.0,
-   4.5,
-   6.5,
+   5.0,
+   6.7,
    7.0,
-   6.0,
-   4.5
+   5.3,
+   5.0
   ],
   "periodes_bc": [
-   2.5,
-   2.5,
-   5.0,
-   4.5,
+   3.3,
    4.0,
-   4.5
+   4.3,
+   4.3,
+   3.3,
+   3.7
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 28,8) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (35,0 buts/match, médiane 28,8) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
   "buteurs": [
    {
     "num": 44,
-    "buts": 11,
-    "pen": 4,
-    "m": 2,
-    "moy": 5.5,
-    "tirs": 19,
-    "reussite": 58
+    "buts": 20,
+    "pen": 6,
+    "m": 3,
+    "moy": 6.7,
+    "tirs": 32,
+    "reussite": 62
+   },
+   {
+    "num": 7,
+    "buts": 16,
+    "pen": 0,
+    "m": 3,
+    "moy": 5.3,
+    "tirs": 20,
+    "reussite": 80
    },
    {
     "num": 11,
-    "buts": 10,
+    "buts": 13,
     "pen": 0,
-    "m": 2,
-    "moy": 5.0,
-    "tirs": 15,
-    "reussite": 67
+    "m": 3,
+    "moy": 4.3,
+    "tirs": 20,
+    "reussite": 65
+   },
+   {
+    "num": 8,
+    "buts": 11,
+    "pen": 0,
+    "m": 3,
+    "moy": 3.7,
+    "tirs": 14,
+    "reussite": 79
    },
    {
     "num": 31,
@@ -213,24 +232,6 @@
     "moy": 4.5,
     "tirs": 12,
     "reussite": 75
-   },
-   {
-    "num": 5,
-    "buts": 8,
-    "pen": 0,
-    "m": 2,
-    "moy": 4.0,
-    "tirs": 9,
-    "reussite": 89
-   },
-   {
-    "num": 7,
-    "buts": 7,
-    "pen": 0,
-    "m": 2,
-    "moy": 3.5,
-    "tirs": 10,
-    "reussite": 70
    }
   ],
   "gardiens": [
@@ -240,6 +241,14 @@
     "arrets": 15,
     "pris": 26,
     "pct": 37,
+    "estime": true
+   },
+   {
+    "num": 1,
+    "m": 2,
+    "arrets": 14,
+    "pris": 19,
+    "pct": 42,
     "estime": true
    },
    {
@@ -253,10 +262,10 @@
    {
     "num": 16,
     "m": 1,
-    "arrets": 4,
-    "pris": 11,
-    "pct": 27,
-    "estime": false
+    "arrets": 7,
+    "pris": 15,
+    "pct": 32,
+    "estime": true
    }
   ],
   "passe": {
@@ -284,7 +293,7 @@
    "face_a_face": [],
    "continuite": {
     "deja": 16,
-    "sur": 19
+    "sur": 20
    },
    "feuilles": 19,
    "buteurs": [
@@ -307,7 +316,7 @@
   },
   "origines": {
    "saison": "2025-2026",
-   "vus": 19,
+   "vus": 20,
    "retrouves": 16,
    "equipes": [
     {
@@ -325,34 +334,21 @@
   "poule": "71",
   "cible": 2,
   "rang": 1,
-  "pts": 6,
-  "restants": 10,
-  "proba": 93,
+  "pts": 9,
+  "restants": 9,
+  "proba": 97,
   "proba_tout": 100,
   "rangs": [
-   71.0,
-   21.9,
-   4.8,
-   1.6,
+   77.8,
+   19.0,
+   2.5,
    0.5,
    0.1,
+   0.0,
    0.0
   ],
   "pts_max": 36,
   "matchs": [
-   {
-    "journee": 3,
-    "coupe": null,
-    "tour": null,
-    "date": "2026-11-07T21:00",
-    "provisoire": false,
-    "adversaire": "HBC ST DONAT",
-    "domicile": true,
-    "p_victoire": 87,
-    "enjeu": 20,
-    "cle": true,
-    "rang_adv": 5
-   },
    {
     "journee": 4,
     "coupe": null,
@@ -361,9 +357,9 @@
     "provisoire": false,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": false,
-    "p_victoire": 84,
-    "enjeu": 13,
-    "cle": false,
+    "p_victoire": 86,
+    "enjeu": 8,
+    "cle": true,
     "rang_adv": 6
    },
    {
@@ -374,8 +370,8 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 53,
-    "enjeu": 11,
+    "p_victoire": 56,
+    "enjeu": 5,
     "cle": false,
     "rang_adv": 2
    },
@@ -388,7 +384,7 @@
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
     "p_victoire": 85,
-    "enjeu": 15,
+    "enjeu": 12,
     "cle": true,
     "rang_adv": 3
    },
@@ -400,8 +396,8 @@
     "provisoire": false,
     "adversaire": "HBC PILAT-2",
     "domicile": false,
-    "p_victoire": 79,
-    "enjeu": 10,
+    "p_victoire": 81,
+    "enjeu": 5,
     "cle": false,
     "rang_adv": 7
    },
@@ -413,10 +409,10 @@
     "provisoire": true,
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
-    "p_victoire": 88,
-    "enjeu": 18,
+    "p_victoire": 89,
+    "enjeu": 7,
     "cle": false,
-    "rang_adv": 4
+    "rang_adv": 5
    },
    {
     "journee": 10,
@@ -426,10 +422,10 @@
     "provisoire": true,
     "adversaire": "HBC ST DONAT",
     "domicile": false,
-    "p_victoire": 72,
-    "enjeu": 14,
+    "p_victoire": 80,
+    "enjeu": 6,
     "cle": false,
-    "rang_adv": 5
+    "rang_adv": 4
    },
    {
     "journee": 11,
@@ -439,8 +435,8 @@
     "provisoire": true,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": true,
-    "p_victoire": 94,
-    "enjeu": 19,
+    "p_victoire": 95,
+    "enjeu": 11,
     "cle": true,
     "rang_adv": 6
    },
@@ -452,8 +448,8 @@
     "provisoire": true,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
-    "p_victoire": 75,
-    "enjeu": 13,
+    "p_victoire": 76,
+    "enjeu": 8,
     "cle": false,
     "rang_adv": 2
    },
@@ -465,8 +461,8 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 65,
-    "enjeu": 12,
+    "p_victoire": 68,
+    "enjeu": 7,
     "cle": false,
     "rang_adv": 3
    }
@@ -477,15 +473,16 @@
    {
     "rang": 1,
     "equipe": "HB PAYS DE ST MARCELLIN",
-    "pts": 6,
-    "j": 2,
-    "v": 2,
+    "pts": 9,
+    "j": 3,
+    "v": 3,
     "n": 0,
     "d": 0,
-    "bp": 69,
-    "bc": 46,
-    "diff": 23,
+    "bp": 105,
+    "bc": 69,
+    "diff": 36,
     "forme": [
+     "V",
      "V",
      "V"
     ],
@@ -528,6 +525,24 @@
    },
    {
     "rang": 4,
+    "equipe": "HBC ST DONAT",
+    "pts": 5,
+    "j": 3,
+    "v": 1,
+    "n": 0,
+    "d": 2,
+    "bp": 69,
+    "bc": 87,
+    "diff": -18,
+    "forme": [
+     "D",
+     "V",
+     "D"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 5,
     "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "pts": 5,
     "j": 3,
@@ -539,23 +554,6 @@
     "diff": -8,
     "forme": [
      "D",
-     "D",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 5,
-    "equipe": "HBC ST DONAT",
-    "pts": 4,
-    "j": 2,
-    "v": 1,
-    "n": 0,
-    "d": 1,
-    "bp": 46,
-    "bc": 51,
-    "diff": -5,
-    "forme": [
      "D",
      "V"
     ],
@@ -738,6 +736,15 @@
  },
  "resultats": [
   {
+   "poule": "71",
+   "journee": 3,
+   "date": "2026-11-07T21:00",
+   "dom": "HB PAYS DE ST MARCELLIN",
+   "ext": "HBC ST DONAT",
+   "sd": 36,
+   "se": 23
+  },
+  {
    "poule": "72",
    "journee": 3,
    "date": "2026-11-07T21:00",
@@ -871,24 +878,9 @@
    "ext": "HBC PILAT-2",
    "sd": 32,
    "se": 19
-  },
-  {
-   "poule": "72",
-   "journee": 1,
-   "date": "2026-10-03T20:00",
-   "dom": "HAND BIEVRE TERRES FROIDES",
-   "ext": "HANDBALL CLUB PONTOIS",
-   "sd": 23,
-   "se": 34
   }
  ],
- "axes": [
-  {
-   "titre": "Tenir la deuxième mi-temps",
-   "libelle": "Préparation physique",
-   "constat": "Écart de 7,0 en première mi-temps, 4,5 en seconde."
-  }
- ],
+ "axes": [],
  "logos": {
   "BIEVRE HANDBALL": "data:image/webp;base64,UklGRqYFAABXRUJQVlA4WAoAAAAQAAAAPwAAPwAAQUxQSB8AAAABHyAQILz4b5NgIyKCE4TZRgazq+e53iei/zEAoL8DAFZQOCBgBQAAEBoAnQEqQABAAD5tKpJGpCIhoS4ZKqiADYlsALspU3s3F9kX6+OWbtAba/zGfsB1Gd5A9ADyzf23+EbytLuwxO8ufqbKtwx2h/PV9b/UuIH3VJg2effX7yjUXumOM38R9gD81/7f00/+j/LedP6K/8fuEfrT/xfWm9fvomfq8x1rpCir/+eHBp/xrC5bVkV27oUlhDse16Sv+kSY9Yv7c9Ug1jJqKQMlQLn99Fz25Q0sz4oN+iCJJdtoifqYCfxHJdBG37KaPebXl3qZSp+sFgs7qhhgTBefAAD+/5gGNoaErYtufM8HBF3gD6NRmWHuJkAdQ5CP2bCGaoP8rMkHZ/Mafqt8mcnVghtpOVGLnBUchc51s+k2tUUj4OF7DNa1IZtjFX7HObN6S3b8eB0vddt67RXdao3qTs8tDX3O3+OGBt+xM96kYZMeQKWU3ceGP29sFiohA1sGo0oMzDWZ+FnmzPnKa7yRX50vJXKa/MN72bk3+V3hIjkcpeyOmLSJedrZraGPlt2WjxCrkOgwKz13PrgJ0Rm16yUFqle8uFHL92qAZK48dKDgoIwU3cvlfbvlRUo8U7/NRe0kc7R0/c/1SSYJ1L2QX5OVTAN3IGZHytCiydGAeLlZ3ALsmk/3yRQ+pKDCqWWsKjtNnyIoGxUUGqBqUnzSXMfHGy6bua1kxshmTWx7hXbF58xeVUq+hr+y8PA9h5j+AvQwSi9L+N8+W4pavnXsyDaafrfePldaGWLT0j7ZhbcHh1H/vIBjd0UrvOh2XnsaMxCXISYENnFffruTjXzFyXWxSggOiSFhFJazOMGfM3RGOfEJLf7lH7/z0leMVaZtat52A9b0Bu3dxydh30QpOKKO/eaWI89nNjx2jXNb/Dq2HF8CYNuk5d+xiPe2nKzUlBcxtpJw7nRtzZSz4e7Mam5ewtk/SelNBW04+4fhiK2jyhqeAZ+A+DIDZG6X519eNnsi0EHW+mbftwK5d3Jdm8Zn1Y8avHx7iBmvV6LBYD/wP572Y1N3f3fIwg8qj4NOf32kUbck/vUvf+8NqkjsE3jReQ4W3/S+OYVELSvBPh2IbKDeSV98pJoiaTyeQGqAG/gJnRSCWQKm5f+L+9IQxQY/57e10rosP6KkQ9U5/AhFKUNhfsTbrR6DlppL604/09yjqm/AdpBp6UrdS7/C0T2/0vesFD37eqg2OEwXeo8ecGt94gGPolvQQO0UXEUvrE658wXcyfz1suuCS3Iea6YLveuv9oC1eoE4X9tjtx27doEYn8AMZ5QUshCKUyK4c47iVMsDDpAOfjZUOe30atGk9pCBPp34o65psLMqyfiGjg8wYHyMoF+o3XUUbIH4HjFNpIu/J1ho1Mp2Cljl8JBeejSM+X+iDr4EKN95eOkuKgtkfgFjZ4g+Epafz8k2inw7G5E7TihYLfuHr8KYSCcWBVN1AjphqdmA7NvKAz+Kapj5m9tbFgx5IqK3xVsrdkOBQiIatvKQX5jvxqRk4T3+nsy5P/9STxtvLNttMZti4ndzX/jrh/JiYf7/4HtqKF2K6Xtk8Jn8FQ1PTUw4CUFpIJNvROH/1HFozGpLu/27ZfON3nKN8+W8FCe+XBwbPrwFH+evzBMBOgiz436CcNZ/545y9ClXP1PQPSJlCu8meiiBSzlavTuWHMqdZzQ9ZsTydCnzRpyWpyJ3/NPWjRMFkLcx9YbaSSDSoRiAK/fJtwSeDWBxfRYmUfxHfRVu6/KBJLSGyYrTfj4ekFdFraKDdWaJ5rzPtzoJFmfVqQcFBO3F5i/2wwMg/t1PgCtEoCdXOcKZe8XC8OWsnJdAI70Vf7tQAAA=",
   "HAND BIEVRE TERRES FROIDES": "data:image/webp;base64,UklGRtADAABXRUJQVlA4WAoAAAAQAAAAPwAAPwAAQUxQSCMAAAABFyAQSFKffI2ICAc1bRtBJVmSJfrc3XZLRP8T52X5HrI4DwBWUDgghgMAABASAJ0BKkAAQAA+bSyRRiQioaEsGA5ggA2JQBnSqn+9wE9uzdt28v1zj2Aeafjb9Be0PIb9V73/gD/M54RyT+pd5FqOxQHiIRtegrm+eq/YH/WPrTKBgv2Tf7N00GFsGpE173XjwTRCZeDwH++5I4+5irRuBhKeqZywUy4W9f12IaJ1KleE1sapAfrQ0pMgnfiU4oDD58qQAAD+/TnTPVQJy95HOUcXoQ+whTjUHLG4MluAEFtIhPkX/4xev/GOEOXFoiym42Bq3UKlZ2x+fNu39+Sy/1Fs3niR6pAfhJ8u4P+f+cCPf4jXW32mOR+W9Z4ZqEMZ14TOnLhuLOunjSLNiiy34/AiCqmYyo8dhgkMKNB0HFitgh/g+WVD0um9vcqmpoyiD1XkHcs5UbQA+WAXg1RVltFfMaPd6Ey0f/pSyyvx4smtQgwfssY4WnMvncPLFiL/va9t8W0Ns6KMLtHKESzq+TOyRO1ooOk/Znh2psreGenb/lYKaL8vPcdQO9/P9JCT6sqdPopJyiokg9pUtm3oR0XkZ1TfzXhk2rkPeTEaOiFAeJ3v+HQJitagi3ieCjyc6sZv+B+AI5enTFd6XxEf8VBqZtS3YR0QfIobp3BVmNrGWc95x+MfqFDgMfV99YiGhtqQa0IBOk7Nw67vVUewtdPwZ6MmVSuj2v2Pfdy2LtMjePiDH/af+OeBzdlyX0FiZgAJ5gq0dQEHuFSy5jqwvBJ8cCYEGoz+Oi+55FBDCzyn+p81XefhOpwbSw9gYdoI0zjydr4RsvpyQMFy5Q6W9VEekmLJ1d3OIZST1GBDHq5H8l8urVa36p3R7It3fXxOucXUT+VanI/LCGsQZRjp0dSwVlXpMg4RK807snKFdFmWQOdxY284BHmJTz8T81h5e4FaglqCGEFC/tMoCXw7fM3VI+1C7POH94uu9uPNS0y/3eXKa7z0wRZgjTtp7jey18vhsmVjrE+W5ZPrlRcEIzmHAirNSLGZU5joxDq8DJQqAgoYAPEW78JSoTevk3J2cbR5VWnD8ny4CRiMQq2R+hqUnSJoF5lNxdYrQqM9VmVojljC8kZ2DlYEeJKmSjjYPPvE6SL1gm8vx3Cu/+vdmXKL92E+OR//Sw4uv3/EY2WFNgsupc9yMLjR9cqepRvQmmngABx0tSDWOReQmBcLtMJBsOI6lkWkesJLvxEPgAAA",
