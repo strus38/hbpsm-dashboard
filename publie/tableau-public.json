@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-08 19:21",
+ "genere": "2026-11-08 23:51",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -62,7 +62,7 @@
    7.5
   ],
   "plan": "attaque",
-  "plan_raison": "Défense adverse perméable (36,0 buts encaissés/match, médiane 28,8) : priorité aux buteurs en forme.",
+  "plan_raison": "Défense adverse perméable (36,0 buts encaissés/match, médiane 29,0) : priorité aux buteurs en forme.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -183,7 +183,7 @@
    3.7
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (35,0 buts/match, médiane 28,8) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (35,0 buts/match, médiane 28,0) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -615,6 +615,24 @@
    },
    {
     "rang": 2,
+    "equipe": "RC DOMENE",
+    "pts": 8,
+    "j": 3,
+    "v": 2,
+    "n": 1,
+    "d": 0,
+    "bp": 89,
+    "bc": 84,
+    "diff": 5,
+    "forme": [
+     "V",
+     "N",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
     "equipe": "USVIZILLE HB",
     "pts": 7,
     "j": 3,
@@ -632,7 +650,7 @@
     "forfait": null
    },
    {
-    "rang": 3,
+    "rang": 4,
     "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
     "pts": 6,
     "j": 2,
@@ -645,23 +663,6 @@
     "forme": [
      "V",
      "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 4,
-    "equipe": "RC DOMENE",
-    "pts": 5,
-    "j": 2,
-    "v": 1,
-    "n": 1,
-    "d": 0,
-    "bp": 60,
-    "bc": 57,
-    "diff": 3,
-    "forme": [
-     "V",
-     "N"
     ],
     "forfait": null
    },
@@ -721,20 +722,31 @@
    {
     "rang": 8,
     "equipe": "ISLE D'ABEAU SG3",
-    "pts": 0,
-    "j": 0,
+    "pts": 1,
+    "j": 1,
     "v": 0,
     "n": 0,
-    "d": 0,
-    "bp": 0,
-    "bc": 0,
-    "diff": 0,
-    "forme": [],
+    "d": 1,
+    "bp": 27,
+    "bc": 29,
+    "diff": -2,
+    "forme": [
+     "D"
+    ],
     "forfait": null
    }
   ]
  },
  "resultats": [
+  {
+   "poule": "72",
+   "journee": 3,
+   "date": "2026-11-08T16:00",
+   "dom": "RC DOMENE",
+   "ext": "ISLE D'ABEAU SG3",
+   "sd": 29,
+   "se": 27
+  },
   {
    "poule": "71",
    "journee": 3,
@@ -869,15 +881,6 @@
    "ext": "HBC ST DONAT",
    "sd": 30,
    "se": 24
-  },
-  {
-   "poule": "71",
-   "journee": 1,
-   "date": "2026-10-03T21:00",
-   "dom": "HB PAYS DE ST MARCELLIN",
-   "ext": "HBC PILAT-2",
-   "sd": 32,
-   "se": 19
   }
  ],
  "axes": [],
