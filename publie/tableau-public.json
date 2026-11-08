@@ -1,199 +1,137 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-07 21:51",
+ "genere": "2026-11-08 12:29",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
  "feuilles": 3,
  "prochain": {
-  "id": "2727563",
-  "date": "2026-11-07T21:00",
+  "id": "2727568",
+  "date": "2026-11-14T18:00",
   "provisoire": false,
   "salle": {
-   "nom": "GYMNASE LA SAULAIE",
-   "rue": "AVENUE DE LA SAULAIE",
-   "code_postal": "38160",
-   "ville": "ST MARCELLIN"
+   "nom": "MICHEL BETTON",
+   "rue": "8 RUE PICPUS",
+   "code_postal": "26240",
+   "ville": "ST VALLIER"
   },
-  "adversaire": "HBC ST DONAT",
-  "domicile": true,
-  "journee": 3,
+  "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
+  "domicile": false,
+  "journee": 4,
   "poule": "71",
   "coupe": null,
   "tour": null,
   "p_victoire": 87,
-  "enjeu": 22,
-  "cle": true,
-  "rang_adv": 4
+  "enjeu": 15,
+  "cle": false,
+  "rang_adv": 7
  },
  "adversaire": {
-  "equipe": "HBC ST DONAT",
+  "equipe": "P16M RTE - NORD DROME HANDBALL 2",
   "poule": "71",
-  "j": 2,
-  "bp_moy": 23.0,
-  "bc_moy": 25.5,
+  "j": 1,
+  "bp_moy": 22.0,
+  "bc_moy": 39.0,
   "forme": [
-   "D",
-   "V"
+   "D"
   ],
-  "mt1_bp": 10.5,
-  "mt2_bp": 12.5,
-  "mt1_bc": 12.0,
-  "mt2_bc": 13.5,
-  "deux_min_moy": 1.5,
-  "jaunes_moy": 0.5,
+  "mt1_bp": 13.0,
+  "mt2_bp": 9.0,
+  "mt1_bc": 20.0,
+  "mt2_bc": 19.0,
+  "deux_min_moy": 3.0,
+  "jaunes_moy": 1.0,
   "rouges": 0,
-  "arrets_pct": 28,
+  "arrets_pct": 20,
   "periodes_bp": [
-   3.5,
-   2.5,
    4.0,
-   3.5,
+   5.0,
    4.0,
-   5.5
+   4.0,
+   2.0,
+   3.0
   ],
   "periodes_bc": [
+   7.0,
+   7.0,
    5.0,
-   2.5,
-   4.5,
-   5.5,
-   3.0,
-   5.0
+   7.0,
+   5.0,
+   8.0
   ],
-  "plan": "equilibre",
-  "plan_raison": "Adversaire dans la moyenne des deux poules : pondération équilibrée.",
+  "plan": "attaque",
+  "plan_raison": "Défense adverse perméable (39,0 buts encaissés/match, médiane 27,2) : priorité aux buteurs en forme.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
   "buteurs": [
    {
-    "num": 55,
-    "buts": 13,
-    "pen": 7,
-    "m": 2,
-    "moy": 6.5,
-    "tirs": 25,
-    "reussite": 52
-   },
-   {
-    "num": 36,
-    "buts": 9,
+    "num": 8,
+    "buts": 10,
     "pen": 2,
-    "m": 2,
-    "moy": 4.5,
-    "tirs": 22,
-    "reussite": 41
+    "m": 1,
+    "moy": 10.0,
+    "tirs": 13,
+    "reussite": 77
    },
    {
-    "num": 23,
+    "num": 4,
     "buts": 7,
     "pen": 0,
-    "m": 2,
-    "moy": 3.5,
-    "tirs": 12,
-    "reussite": 58
+    "m": 1,
+    "moy": 7.0,
+    "tirs": 11,
+    "reussite": 64
    },
    {
-    "num": 45,
-    "buts": 5,
+    "num": 14,
+    "buts": 3,
     "pen": 0,
-    "m": 2,
-    "moy": 2.5,
-    "tirs": 14,
-    "reussite": 36
+    "m": 1,
+    "moy": 3.0,
+    "tirs": 5,
+    "reussite": 60
    },
    {
-    "num": 7,
-    "buts": 5,
+    "num": 2,
+    "buts": 2,
     "pen": 0,
-    "m": 2,
-    "moy": 2.5,
-    "tirs": 9,
-    "reussite": 56
+    "m": 1,
+    "moy": 2.0,
+    "tirs": 5,
+    "reussite": 40
    }
   ],
   "gardiens": [
    {
     "num": 1,
-    "m": 2,
-    "arrets": 20,
-    "pris": 51,
-    "pct": 28,
-    "estime": false
+    "m": 1,
+    "arrets": 5,
+    "pris": 19,
+    "pct": 21,
+    "estime": true
+   },
+   {
+    "num": 16,
+    "m": 1,
+    "arrets": 5,
+    "pris": 20,
+    "pct": 20,
+    "estime": true
    }
   ],
-  "passe": {
-   "saison": "2025-2026",
-   "niveau": 0,
-   "division": "2e division",
-   "j": 18,
-   "v": 7,
-   "n": 3,
-   "d": 8,
-   "bp_moy": 29.9,
-   "bc_moy": 28.6,
-   "rangs": [
-    {
-     "poule": "POULE 5A",
-     "rang": 5,
-     "equipes": 8
-    },
-    {
-     "poule": "POULE 5 BASSE",
-     "rang": 2,
-     "equipes": 5
-    }
-   ],
-   "face_a_face": [
-    {
-     "date": "2025-11-02T16:00",
-     "phase": "POULE 5A",
-     "dom": false,
-     "score": "26-37",
-     "res": "D"
-    },
-    {
-     "date": "2026-01-17T21:00",
-     "phase": "POULE 5A",
-     "dom": true,
-     "score": "33-35",
-     "res": "D"
-    }
-   ],
-   "continuite": {
-    "deja": 7,
-    "sur": 10
-   },
-   "feuilles": 18,
-   "buteurs": [
-    {
-     "num": 36,
-     "buts": 152,
-     "present": true
-    },
-    {
-     "num": 55,
-     "buts": 103,
-     "present": true
-    },
-    {
-     "num": 7,
-     "buts": 68,
-     "present": true
-    }
-   ]
-  },
+  "passe": null,
   "origines": {
    "saison": "2025-2026",
-   "vus": 10,
-   "retrouves": 7,
+   "vus": 12,
+   "retrouves": 10,
    "equipes": [
     {
-     "equipe": "HBC ST DONAT",
+     "equipe": "FAR HANDBALL",
      "niveau": 0,
      "division": "2e division",
-     "joueurs": 7
+     "joueurs": 10
     }
    ]
   },
