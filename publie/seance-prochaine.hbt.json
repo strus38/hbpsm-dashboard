@@ -1,7 +1,7 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-08T11:29:32.000Z",
+ "exporteLe": "2026-11-08T11:55:36.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
@@ -11,15 +11,15 @@
    "date": "2026-11-10",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
-   "objectifSeance": "Avant P16M RTE - NORD DROME HANDBALL 2 (journée 4, sam. 14 nov., à l’extérieur). 1) Tenir la deuxième mi-temps [Préparation physique] : Écart de 7,0 en première mi-temps, 4,5 en seconde. Adversaire : 22,0 buts marqués et 39,0 encaissés par match ; à surveiller : n° 8 (10,0 buts/match), n° 4 (7,0 buts/match).",
+   "objectifSeance": "Avant P16M RTE - NORD DROME HANDBALL 2 (journée 4, sam. 14 nov., à l’extérieur). 1) Tenir la deuxième mi-temps [Préparation physique] : Écart de 7,0 en première mi-temps, 4,5 en seconde. Adversaire : 28,0 buts marqués et 36,0 encaissés par match ; à surveiller : n° 5 (11,0 buts/match), n° 4 (5,0 buts/match).",
    "effectifJoueurs": 0,
    "effectifGardiens": 0,
    "espaceDisponible": "",
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-08T11:29:32.000Z",
-   "modifieLe": "2026-11-08T11:29:32.000Z"
+   "creeLe": "2026-11-08T11:55:36.000Z",
+   "modifieLe": "2026-11-08T11:55:36.000Z"
   }
  }
 }

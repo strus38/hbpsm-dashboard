@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-08 12:29",
+ "genere": "2026-11-08 12:55",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -22,67 +22,77 @@
   "poule": "71",
   "coupe": null,
   "tour": null,
-  "p_victoire": 87,
-  "enjeu": 15,
+  "p_victoire": 84,
+  "enjeu": 13,
   "cle": false,
-  "rang_adv": 7
+  "rang_adv": 6
  },
  "adversaire": {
   "equipe": "P16M RTE - NORD DROME HANDBALL 2",
   "poule": "71",
-  "j": 1,
-  "bp_moy": 22.0,
-  "bc_moy": 39.0,
+  "j": 2,
+  "bp_moy": 28.0,
+  "bc_moy": 36.0,
   "forme": [
-   "D"
+   "D",
+   "V"
   ],
-  "mt1_bp": 13.0,
-  "mt2_bp": 9.0,
-  "mt1_bc": 20.0,
-  "mt2_bc": 19.0,
-  "deux_min_moy": 3.0,
-  "jaunes_moy": 1.0,
+  "mt1_bp": 14.5,
+  "mt2_bp": 13.5,
+  "mt1_bc": 18.0,
+  "mt2_bc": 18.0,
+  "deux_min_moy": 2.0,
+  "jaunes_moy": 0.5,
   "rouges": 0,
-  "arrets_pct": 20,
+  "arrets_pct": 25,
   "periodes_bp": [
-   4.0,
    5.0,
    4.0,
-   4.0,
-   2.0,
-   3.0
+   5.5,
+   6.5,
+   3.0,
+   4.0
   ],
   "periodes_bc": [
-   7.0,
-   7.0,
+   6.0,
+   6.5,
    5.0,
-   7.0,
    5.0,
-   8.0
+   6.0,
+   7.5
   ],
   "plan": "attaque",
-  "plan_raison": "Défense adverse perméable (39,0 buts encaissés/match, médiane 27,2) : priorité aux buteurs en forme.",
+  "plan_raison": "Défense adverse perméable (36,0 buts encaissés/match, médiane 27,1) : priorité aux buteurs en forme.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
   "buteurs": [
    {
-    "num": 8,
-    "buts": 10,
-    "pen": 2,
-    "m": 1,
-    "moy": 10.0,
-    "tirs": 13,
-    "reussite": 77
+    "num": 5,
+    "buts": 22,
+    "pen": 6,
+    "m": 2,
+    "moy": 11.0,
+    "tirs": 29,
+    "reussite": 76
    },
    {
     "num": 4,
-    "buts": 7,
+    "buts": 10,
+    "pen": 0,
+    "m": 2,
+    "moy": 5.0,
+    "tirs": 16,
+    "reussite": 62
+   },
+   {
+    "num": 12,
+    "buts": 9,
     "pen": 0,
     "m": 1,
-    "moy": 7.0,
-    "tirs": 11,
-    "reussite": 64
+    "moy": 9.0,
+    "tirs": 17,
+    "reussite": 53
    },
    {
     "num": 14,
@@ -94,22 +104,22 @@
     "reussite": 60
    },
    {
-    "num": 2,
-    "buts": 2,
+    "num": 3,
+    "buts": 3,
     "pen": 0,
     "m": 1,
-    "moy": 2.0,
-    "tirs": 5,
-    "reussite": 40
+    "moy": 3.0,
+    "tirs": 7,
+    "reussite": 43
    }
   ],
   "gardiens": [
    {
     "num": 1,
-    "m": 1,
-    "arrets": 5,
-    "pris": 19,
-    "pct": 21,
+    "m": 2,
+    "arrets": 19,
+    "pris": 52,
+    "pct": 27,
     "estime": true
    },
    {
@@ -124,14 +134,14 @@
   "passe": null,
   "origines": {
    "saison": "2025-2026",
-   "vus": 12,
-   "retrouves": 10,
+   "vus": 17,
+   "retrouves": 11,
    "equipes": [
     {
      "equipe": "FAR HANDBALL",
      "niveau": 0,
      "division": "2e division",
-     "joueurs": 10
+     "joueurs": 11
     }
    ]
   },
@@ -172,7 +182,7 @@
    4.5
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 28,1) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 28,8) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -317,13 +327,13 @@
   "rang": 1,
   "pts": 6,
   "restants": 10,
-  "proba": 91,
+  "proba": 93,
   "proba_tout": 100,
   "rangs": [
-   69.8,
-   21.2,
-   6.4,
-   2.0,
+   71.0,
+   21.9,
+   4.8,
+   1.6,
    0.5,
    0.1,
    0.0
@@ -339,9 +349,9 @@
     "adversaire": "HBC ST DONAT",
     "domicile": true,
     "p_victoire": 87,
-    "enjeu": 22,
+    "enjeu": 20,
     "cle": true,
-    "rang_adv": 4
+    "rang_adv": 5
    },
    {
     "journee": 4,
@@ -351,10 +361,10 @@
     "provisoire": false,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": false,
-    "p_victoire": 87,
-    "enjeu": 15,
+    "p_victoire": 84,
+    "enjeu": 13,
     "cle": false,
-    "rang_adv": 7
+    "rang_adv": 6
    },
    {
     "journee": 6,
@@ -364,8 +374,8 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 52,
-    "enjeu": 13,
+    "p_victoire": 53,
+    "enjeu": 11,
     "cle": false,
     "rang_adv": 2
    },
@@ -377,10 +387,10 @@
     "provisoire": false,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": true,
-    "p_victoire": 82,
-    "enjeu": 22,
+    "p_victoire": 85,
+    "enjeu": 15,
     "cle": true,
-    "rang_adv": 5
+    "rang_adv": 3
    },
    {
     "journee": 8,
@@ -390,10 +400,10 @@
     "provisoire": false,
     "adversaire": "HBC PILAT-2",
     "domicile": false,
-    "p_victoire": 80,
-    "enjeu": 13,
+    "p_victoire": 79,
+    "enjeu": 10,
     "cle": false,
-    "rang_adv": 6
+    "rang_adv": 7
    },
    {
     "journee": 9,
@@ -404,9 +414,9 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 88,
-    "enjeu": 15,
+    "enjeu": 18,
     "cle": false,
-    "rang_adv": 3
+    "rang_adv": 4
    },
    {
     "journee": 10,
@@ -416,10 +426,10 @@
     "provisoire": true,
     "adversaire": "HBC ST DONAT",
     "domicile": false,
-    "p_victoire": 71,
+    "p_victoire": 72,
     "enjeu": 14,
     "cle": false,
-    "rang_adv": 4
+    "rang_adv": 5
    },
    {
     "journee": 11,
@@ -429,10 +439,10 @@
     "provisoire": true,
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": true,
-    "p_victoire": 95,
-    "enjeu": 17,
+    "p_victoire": 94,
+    "enjeu": 19,
     "cle": true,
-    "rang_adv": 7
+    "rang_adv": 6
    },
    {
     "journee": 13,
@@ -442,8 +452,8 @@
     "provisoire": true,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
-    "p_victoire": 74,
-    "enjeu": 16,
+    "p_victoire": 75,
+    "enjeu": 13,
     "cle": false,
     "rang_adv": 2
    },
@@ -455,10 +465,10 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 64,
-    "enjeu": 16,
+    "p_victoire": 65,
+    "enjeu": 12,
     "cle": false,
-    "rang_adv": 5
+    "rang_adv": 3
    }
   ]
  },
@@ -500,6 +510,24 @@
    },
    {
     "rang": 3,
+    "equipe": "BIEVRE HANDBALL",
+    "pts": 5,
+    "j": 3,
+    "v": 1,
+    "n": 0,
+    "d": 2,
+    "bp": 83,
+    "bc": 77,
+    "diff": 6,
+    "forme": [
+     "V",
+     "D",
+     "D"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 4,
     "equipe": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "pts": 5,
     "j": 3,
@@ -517,7 +545,7 @@
     "forfait": null
    },
    {
-    "rang": 4,
+    "rang": 5,
     "equipe": "HBC ST DONAT",
     "pts": 4,
     "j": 2,
@@ -534,24 +562,24 @@
     "forfait": null
    },
    {
-    "rang": 5,
-    "equipe": "BIEVRE HANDBALL",
+    "rang": 6,
+    "equipe": "P16M RTE - NORD DROME HANDBALL 2",
     "pts": 4,
     "j": 2,
     "v": 1,
     "n": 0,
     "d": 1,
-    "bp": 50,
-    "bc": 43,
-    "diff": 7,
+    "bp": 56,
+    "bc": 72,
+    "diff": -16,
     "forme": [
-     "V",
-     "D"
+     "D",
+     "V"
     ],
     "forfait": null
    },
    {
-    "rang": 6,
+    "rang": 7,
     "equipe": "HBC PILAT-2",
     "pts": 2,
     "j": 2,
@@ -566,44 +594,64 @@
      "D"
     ],
     "forfait": null
-   },
-   {
-    "rang": 7,
-    "equipe": "P16M RTE - NORD DROME HANDBALL 2",
-    "pts": 1,
-    "j": 1,
-    "v": 0,
-    "n": 0,
-    "d": 1,
-    "bp": 22,
-    "bc": 39,
-    "diff": -17,
-    "forme": [
-     "D"
-    ],
-    "forfait": null
    }
   ],
   "72": [
    {
     "rang": 1,
     "equipe": "HANDBALL CLUB PONTOIS",
-    "pts": 5,
-    "j": 2,
-    "v": 1,
+    "pts": 8,
+    "j": 3,
+    "v": 2,
     "n": 1,
     "d": 0,
-    "bp": 63,
-    "bc": 52,
-    "diff": 11,
+    "bp": 98,
+    "bc": 76,
+    "diff": 22,
     "forme": [
      "V",
-     "N"
+     "N",
+     "V"
     ],
     "forfait": null
    },
    {
     "rang": 2,
+    "equipe": "USVIZILLE HB",
+    "pts": 7,
+    "j": 3,
+    "v": 2,
+    "n": 0,
+    "d": 1,
+    "bp": 101,
+    "bc": 74,
+    "diff": 27,
+    "forme": [
+     "V",
+     "D",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
+    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
+    "pts": 6,
+    "j": 2,
+    "v": 2,
+    "n": 0,
+    "d": 0,
+    "bp": 59,
+    "bc": 47,
+    "diff": 12,
+    "forme": [
+     "V",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 4,
     "equipe": "RC DOMENE",
     "pts": 5,
     "j": 2,
@@ -620,67 +668,36 @@
     "forfait": null
    },
    {
-    "rang": 3,
-    "equipe": "USVIZILLE HB",
-    "pts": 4,
-    "j": 2,
+    "rang": 5,
+    "equipe": "MEYLAN HANDBALL 2",
+    "pts": 5,
+    "j": 3,
     "v": 1,
     "n": 0,
-    "d": 1,
-    "bp": 62,
-    "bc": 50,
-    "diff": 12,
+    "d": 2,
+    "bp": 93,
+    "bc": 96,
+    "diff": -3,
     "forme": [
+     "D",
      "V",
      "D"
     ],
     "forfait": null
    },
    {
-    "rang": 4,
-    "equipe": "MEYLAN HANDBALL 2",
-    "pts": 4,
-    "j": 2,
-    "v": 1,
-    "n": 0,
-    "d": 1,
-    "bp": 69,
-    "bc": 61,
-    "diff": 8,
-    "forme": [
-     "D",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 5,
-    "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
-    "pts": 3,
-    "j": 1,
-    "v": 1,
-    "n": 0,
-    "d": 0,
-    "bp": 29,
-    "bc": 20,
-    "diff": 9,
-    "forme": [
-     "V"
-    ],
-    "forfait": null
-   },
-   {
     "rang": 6,
     "equipe": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
-    "pts": 2,
-    "j": 2,
+    "pts": 3,
+    "j": 3,
     "v": 0,
     "n": 0,
-    "d": 2,
-    "bp": 51,
-    "bc": 83,
-    "diff": -32,
+    "d": 3,
+    "bp": 78,
+    "bc": 113,
+    "diff": -35,
     "forme": [
+     "D",
      "D",
      "D"
     ],
@@ -689,15 +706,16 @@
    {
     "rang": 7,
     "equipe": "HAND BIEVRE TERRES FROIDES",
-    "pts": 1,
-    "j": 1,
+    "pts": 2,
+    "j": 2,
     "v": 0,
     "n": 0,
-    "d": 1,
-    "bp": 23,
-    "bc": 34,
-    "diff": -11,
+    "d": 2,
+    "bp": 47,
+    "bc": 73,
+    "diff": -26,
     "forme": [
+     "D",
      "D"
     ],
     "forfait": null
@@ -720,12 +738,48 @@
  },
  "resultats": [
   {
+   "poule": "72",
+   "journee": 3,
+   "date": "2026-11-07T21:00",
+   "dom": "MEYLAN HANDBALL 2",
+   "ext": "HANDBALL CLUB PONTOIS",
+   "sd": 24,
+   "se": 35
+  },
+  {
    "poule": "71",
    "journee": 3,
    "date": "2026-11-07T20:00",
    "dom": "HBC PILAT-2",
    "ext": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
    "sd": 24,
+   "se": 34
+  },
+  {
+   "poule": "72",
+   "journee": 3,
+   "date": "2026-11-07T20:00",
+   "dom": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+   "ext": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
+   "sd": 27,
+   "se": 30
+  },
+  {
+   "poule": "72",
+   "journee": 3,
+   "date": "2026-11-07T20:00",
+   "dom": "USVIZILLE HB",
+   "ext": "HAND BIEVRE TERRES FROIDES",
+   "sd": 39,
+   "se": 24
+  },
+  {
+   "poule": "71",
+   "journee": 3,
+   "date": "2026-11-07T19:00",
+   "dom": "BIEVRE HANDBALL",
+   "ext": "P16M RTE - NORD DROME HANDBALL 2",
+   "sd": 33,
    "se": 34
   },
   {
@@ -826,15 +880,6 @@
    "ext": "HANDBALL CLUB PONTOIS",
    "sd": 23,
    "se": 34
-  },
-  {
-   "poule": "72",
-   "journee": 1,
-   "date": "2026-10-03T19:00",
-   "dom": "USVIZILLE HB",
-   "ext": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
-   "sd": 42,
-   "se": 21
   }
  ],
  "axes": [
