@@ -26,7 +26,7 @@ END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
 UID:hbpsm-2727553@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261003T210000
 DTEND;TZID=Europe/Paris:20261003T223000
 SUMMARY:HBPSM 32-19 Pilat-2 · J1
@@ -40,7 +40,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727558@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261010T203000
 DTEND;TZID=Europe/Paris:20261010T220000
 SUMMARY:Sablons Rhodia 27-37 HBPSM · J2
@@ -54,7 +54,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2734133@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261017T180000
 DTEND;TZID=Europe/Paris:20261017T193000
 SUMMARY:Nord Drome 44-23 HBPSM · Coupe de France\, 1er tour
@@ -69,22 +69,21 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/coupe-de-fr
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727563@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261107T210000
 DTEND;TZID=Europe/Paris:20261107T223000
-SUMMARY:HBPSM – St Donat · J3
-LOCATION:Gymnase La Saulaie\, Avenue De La Saulaie\, 38160 St Marcellin
-DESCRIPTION:2e division P16 AURA\, poule 71\, journée 3\nÀ domicile\nFeu
- ille de match et résultats : https://www.ffhandball.fr/competitions/sais
- on-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196
- 332/rencontre-2727563/\nTableau de bord : https://strus38.github.io/hbpsm
- -dashboard/
+SUMMARY:HBPSM 36-23 St Donat · J3
+DESCRIPTION:2e division P16 AURA\, poule 71\, journée 3\nÀ domicile\nRé
+ sultat : HBPSM 36-23 St Donat\nFeuille de match et résultats : https://w
+ ww.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-
+ masculine-p16-aura-30501/poule-196332/rencontre-2727563/\nTableau de bord
+  : https://strus38.github.io/hbpsm-dashboard/
 URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
  me-division-masculine-p16-aura-30501/poule-196332/rencontre-2727563/
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727568@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261114T180000
 DTEND;TZID=Europe/Paris:20261114T193000
 SUMMARY:Nord Drome 2 – HBPSM · J4
@@ -99,7 +98,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727575@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261206T140000
 DTEND;TZID=Europe/Paris:20261206T153000
 SUMMARY:Tain Vion 2 – HBPSM · J6
@@ -115,7 +114,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727578@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20261212T193000
 DTEND;TZID=Europe/Paris:20261212T210000
 SUMMARY:HBPSM – Bievre · J7
@@ -130,10 +129,11 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727581@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;TZID=Europe/Paris:20270109T180000
 DTEND;TZID=Europe/Paris:20270109T193000
 SUMMARY:Pilat-2 – HBPSM · J8
+LOCATION:Gymnase De Maclas\, Rue De L'ardeche\, 42520 Maclas
 DESCRIPTION:2e division P16 AURA\, poule 71\, journée 8\nÀ l'extérieur\
  nFeuille de match et résultats : https://www.ffhandball.fr/competitions/
  saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule
@@ -144,7 +144,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727586@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;VALUE=DATE:20270116
 DTEND;VALUE=DATE:20270118
 STATUS:TENTATIVE
@@ -160,7 +160,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727591@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;VALUE=DATE:20270123
 DTEND;VALUE=DATE:20270125
 STATUS:TENTATIVE
@@ -176,7 +176,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727596@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;VALUE=DATE:20270130
 DTEND;VALUE=DATE:20270201
 STATUS:TENTATIVE
@@ -192,7 +192,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727603@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;VALUE=DATE:20270306
 DTEND;VALUE=DATE:20270308
 STATUS:TENTATIVE
@@ -208,7 +208,7 @@ URL:https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2e
 END:VEVENT
 BEGIN:VEVENT
 UID:hbpsm-2727606@hbpsm-dashboard
-DTSTAMP:20261029T214644Z
+DTSTAMP:20261109T234720Z
 DTSTART;VALUE=DATE:20270313
 DTEND;VALUE=DATE:20270315
 STATUS:TENTATIVE
