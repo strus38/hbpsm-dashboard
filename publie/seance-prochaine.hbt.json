@@ -1,14 +1,14 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-12T22:42:31.000Z",
+ "exporteLe": "2026-11-13T13:01:49.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-11-12",
+   "id": "tableau-de-bord-2026-11-13",
    "titre": "Préparer P16M RTE - NORD DROME HANDBALL 2",
-   "date": "2026-11-13",
+   "date": "2026-11-17",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
    "objectifSeance": "Avant P16M RTE - NORD DROME HANDBALL 2 (journée 4, sam. 14 nov., à l’extérieur). Aucun écart marqué par rapport aux autres équipes : entretenir les acquis. Adversaire : 28,0 buts marqués et 36,0 encaissés par match ; à surveiller : n° 5 (11,0 buts/match), n° 4 (5,0 buts/match).",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-12T22:42:31.000Z",
-   "modifieLe": "2026-11-12T22:42:31.000Z"
+   "creeLe": "2026-11-13T13:01:49.000Z",
+   "modifieLe": "2026-11-13T13:01:49.000Z"
   }
  }
 }
