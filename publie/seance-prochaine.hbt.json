@@ -1,12 +1,12 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-13T22:55:53.000Z",
+ "exporteLe": "2026-11-14T12:07:01.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-11-13",
+   "id": "tableau-de-bord-2026-11-14",
    "titre": "Préparer P16M RTE - NORD DROME HANDBALL 2",
    "date": "2026-11-17",
    "equipe": "Seniors garçons",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-13T22:55:53.000Z",
-   "modifieLe": "2026-11-13T22:55:53.000Z"
+   "creeLe": "2026-11-14T12:07:01.000Z",
+   "modifieLe": "2026-11-14T12:07:01.000Z"
   }
  }
 }
