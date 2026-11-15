@@ -1,7 +1,7 @@
 {
  "format": "hbpsm-public",
  "v": 1,
- "genere": "2026-11-14 22:25",
+ "genere": "2026-11-15 11:48",
  "club": "HB PAYS DE ST MARCELLIN",
  "club_court": "HBPSM",
  "saison": "2026-2027",
@@ -22,62 +22,81 @@
   "poule": "71",
   "coupe": null,
   "tour": null,
-  "p_victoire": 51,
+  "p_victoire": 53,
   "enjeu": 4,
   "cle": false,
-  "rang_adv": 3
+  "rang_adv": 2
  },
  "adversaire": {
   "equipe": "HB TAIN VION TOURNON 2",
   "poule": "71",
-  "j": 2,
-  "bp_moy": 34.5,
-  "bc_moy": 23.0,
+  "j": 3,
+  "bp_moy": 33.7,
+  "bc_moy": 25.0,
   "forme": [
+   "V",
    "V",
    "V"
   ],
   "mt1_bp": 17.0,
-  "mt2_bp": 17.5,
-  "mt1_bc": 11.0,
-  "mt2_bc": 12.0,
-  "deux_min_moy": 1.0,
+  "mt2_bp": 16.7,
+  "mt1_bc": 11.7,
+  "mt2_bc": 13.3,
+  "deux_min_moy": 1.3,
   "jaunes_moy": 2.0,
   "rouges": 0,
-  "arrets_pct": 36,
+  "arrets_pct": 34,
   "periodes_bp": [
-   7.5,
-   4.5,
-   4.5,
-   6.5,
-   4.0,
-   7.5
+   6.7,
+   4.7,
+   5.3,
+   5.3,
+   4.7,
+   7.0
   ],
   "periodes_bc": [
-   3.5,
-   3.5,
+   3.7,
+   4.7,
+   3.3,
    4.0,
-   4.5,
-   3.0,
-   4.5
+   3.3,
+   6.0
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 29,3) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (33,7 buts/match, médiane 29,2) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
   "buteurs": [
    {
     "num": 69,
-    "buts": 14,
-    "pen": 1,
-    "m": 2,
-    "moy": 7.0,
-    "tirs": 24,
-    "reussite": 58
+    "buts": 25,
+    "pen": 4,
+    "m": 3,
+    "moy": 8.3,
+    "tirs": 40,
+    "reussite": 62
    },
    {
     "num": 24,
+    "buts": 10,
+    "pen": 0,
+    "m": 3,
+    "moy": 3.3,
+    "tirs": 12,
+    "reussite": 83
+   },
+   {
+    "num": 13,
+    "buts": 9,
+    "pen": 0,
+    "m": 3,
+    "moy": 3.0,
+    "tirs": 15,
+    "reussite": 60
+   },
+   {
+    "num": 10,
     "buts": 9,
     "pen": 0,
     "m": 2,
@@ -93,24 +112,6 @@
     "moy": 4.0,
     "tirs": 10,
     "reussite": 80
-   },
-   {
-    "num": 10,
-    "buts": 8,
-    "pen": 0,
-    "m": 1,
-    "moy": 8.0,
-    "tirs": 8,
-    "reussite": 100
-   },
-   {
-    "num": 13,
-    "buts": 7,
-    "pen": 0,
-    "m": 2,
-    "moy": 3.5,
-    "tirs": 11,
-    "reussite": 64
    }
   ],
   "gardiens": [
@@ -123,19 +124,19 @@
     "estime": true
    },
    {
-    "num": 72,
-    "m": 1,
-    "arrets": 6,
-    "pris": 15,
-    "pct": 29,
+    "num": 21,
+    "m": 2,
+    "arrets": 12,
+    "pris": 26,
+    "pct": 32,
     "estime": true
    },
    {
-    "num": 21,
-    "m": 1,
-    "arrets": 4,
-    "pris": 13,
-    "pct": 24,
+    "num": 72,
+    "m": 2,
+    "arrets": 11,
+    "pris": 31,
+    "pct": 26,
     "estime": true
    }
   ],
@@ -179,7 +180,7 @@
    ],
    "continuite": {
     "deja": 12,
-    "sur": 15
+    "sur": 18
    },
    "feuilles": 20,
    "buteurs": [
@@ -202,8 +203,8 @@
   },
   "origines": {
    "saison": "2025-2026",
-   "vus": 15,
-   "retrouves": 12,
+   "vus": 18,
+   "retrouves": 13,
    "equipes": [
     {
      "equipe": "HB TAIN VION TOURNON 2",
@@ -215,7 +216,7 @@
      "equipe": "HB TAIN VION TOURNON 3",
      "niveau": 0,
      "division": "2e division",
-     "joueurs": 1
+     "joueurs": 2
     }
    ]
   },
@@ -258,7 +259,7 @@
    4.8
   ],
   "plan": "rigueur",
-  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 29,3) : priorité à la discipline et à l'impact collectif.",
+  "plan_raison": "Attaque adverse forte (34,5 buts/match, médiane 29,2) : priorité à la discipline et à l'impact collectif.",
   "niveau": null,
   "poule_libelle": null,
   "forfait": null,
@@ -414,10 +415,10 @@
   "proba": 97,
   "proba_tout": 100,
   "rangs": [
-   75.3,
-   21.7,
-   2.5,
-   0.3,
+   75.8,
+   21.3,
+   2.2,
+   0.5,
    0.1,
    0.0,
    0.0
@@ -432,10 +433,10 @@
     "provisoire": false,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": false,
-    "p_victoire": 51,
+    "p_victoire": 53,
     "enjeu": 4,
     "cle": false,
-    "rang_adv": 3
+    "rang_adv": 2
    },
    {
     "journee": 7,
@@ -458,7 +459,7 @@
     "provisoire": false,
     "adversaire": "HBC PILAT-2",
     "domicile": false,
-    "p_victoire": 79,
+    "p_victoire": 78,
     "enjeu": 5,
     "cle": false,
     "rang_adv": 7
@@ -472,7 +473,7 @@
     "adversaire": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
     "domicile": true,
     "p_victoire": 88,
-    "enjeu": 7,
+    "enjeu": 8,
     "cle": true,
     "rang_adv": 4
    },
@@ -485,9 +486,9 @@
     "adversaire": "HBC ST DONAT",
     "domicile": false,
     "p_victoire": 75,
-    "enjeu": 7,
+    "enjeu": 6,
     "cle": false,
-    "rang_adv": 2
+    "rang_adv": 3
    },
    {
     "journee": 11,
@@ -498,7 +499,7 @@
     "adversaire": "P16M RTE - NORD DROME HANDBALL 2",
     "domicile": true,
     "p_victoire": 94,
-    "enjeu": 11,
+    "enjeu": 10,
     "cle": true,
     "rang_adv": 5
    },
@@ -510,10 +511,10 @@
     "provisoire": true,
     "adversaire": "HB TAIN VION TOURNON 2",
     "domicile": true,
-    "p_victoire": 74,
+    "p_victoire": 75,
     "enjeu": 7,
     "cle": false,
-    "rang_adv": 3
+    "rang_adv": 2
    },
    {
     "journee": 14,
@@ -523,7 +524,7 @@
     "provisoire": true,
     "adversaire": "BIEVRE HANDBALL",
     "domicile": false,
-    "p_victoire": 64,
+    "p_victoire": 63,
     "enjeu": 6,
     "cle": false,
     "rang_adv": 6
@@ -553,6 +554,24 @@
    },
    {
     "rang": 2,
+    "equipe": "HB TAIN VION TOURNON 2",
+    "pts": 9,
+    "j": 3,
+    "v": 3,
+    "n": 0,
+    "d": 0,
+    "bp": 101,
+    "bc": 75,
+    "diff": 26,
+    "forme": [
+     "V",
+     "V",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
     "equipe": "HBC ST DONAT",
     "pts": 8,
     "j": 4,
@@ -566,23 +585,6 @@
      "D",
      "V",
      "D",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 3,
-    "equipe": "HB TAIN VION TOURNON 2",
-    "pts": 6,
-    "j": 2,
-    "v": 2,
-    "n": 0,
-    "d": 0,
-    "bp": 69,
-    "bc": 46,
-    "diff": 23,
-    "forme": [
-     "V",
      "V"
     ],
     "forfait": null
@@ -645,15 +647,16 @@
    {
     "rang": 7,
     "equipe": "HBC PILAT-2",
-    "pts": 2,
-    "j": 2,
+    "pts": 3,
+    "j": 3,
     "v": 0,
     "n": 0,
-    "d": 2,
-    "bp": 43,
-    "bc": 66,
-    "diff": -23,
+    "d": 3,
+    "bp": 72,
+    "bc": 98,
+    "diff": -26,
     "forme": [
+     "D",
      "D",
      "D"
     ],
@@ -663,6 +666,44 @@
   "72": [
    {
     "rang": 1,
+    "equipe": "HANDBALL CLUB PONTOIS",
+    "pts": 11,
+    "j": 4,
+    "v": 3,
+    "n": 1,
+    "d": 0,
+    "bp": 131,
+    "bc": 101,
+    "diff": 30,
+    "forme": [
+     "V",
+     "N",
+     "V",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 2,
+    "equipe": "RC DOMENE",
+    "pts": 11,
+    "j": 4,
+    "v": 3,
+    "n": 1,
+    "d": 0,
+    "bp": 125,
+    "bc": 100,
+    "diff": 25,
+    "forme": [
+     "V",
+     "N",
+     "V",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
+    "rang": 3,
     "equipe": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
     "pts": 9,
     "j": 3,
@@ -680,71 +721,18 @@
     "forfait": null
    },
    {
-    "rang": 2,
-    "equipe": "HANDBALL CLUB PONTOIS",
-    "pts": 8,
-    "j": 3,
-    "v": 2,
-    "n": 1,
-    "d": 0,
-    "bp": 98,
-    "bc": 76,
-    "diff": 22,
-    "forme": [
-     "V",
-     "N",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 3,
-    "equipe": "RC DOMENE",
-    "pts": 8,
-    "j": 3,
-    "v": 2,
-    "n": 1,
-    "d": 0,
-    "bp": 89,
-    "bc": 84,
-    "diff": 5,
-    "forme": [
-     "V",
-     "N",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
     "rang": 4,
     "equipe": "USVIZILLE HB",
-    "pts": 7,
-    "j": 3,
+    "pts": 8,
+    "j": 4,
     "v": 2,
     "n": 0,
-    "d": 1,
-    "bp": 101,
-    "bc": 74,
-    "diff": 27,
+    "d": 2,
+    "bp": 117,
+    "bc": 110,
+    "diff": 7,
     "forme": [
      "V",
-     "D",
-     "V"
-    ],
-    "forfait": null
-   },
-   {
-    "rang": 5,
-    "equipe": "MEYLAN HANDBALL 2",
-    "pts": 5,
-    "j": 3,
-    "v": 1,
-    "n": 0,
-    "d": 2,
-    "bp": 93,
-    "bc": 96,
-    "diff": -3,
-    "forme": [
      "D",
      "V",
      "D"
@@ -752,17 +740,37 @@
     "forfait": null
    },
    {
+    "rang": 5,
+    "equipe": "MEYLAN HANDBALL 2",
+    "pts": 8,
+    "j": 4,
+    "v": 2,
+    "n": 0,
+    "d": 2,
+    "bp": 125,
+    "bc": 119,
+    "diff": 6,
+    "forme": [
+     "D",
+     "V",
+     "D",
+     "V"
+    ],
+    "forfait": null
+   },
+   {
     "rang": 6,
     "equipe": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
-    "pts": 3,
-    "j": 3,
+    "pts": 4,
+    "j": 4,
     "v": 0,
     "n": 0,
-    "d": 3,
-    "bp": 78,
-    "bc": 113,
-    "diff": -35,
+    "d": 4,
+    "bp": 103,
+    "bc": 146,
+    "diff": -43,
     "forme": [
+     "D",
      "D",
      "D",
      "D"
@@ -790,15 +798,16 @@
    {
     "rang": 8,
     "equipe": "ISLE D'ABEAU SG3",
-    "pts": 1,
-    "j": 1,
+    "pts": 2,
+    "j": 2,
     "v": 0,
     "n": 0,
-    "d": 1,
-    "bp": 27,
-    "bc": 29,
-    "diff": -2,
+    "d": 2,
+    "bp": 50,
+    "bc": 61,
+    "diff": -11,
     "forme": [
+     "D",
      "D"
     ],
     "forfait": null
@@ -806,6 +815,24 @@
   ]
  },
  "resultats": [
+  {
+   "poule": "72",
+   "journee": 4,
+   "date": "2026-11-14T21:00",
+   "dom": "MEYLAN HANDBALL 2",
+   "ext": "ISLE D'ABEAU SG3",
+   "sd": 32,
+   "se": 23
+  },
+  {
+   "poule": "72",
+   "journee": 4,
+   "date": "2026-11-14T21:00",
+   "dom": "RC DOMENE",
+   "ext": "USVIZILLE HB",
+   "sd": 36,
+   "se": 16
+  },
   {
    "poule": "72",
    "journee": 4,
@@ -825,6 +852,15 @@
    "se": 27
   },
   {
+   "poule": "72",
+   "journee": 4,
+   "date": "2026-11-14T19:00",
+   "dom": "HANDBALL CLUB PONTOIS",
+   "ext": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
+   "sd": 33,
+   "se": 25
+  },
+  {
    "poule": "71",
    "journee": 4,
    "date": "2026-11-14T18:00",
@@ -832,6 +868,15 @@
    "ext": "HB PAYS DE ST MARCELLIN",
    "sd": 32,
    "se": 33
+  },
+  {
+   "poule": "71",
+   "journee": 4,
+   "date": "2026-11-14T17:00",
+   "dom": "HB TAIN VION TOURNON 2",
+   "ext": "HBC PILAT-2",
+   "sd": 32,
+   "se": 29
   },
   {
    "poule": "72",
@@ -913,42 +958,6 @@
    "ext": "BIEVRE HANDBALL",
    "sd": 22,
    "se": 21
-  },
-  {
-   "poule": "71",
-   "journee": 2,
-   "date": "2026-10-10T20:30",
-   "dom": "P16M DIV- SABLONS RHODIA SAINT MAURICE",
-   "ext": "HB PAYS DE ST MARCELLIN",
-   "sd": 27,
-   "se": 37
-  },
-  {
-   "poule": "72",
-   "journee": 2,
-   "date": "2026-10-10T19:30",
-   "dom": "P16M RTE - ENTENTE CHIRENS-COUBLEVIE",
-   "ext": "MEYLAN HANDBALL 2",
-   "sd": 30,
-   "se": 41
-  },
-  {
-   "poule": "71",
-   "journee": 2,
-   "date": "2026-10-10T18:00",
-   "dom": "P16M RTE - NORD DROME HANDBALL 2",
-   "ext": "HB TAIN VION TOURNON 2",
-   "sd": 22,
-   "se": 39
-  },
-  {
-   "poule": "72",
-   "journee": 2,
-   "date": "2026-10-10T16:30",
-   "dom": "P16M DIV - DRAC ISERE 38 HANDBALL- 1",
-   "ext": "USVIZILLE HB",
-   "sd": 29,
-   "se": 20
   }
  ],
  "axes": [
