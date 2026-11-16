@@ -673,7 +673,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "fonctions": {"caisse": false, "presences": false, "choix": false, "convocation": false}, "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "a2f82dcd2d84", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "fonctions": {"caisse": false, "presences": false, "choix": false, "convocation": false}, "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "d19cb7bac49d", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -2495,9 +2495,39 @@ function bancScope(x){
     + '<th>Victoire annoncée</th><th>Matchs</th><th>En moyenne</th><th>Arrivé</th></tr></thead><tbody>'
     + x.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
     + '</tbody></table></div></details>';
-  if((x.par_matchs || []).length) h += '<p class="small muted">Selon les matchs déjà joués par la moins vue des deux équipes (Brier, notre modèle / Elo) : '
-    + x.par_matchs.map(p => esc(p.matchs)+' ('+p.n+') '+brierTxt(p.modele)+' / '+brierTxt(p.elo)).join(" ; ")+'.</p>';
+  if((x.par_matchs || []).length) h += '<p class="small muted">Selon les matchs déjà joués par la moins vue des deux équipes (Brier, notre modèle / Elo'
+    + (x.par_matchs.some(p => p.z2 != null) ? ', z²' : '')+') : '
+    + x.par_matchs.map(p => esc(p.matchs)+' ('+p.n+') '+brierTxt(p.modele)+' / '+brierTxt(p.elo)+(p.z2 != null ? ', z² '+fr(p.z2) : '')).join(" ; ")+'.</p>';
   return h;
+}
+// Les variantes (demande de l'auteur, 16/11/2026 : le modèle est trop sûr de lui) : d'autres réglages de l'incertitude sur la
+// force des équipes et du hasard du match, rejoués sur les mêmes matchs ; l'écart de log-loss face au réglage en service
+// vient avec sa marge à 95 %. Un réglage ne change qu'au-delà de la marge, sans dégrader cette saison ni les chances.
+const pctTxt = v => Math.round(100 * v)+" %";
+const varLabel = x => (x.forme === "racine" ? "selon le départ (±"+pctTxt(x.base / Math.sqrt(3))+" sans saison passée)" : "±"+pctTxt(x.base)+" au départ")
+  + ", hasard ×"+fr(x.bruit);
+const varShort = x => (x.forme === "racine" ? "dép. " : "")+"±"+pctTxt(x.forme === "racine" ? x.base / Math.sqrt(3) : x.base)+" · ×"+fr(x.bruit);
+function bancVariantes(B){
+  const L = B.variantes || [];
+  if(!L.length) return "";
+  const cur = L.find(v => v.nom === "en service"), best = L[0], t = best.toutes || {};
+  const ok = best !== cur && t.ecart != null && t.ecart + t.marge < 0
+    && !(best.saison && best.saison.ecart != null && best.saison.ecart - best.saison.marge > 0)
+    && !(best.chances && cur.chances && best.chances.logloss > cur.chances.logloss + 0.005);
+  const verdict = best === cur ? "Le réglage en service reste le meilleur."
+    : ok ? "« "+varLabel(best)+" » fait mieux que le réglage en service, au-delà de la marge d\'erreur, sans dégrader cette saison ni les chances : à adopter."
+    : "La meilleure variante, « "+varLabel(best)+" », fait mieux de "+fr(Math.abs(t.ecart).toFixed(3))+" en log-loss, mais dans la marge d\'erreur (± "+fr(t.marge.toFixed(3))+") : pas de quoi changer encore.";
+  const shown = L.slice(0, 6).concat(L.slice(0, 6).includes(cur) ? [] : [cur]);
+  const ll = v => v.toutes ? brierTxt(v.toutes.logloss)+(v.toutes.ecart != null ? ' <span class="muted tl">('+(v.toutes.ecart > 0 ? "+" : "−")+fr(Math.abs(v.toutes.ecart).toFixed(3))+' ± '+fr(v.toutes.marge.toFixed(3))+')</span>' : '') : "–";
+  return '<h3 class="banc-h">Les réglages essayés</h3><p class="small">'+esc(verdict)+' Log-loss : plus bas, mieux c\'est (entre parenthèses, l\'écart avec le réglage en service et sa marge) ; '
+    + 'z² : 1 si le score varie comme annoncé.</p><div class="scroll"><table class="banc"><thead><tr><th><span class="tl">Incertitude sur la force, hasard du match</span><span class="ts">Réglage</span></th><th>Log-loss</th><th>z²</th>'
+    + '<th class="opt">Nuls annoncés</th><th><span class="tl">Chances (log-loss)</span><span class="ts">Chances</span></th></tr></thead><tbody>'
+    + shown.map(v => '<tr'+(v === cur ? ' class="cur"' : '')+'><td><span class="tl">'+esc(varLabel(v))+(v === cur ? ' <b>(en service)</b>' : '')+'</span>'
+      + '<span class="ts">'+esc(varShort(v))+(v === cur ? ' <b>*</b>' : '')+'</span></td><td class="num">'+ll(v)+'</td>'
+      + '<td class="num">'+(v.toutes ? fr(v.toutes.z2) : "–")+'</td><td class="num opt">'+(v.toutes ? fr(v.toutes.nuls_annonces) : "–")+'</td>'
+      + '<td class="num">'+(v.chances ? brierTxt(v.chances.logloss) : "–")+'</td></tr>').join("")+'</tbody></table></div>'
+    + '<p class="small muted"><span class="ts">* en service ; « dép. » : selon le départ, valeur sans saison passée. </span>'+L.length+' réglages essayés sur '+((cur.toutes || {}).n || 0)+' matchs, '+(cur.toutes ? (B.toutes || {}).nuls : 0)+' nuls observés. La meilleure est choisie sur ces mêmes matchs : '
+    + 'son avance est un peu flattée, à confirmer par la suite de la saison.</p>';
 }
 function bancBlock(){
   const B = D.banc;
@@ -2519,7 +2549,7 @@ function bancBlock(){
       + c.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
       + '</tbody></table></div></details>' : '');
   else h += '<p class="small muted">Les chances de l\'objectif se rejouent sur les poules terminées des saisons passées : aucune lue pour l\'instant.</p>';
-  return h + '<p class="small muted">Avantage du terrain '+fr(B.terrain[0])+' / '+fr(B.terrain[1])+', incertitude de départ sur la force d\'une équipe ±'+Math.round(100 * B.incertitude)+' %.</p></div>';
+  return h + bancVariantes(B) + '<p class="small muted">Avantage du terrain '+fr(B.terrain[0])+' / '+fr(B.terrain[1])+', incertitude de départ sur la force d\'une équipe ±'+Math.round(100 * B.incertitude)+' %.</p></div>';
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";
