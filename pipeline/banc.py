@@ -17,9 +17,11 @@ face), log-loss (punit les certitudes démenties), vainqueur trouvé, erreur moy
 type annoncé du score face à celui observé), nuls annoncés et observés, tranches (quand on annonce 60 à 80 %,
 combien de fois c'est arrivé).
 
-Les variantes (demande de l'auteur, 16/11/2026, après la première lecture du banc : le modèle est trop sûr de lui) :
-les mêmes matchs rejoués avec d'autres réglages de l'incertitude sur la force des équipes (au départ, et sa forme :
-analyze.uncertainty) et du hasard du match (analyze.play_match, BRUIT), face au réglage en service. L'écart de log-loss
+Les variantes (demandes de l'auteur, 16/11/2026) : les mêmes matchs rejoués avec d'autres réglages, face au réglage
+en service. D'abord l'incertitude sur la force des équipes et le hasard du match (analyze.uncertainty, BRUIT) : aucun
+n'a battu le réglage en service sur les vraies données (le score varie plus qu'annoncé, mais par de larges victoires de
+favoris, pas par des surprises). Puis, à la place : le poids du point de départ des équipes (analyze.forces, PESEE) et
+l'étirement de l'écart attendu (analyze.play_match, ETIREMENT). L'écart de log-loss
 de chaque variante vient avec sa marge à 95 % (match par match, sur les mêmes matchs) : un réglage ne change que si une
 variante fait mieux au-delà de la marge, sans dégrader cette saison ni les chances de l'objectif.
 
@@ -36,7 +38,7 @@ from statistics import NormalDist
 
 from . import analyze as an
 
-V = 2
+V = 3
 ELO_DEPART, ELO_K, ELO_DOM, ELO_REPRISE = 1500, 30, 40, 0.5
 NUL_DEPART = 0.04          # part des nuls avant d'en avoir vu (handball : rares)
 SIMS = 300                 # saisons simulées par journée rejouée (chances de l'objectif)
@@ -44,36 +46,40 @@ SEED = 38160
 TRANCHES = (0.2, 0.4, 0.6, 0.8)
 PAR_MATCHS = ((0, 2, "0 à 2"), (3, 5, "3 à 5"), (6, 99, "6 et plus"))   # matchs déjà joués par la moins vue des deux
 PHI = NormalDist().cdf
-# les variantes : incertitude de départ et sa forme (« actuelle » : la même au départ quel que soit le point de départ ;
-# « racine » : plus étroite quand on en sait plus), puis le hasard du match
-BASES = ((0.08, "actuelle"), (0.12, "actuelle"), (0.16, "actuelle"), (0.20, "racine"), (0.30, "racine"))
-BRUITS = (1.0, 1.15, 1.3)
+# les variantes (2e grille, 16/11/2026) : le poids du point de départ des équipes, en matchs (moins : les forces suivent
+# plus vite les résultats), et l'étirement de l'écart attendu (plus : de plus larges victoires quand les forces diffèrent)
+PESEES = (3, 2, 1.5, 1)
+ETIREMENTS = (0.0, 0.25, 0.5, 0.75)
 CHANCES_VARIANTES = 3      # les chances de l'objectif : rejouées pour le réglage en service et les 3 meilleures variantes
 
 
 def variantes():
-    """Le réglage en service d'abord, puis la grille des autres (sans le répéter)."""
-    cur = (an.UNSURE, an.INCERTITUDE, an.BRUIT)
-    out = [dict(nom="en service", base=cur[0], forme=cur[1], bruit=cur[2])]
-    for base, forme in BASES:
-        for b in BRUITS:
-            if (base, forme, b) != cur:
-                out.append(dict(nom=f"{forme} {base:g} · hasard ×{b:g}", base=base, forme=forme, bruit=b))
+    """Le réglage en service d'abord, puis la grille des autres (sans le répéter) ; l'incertitude et le hasard du match
+    restent ceux en service."""
+    cur = dict(base=an.UNSURE, forme=an.INCERTITUDE, bruit=an.BRUIT, pesee=an.PESEE, etirement=an.ETIREMENT)
+    out = [dict(cur, nom="en service")]
+    for k in PESEES:
+        for e in ETIREMENTS:
+            if (k, e) != (cur["pesee"], cur["etirement"]):
+                out.append(dict(cur, nom=f"départ {k:g} · étirement {e:g}", pesee=k, etirement=e))
     return out
 
 
-def match_law(avg, att, dfn, unsure, home, away, dom_f, ext_f, bruit=None):
+def match_law(avg, att, dfn, unsure, home, away, dom_f, ext_f, bruit=None, etirement=None):
     """La loi de l'écart (domicile − extérieur) que donne la simulation : forces tirées autour de leur valeur
     (analyze.draw_strengths : l'attaque de l'un et la défense de l'autre, l'une sans l'autre), buts de chaque équipe
-    selon une loi normale d'écart type BRUIT × √(moyenne), arrondis (analyze.play_match). Approchée par une loi
-    normale : (écart des forces centrales, écart moyen, écart type, P(victoire de l'équipe qui reçoit), P(nul))."""
+    selon une loi normale d'écart type BRUIT × √(moyenne), arrondis, l'écart attendu tiré × N(1, ETIREMENT) (analyze.
+    play_match ; var(λD) = var D + e² (var D + (E D)²)). Approchée par une loi normale : (écart des forces centrales,
+    écart moyen, écart type, P(victoire de l'équipe qui reçoit), P(nul))."""
     b2 = (an.BRUIT if bruit is None else bruit) ** 2
+    e2 = (an.ETIREMENT if etirement is None else etirement) ** 2
     mh = avg * att[home] * dfn[away] * dom_f
     ma = avg * att[away] * dfn[home] * ext_f
     s2 = unsure[home] ** 2 + unsure[away] ** 2
     grow, spread = math.exp(s2 / 2), math.exp(2 * s2) - math.exp(s2)
     mu = (mh - ma) * grow
-    sd = math.sqrt(b2 * (mh + ma) * grow + (mh * mh + ma * ma) * spread + 2 / 12)
+    strength = (mh * mh + ma * ma) * spread
+    sd = math.sqrt(b2 * (mh + ma) * grow + strength * (1 + e2) + e2 * mu * mu + 2 / 12)
     lo, hi = PHI((-0.5 - mu) / sd), PHI((0.5 - mu) / sd)
     return mh - ma, mu, sd, 1 - hi, hi - lo
 
@@ -115,14 +121,16 @@ def replay(groups, priors_of, terrain, elo_start=None, seen=None, variants=None)
         for day in sorted(days):
             if before:   # la première journée : aucun match de la poule encore, pas de pronostic
                 table = {r["equipe"]: r for r in an.standings(before, teams)}
-                avg, att, dfn, k_of = an.forces(table, priors)
-                unsures = [an.uncertainty(table, k_of, x["base"], x["forme"]) for x in variants]
+                fk = {k: an.forces(table, priors, k) for k in {x["pesee"] for x in variants}}
+                avg, att, dfn, k_of = fk[variants[0]["pesee"]]
+                unsures = [an.uncertainty(table, fk[x["pesee"]][3], x["base"], x["forme"]) for x in variants]
                 p_dom = seen["dom"] / seen["n"] if seen["n"] else 0.5
                 nul = seen["nul"] / seen["n"] if seen["n"] else NUL_DEPART
                 marge_dom = seen["marge"] / seen["n"] if seen["n"] else 0.0
                 for m in days[day]:
                     h, a, gh, ga = names(m)
-                    laws = [match_law(avg, att, dfn, u, h, a, dom_f, ext_f, x["bruit"]) for u, x in zip(unsures, variants)]
+                    laws = [match_law(*fk[x["pesee"]][:3], u, h, a, dom_f, ext_f, x["bruit"], x["etirement"])
+                            for u, x in zip(unsures, variants)]
                     ecart, mu, sd, pw, pd = laws[0]
                     e = 1 / (1 + 10 ** (-(elo[h] + ELO_DOM - elo[a]) / 400))
                     rows.append(dict(cle=key, y=gh > ga, nul=gh == ga, marge=gh - ga, p=pw, pnul=pd, ecart=ecart, mu=mu,
@@ -169,7 +177,7 @@ def season_replay(groups, terrain, target, sims=SIMS, seed=SEED, variant=None):
             if not played or not rest:
                 continue
             table = {r["equipe"]: r for r in an.standings(played, teams)}
-            avg, att0, dfn0, k_of = an.forces(table, None)
+            avg, att0, dfn0, k_of = an.forces(table, None, x["pesee"])
             unsure = an.uncertainty(table, k_of, x["base"], x["forme"])
             att, dfn, count = dict(att0), dict(dfn0), Counter()
             already = [names(m) for m in played]
@@ -178,7 +186,7 @@ def season_replay(groups, terrain, target, sims=SIMS, seed=SEED, variant=None):
                 sim = list(already)
                 for m in rest:
                     h, a = m["home"]["name"], m["away"]["name"]
-                    sim.append((h, a) + an.play_match(rng, avg, att, dfn, h, a, dom_f, ext_f, x["bruit"]))
+                    sim.append((h, a) + an.play_match(rng, avg, att, dfn, h, a, dom_f, ext_f, x["bruit"], x["etirement"]))
                 draw = {t: rng.random() for t in teams}
                 for t in an.rank_teams(teams, sim, draw.get)[:target]:
                     count[t] += 1
@@ -298,7 +306,7 @@ def evaluate(seasons, current, priors, terrain, target):
             chances = sc
         table[i]["chances"] = sc and dict(n=sc["n"], brier=sc["brier"], logloss=sc["logloss"])
     return dict(v=V, cible=target, terrain=[round(terrain[0], 3), round(terrain[1], 3)], incertitude=an.UNSURE,
-                reglage=dict(base=an.UNSURE, forme=an.INCERTITUDE, bruit=an.BRUIT),
+                reglage=dict(base=an.UNSURE, forme=an.INCERTITUDE, bruit=an.BRUIT, pesee=an.PESEE, etirement=an.ETIREMENT),
                 saisons=sorted({k[0] for k, _ in past if k[0]}), poules=len(past),
                 passees=match_scores(rows_past), saison=match_scores(rows_now),
                 toutes=match_scores(rows_past + rows_now), chances=chances,

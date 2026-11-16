@@ -124,6 +124,17 @@ larges font un peu mieux (log-loss 0,302 à 0,304 contre 0,310 ; Brier 0,106 con
 poules, sans marge) : pas de quoi changer. Pistes proposées à l'auteur : forces moins ramenées vers la moyenne (k de
 `forces`) et dispersion qui grandit avec l'écart des forces (larges victoires) ; puis enjeu des matchs clés,
 calendrier ; puis les notes, avec l'auteur.
+Deuxième grille (demande de l'auteur, 16/11/2026 : « lance les deux réglages ») : `analyze.PESEE` (3 : matchs
+« moyens » du point de départ d'une équipe, k = PESEE + 2 × continuité dans `forces(pesee=)`) et `analyze.ETIREMENT`
+(0 : l'écart attendu d'un match est tiré × N(1, ETIREMENT), le total gardé, `play_match(etirement=)` ; la loi sans
+tirage, `banc.match_law(etirement=)`, ajoute ETIREMENT² × écart² à la variance, vérifiée contre la simulation),
+valeurs en service inchangées (sortie d'`outlook` identique, vérifié). `banc.V` = 3 ; `banc.variantes()` : le réglage
+en service puis `PESEES` (3, 2, 1,5, 1) × `ETIREMENTS` (0, 0,25, 0,5, 0,75), 16 réglages ; la grille d'avant
+(incertitude × hasard) n'est plus rejouée (aucun gain, ci-dessus), `INCERTITUDE` et `BRUIT` restent réglables. Page :
+« point de départ N matchs, écart étiré ±X % » (téléphone : « dép. N · ét. X % »), base et hasard ajoutés quand ils
+diffèrent du réglage en service. Sur données inventées (écart étiré de 60 % dans le monde inventé) : les variantes
+étirées à 0,5-0,75 passent devant et z² retombe d'environ 1,8 à 1,2 ; l'effet du point de départ y est faible. À lire
+sur la collecte qui suit la fusion, avec la même règle.
 
 ## État
 

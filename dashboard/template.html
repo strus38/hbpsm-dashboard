@@ -2504,9 +2504,17 @@ function bancScope(x){
 // force des équipes et du hasard du match, rejoués sur les mêmes matchs ; l'écart de log-loss face au réglage en service
 // vient avec sa marge à 95 %. Un réglage ne change qu'au-delà de la marge, sans dégrader cette saison ni les chances.
 const pctTxt = v => Math.round(100 * v)+" %";
-const varLabel = x => (x.forme === "racine" ? "selon le départ (±"+pctTxt(x.base / Math.sqrt(3))+" sans saison passée)" : "±"+pctTxt(x.base)+" au départ")
-  + ", hasard ×"+fr(x.bruit);
-const varShort = x => (x.forme === "racine" ? "dép. " : "")+"±"+pctTxt(x.forme === "racine" ? x.base / Math.sqrt(3) : x.base)+" · ×"+fr(x.bruit);
+// un réglage : ce qui varie dans la grille du banc (poids du point de départ, étirement de l'écart), puis ce qui diffère du
+// réglage en service (incertitude sur la force, hasard du match ; 1re grille)
+const varParts = (x, short) => { const R = (D.banc || {}).reglage || {}, out = [];
+  if(x.pesee != null) out.push(short ? "dép. "+fr(x.pesee) : "point de départ "+fr(x.pesee)+" match"+(x.pesee > 1 ? "s" : ""));
+  if(x.etirement != null) out.push(short ? "ét. "+pctTxt(x.etirement) : "écart étiré ±"+pctTxt(x.etirement));
+  if(x.base != null && (x.base !== R.base || x.forme !== R.forme || x.pesee == null))
+    out.push(x.forme === "racine" ? (short ? "inc. dép. " : "incertitude selon le départ ±")+pctTxt(x.base / Math.sqrt(3)) : (short ? "inc. " : "incertitude ±")+pctTxt(x.base));
+  if(x.bruit != null && (x.bruit !== R.bruit || x.pesee == null)) out.push((short ? "×" : "hasard ×")+fr(x.bruit));
+  return out.join(short ? " · " : ", "); };
+const varLabel = x => varParts(x, false);
+const varShort = x => varParts(x, true);
 function bancVariantes(B){
   const L = B.variantes || [];
   if(!L.length) return "";
@@ -2520,13 +2528,15 @@ function bancVariantes(B){
   const shown = L.slice(0, 6).concat(L.slice(0, 6).includes(cur) ? [] : [cur]);
   const ll = v => v.toutes ? brierTxt(v.toutes.logloss)+(v.toutes.ecart != null ? ' <span class="muted tl">('+(v.toutes.ecart > 0 ? "+" : "−")+fr(Math.abs(v.toutes.ecart).toFixed(3))+' ± '+fr(v.toutes.marge.toFixed(3))+')</span>' : '') : "–";
   return '<h3 class="banc-h">Les réglages essayés</h3><p class="small">'+esc(verdict)+' Log-loss : plus bas, mieux c\'est (entre parenthèses, l\'écart avec le réglage en service et sa marge) ; '
-    + 'z² : 1 si le score varie comme annoncé.</p><div class="scroll"><table class="banc"><thead><tr><th><span class="tl">Incertitude sur la force, hasard du match</span><span class="ts">Réglage</span></th><th>Log-loss</th><th>z²</th>'
+    + 'z² : 1 si le score varie comme annoncé. Point de départ : combien de matchs « moyens » pèse le départ d\'une équipe (moins : '
+    + 'ses forces suivent plus vite ses résultats) ; écart étiré : l\'écart attendu varie d\'un match à l\'autre, de plus larges victoires quand '
+    + 'les forces diffèrent.</p><div class="scroll"><table class="banc"><thead><tr><th><span class="tl">Réglage</span><span class="ts">Réglage</span></th><th>Log-loss</th><th>z²</th>'
     + '<th class="opt">Nuls annoncés</th><th><span class="tl">Chances (log-loss)</span><span class="ts">Chances</span></th></tr></thead><tbody>'
     + shown.map(v => '<tr'+(v === cur ? ' class="cur"' : '')+'><td><span class="tl">'+esc(varLabel(v))+(v === cur ? ' <b>(en service)</b>' : '')+'</span>'
       + '<span class="ts">'+esc(varShort(v))+(v === cur ? ' <b>*</b>' : '')+'</span></td><td class="num">'+ll(v)+'</td>'
       + '<td class="num">'+(v.toutes ? fr(v.toutes.z2) : "–")+'</td><td class="num opt">'+(v.toutes ? fr(v.toutes.nuls_annonces) : "–")+'</td>'
       + '<td class="num">'+(v.chances ? brierTxt(v.chances.logloss) : "–")+'</td></tr>').join("")+'</tbody></table></div>'
-    + '<p class="small muted"><span class="ts">* en service ; « dép. » : selon le départ, valeur sans saison passée. </span>'+L.length+' réglages essayés sur '+((cur.toutes || {}).n || 0)+' matchs, '+(cur.toutes ? (B.toutes || {}).nuls : 0)+' nuls observés. La meilleure est choisie sur ces mêmes matchs : '
+    + '<p class="small muted"><span class="ts">* en service ; « dép. » : poids du point de départ, en matchs ; « ét. » : écart étiré. </span>'+L.length+' réglages essayés sur '+((cur.toutes || {}).n || 0)+' matchs, '+(cur.toutes ? (B.toutes || {}).nuls : 0)+' nuls observés. La meilleure est choisie sur ces mêmes matchs : '
     + 'son avance est un peu flattée, à confirmer par la suite de la saison.</p>';
 }
 function bancBlock(){
