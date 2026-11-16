@@ -673,7 +673,7 @@ td.proj{color:var(--track);font-variant-numeric:tabular-nums;white-space:nowrap}
 <div id="plus-menu" class="plus-menu" hidden></div>
 <main id="app"></main>
 <script id="data" type="application/json">null</script>
-<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/choix.enc", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "82e0ace64b1d", "club": "HBPSM", "verif": 600}</script>
+<script id="cfg" type="application/json">{"src": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/hbpsm.enc", "manifeste": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/manifeste.json", "choix": "", "caisse": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/caisse.enc", "fonctions": {"caisse": false, "presences": false, "choix": false, "convocation": false}, "sante": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/sante.json", "ics": "https://raw.githubusercontent.com/strus38/hbpsm-dashboard/main/publie/matchs.ics", "depot": "strus38/hbpsm-dashboard", "branche": "main", "cn": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/propositions.enc", "cn_depot": "strus38/hbpsm-cn", "cn_branche": "main", "cn_workflow": "proposer.yml", "presences": "https://raw.githubusercontent.com/strus38/hbpsm-cn/main/presences.enc", "iterations": 600000, "versions": "https://github.com/strus38/hbpsm-dashboard/releases/latest", "app": "a2f82dcd2d84", "club": "HBPSM", "verif": 600}</script>
 <script>
 "use strict";
 let D = JSON.parse(document.getElementById("data").textContent);   // null dans la page publiée
@@ -711,6 +711,12 @@ normRule();
 // se consulte sans rien changer. Ce n'est pas un verrou : rien de ce qu'on modifie ne quitte ce
 // navigateur, ce mode évite seulement qu'un joueur croie à une feuille qu'il aurait retouchée.
 const COACH = location.hash.slice(1).split("&").includes("entraineur");
+// Parties coupées (config.yml, « fonctions » ; demande de l'auteur, 16/11/2026 : simplifier) : caisse noire, présences,
+// choix de l'entraîneur et convocation se masquent, leur code reste. Sans ses choix, l'entraîneur ne valide ni ne publie
+// rien et ne retouche plus la feuille : la page est la même pour tous, la proposition du tableau de bord ; les joueurs
+// retenus se lisent sur la feuille de match. Le mode entraîneur garde l'onglet d'ouverture et les écarts (seesAll).
+const ON = k => ((CFG && CFG.fonctions) || {})[k] !== false;
+const EDIT = COACH && ON("choix");   // l'entraîneur modifie la planification et publie ses choix
 // L'onglet d'ouverture : la planification pour l'entraîneur (demande de l'auteur, 05/10/2026), « Ma semaine » pour
 // un joueur qui a dit qui il est sur cet appareil (08/10/2026) ; un lien vers un onglet l'ouvre (…/#caisse, #saison,
 // #entraineur&convoc…) ; au rechargement automatique après une mise à jour de la page, on revient où l'on était.
@@ -721,13 +727,16 @@ const HASH_TAB = location.hash.slice(1).split("&").map(x => TAB_ALIAS[x] || x).f
 if(HASH_TAB) S.tab = HASH_TAB;
 try { const back = sessionStorage.getItem("hbpsm:onglet"); if(back){ S.tab = back; sessionStorage.removeItem("hbpsm:onglet"); } } catch (e) {}
 // téléphone : quatre onglets selon qui regarde, les autres sous « Plus » (demande de l'auteur, 08/10/2026) ;
-// « Présences » pour celui qui les tient seulement, caché à tous les autres, l'entraîneur compris (09/10/2026)
-const primaryTabs = () => COACH ? ["planif", "semaine", "convoc", "joueurs"] : GESTION ? ["moi", "presences", "semaine", "caisse"] : ["moi", "semaine", "saison", "caisse"];
+// « Présences » pour celui qui les tient seulement, caché à tous les autres, l'entraîneur compris (09/10/2026) ;
+// caisse noire et convocation cachées quand elles sont coupées (16/11/2026), l'onglet suivant prend leur place
+const tabOn = t => t === "caisse" ? ON("caisse") : t === "convoc" ? ON("convocation") : t === "presences" ? GESTION : true;
+const primaryTabs = () => (COACH ? ["planif", "semaine", "convoc", "joueurs", "saison"] : GESTION ? ["moi", "presences", "semaine", "caisse", "saison"]
+  : ["moi", "semaine", "saison", "caisse", "joueurs"]).filter(tabOn).slice(0, 4);
 function applyTabs(){
   const P = primaryTabs();
   document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => {
     const i = P.indexOf(b.dataset.tab);
-    b.hidden = b.dataset.tab === "presences" && !GESTION;
+    b.hidden = !tabOn(b.dataset.tab);
     b.classList.toggle("sec", i < 0 && !b.hidden);
     if(i >= 0) b.style.setProperty("--o", i); else b.style.removeProperty("--o");
   });
@@ -752,9 +761,11 @@ function withJumps(h){
   const i = h.indexOf("</header>");
   return i < 0 ? bar + h : h.slice(0, i + 9) + bar + h.slice(i + 9);
 }
-document.body.classList.toggle("lecture", !COACH);
+document.body.classList.toggle("lecture", !EDIT);
 document.getElementById("club-mode").textContent = COACH ? "mode entraîneur" : "consultation";
-const roNote = () => COACH ? "" : '<p class="note lecture-only">Consultation. Tant que l\'entraîneur n\'a pas validé un match, la feuille affichée '
+const roNote = () => EDIT ? "" : !ON("choix") ? '<p class="note lecture-only">La feuille affichée est la <b>proposition</b> du tableau de bord, '
+  + 'la même pour tous. Les joueurs retenus par l\'entraîneur se lisent sur la feuille de match, une fois le match joué.</p>'
+  : '<p class="note lecture-only">Consultation. Tant que l\'entraîneur n\'a pas validé un match, la feuille affichée '
   + 'n\'est qu\'une <b>suggestion</b> du tableau de bord ; validée, elle devient <b>le choix de l\'entraîneur</b>. Seul l\'entraîneur la modifie, depuis HANDBALL-training.</p>';
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -764,7 +775,7 @@ const isUs = t => t === D.meta.club;
 // saisi dans ce navigateur (en mode entraîneur un autre jour) ne la change ; la même pour tous.
 const NEUTRE = {postes:{}, absents:{}, depannage:{}, dm:{}, pin:{}, regle:1};
 let NEUTRAL = null;   // le match dont on calcule la proposition du tableau de bord (suggestionOf) : rien d'ici n'y entre
-const SP = () => COACH && NEUTRAL === null ? S : NEUTRE;
+const SP = () => EDIT && NEUTRAL === null ? S : NEUTRE;
 const poste = p => (SP().postes[p.cle] ?? p.poste ?? "");
 const isGK = p => poste(p) ? poste(p).split("/").includes("GB") : p.gardien;
 const dispo = p => SP().absents[p.cle] === undefined ? p.disponible !== false : !SP().absents[p.cle];
@@ -846,7 +857,7 @@ const seasonLine = (p, x) => x.saison+" : "+x.m+" match"+(x.m>1?"s":"")+", "
 const passeLine = p => [p.passe, p.avant, p.jeunes, p.ancienne].filter(Boolean).map(x => seasonLine(p, x)).join(" · ");
 // blessé : indisponible à partir d'un match (de), jusqu'à son retour (a, exclu) ; publié avec les feuilles
 // validées, la même chose pour tous ; l'entraîneur voit en plus ce qu'il n'a pas encore publié (null : effacé)
-const blesses = () => { const o = Object.assign({}, (CHOIX && CHOIX.blesses) || {}, COACH ? (S.blesse || {}) : {});
+const blesses = () => { const o = Object.assign({}, (CHOIX && CHOIX.blesses) || {}, EDIT ? (S.blesse || {}) : {});
   for(const k of Object.keys(o)) if(!o[k]) delete o[k]; return o; };
 const injured = (p, m) => { const b = blesses()[p.cle], d = m.date || "9999"; return !!b && d >= b.de && (!b.a || d < b.a); };
 // absent : pour un match, déclaré par l'entraîneur et publié comme les blessures ; ce qu'il a saisi ici prime
@@ -860,10 +871,10 @@ const absentsPub = () => { const ids = new Set((PLAN || []).map(r => String(r.m.
   for(const [id, l] of Object.entries((CHOIX && CHOIX.absents) || {})) if(ids.has(String(id)) && l.length) out[id] = l.slice().sort();
   return out; };
 // le rendez-vous d'un match : celui que l'entraîneur saisit ici, sinon celui qu'il a publié
-const rdvOf = m => (COACH && S.rdv[m.id]) || (CHOIX && CHOIX.rdv && CHOIX.rdv[m.id]) || "";
+const rdvOf = m => (EDIT && S.rdv[m.id]) || (CHOIX && CHOIX.rdv && CHOIX.rdv[m.id]) || "";
 const rdvNow = () => { const out = {}; for(const r of PLAN || []){ const v = rdvOf(r.m); if(v) out[r.m.id] = v; } return out; };
 const rdvPub = () => { const out = {}; for(const r of PLAN || []){ const v = CHOIX && CHOIX.rdv && CHOIX.rdv[r.m.id]; if(v) out[r.m.id] = v; } return out; };
-const statusPending = () => COACH && (JSON.stringify(blesses()) !== JSON.stringify((CHOIX && CHOIX.blesses) || {})
+const statusPending = () => EDIT && (JSON.stringify(blesses()) !== JSON.stringify((CHOIX && CHOIX.blesses) || {})
   || JSON.stringify(absentsNow()) !== JSON.stringify(absentsPub()) || JSON.stringify(rdvNow()) !== JSON.stringify(rdvPub())
   || JSON.stringify(annuleesNow()) !== JSON.stringify(annuleesPub()));
 // plus disponible après la date de l'effectif (« jusqu_au »)
@@ -984,9 +995,9 @@ const ruleOf = n => Math.min(Number(SP().regle) || 0, n);
 // celle qu'il a publiée ; les autres voient la publiée. Elle reste telle quelle, hors rotation.
 const byCle = k => D.joueurs.find(p => p.cle === k);
 const pubOf = m => (CHOIX && CHOIX.matchs && CHOIX.matchs[m.id]) || null;
-const retiredOf = m => COACH && S.retire && S.retire[m.id];   // retirée ici, retrait pas encore en ligne
+const retiredOf = m => EDIT && S.retire && S.retire[m.id];   // retirée ici, retrait pas encore en ligne
 const fixedOf = m => NEUTRAL !== null ? (String(m.id) === NEUTRAL ? null : pubOf(m))
-  : retiredOf(m) ? null : COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
+  : retiredOf(m) ? null : EDIT && S.valide && (m.id in S.valide) ? S.valide[m.id] : pubOf(m);
 // Mémoire des choix (demande de l'auteur, 09/10/2026) : chaque feuille publiée emporte la proposition du tableau de
 // bord pour ce match (suggestion), celle que voient les joueurs sans ce choix, présences comprises ; la collecte les
 // archive côte à côte (pipeline/selections.py) pour comprendre les choix de l'entraîneur. La première gardée l'emporte ;
@@ -1071,7 +1082,7 @@ function planning(){
     let gks, field, broken = [];
     if(fixed){
       const team = fixed.joueurs.map(byCle).filter(Boolean);
-      broken = COACH ? team.filter(p => availOf(p, m) === "a") : [];   // validé, devenu absent : à revoir
+      broken = EDIT ? team.filter(p => availOf(p, m) === "a") : [];   // validé, devenu absent : à revoir
       const keep = team.filter(p => !broken.includes(p));
       gks = keep.filter(p => isGK(p)); field = keep.filter(p => !isGK(p));
       const fill = (gk, n) => { for(const p of [...sure, ...unsure]) if(isGK(p) === gk && (gk ? gks : field).length < n && !gks.includes(p) && !field.includes(p)) (gk ? gks : field).push(p); };
@@ -1258,9 +1269,9 @@ function planning(){
     const level = !ok || !postesOk ? "hi" : impact == null ? "ok" : impact < 1 ? "ok" : impact < 3 ? "mid" : "hi";
     const regulars = D.joueurs.filter(p => p.m > 0).sort((a, b) => val(b, m) - val(a, m)).slice(0, size);
     // l'état de la feuille : suggestion, choix de l'entraîneur (validé, publié ou pas encore), à revoir
-    const pub = pubOf(m), local = COACH && S.valide && (m.id in S.valide) ? S.valide[m.id] : undefined;
+    const pub = pubOf(m), local = EDIT && S.valide && (m.id in S.valide) ? S.valide[m.id] : undefined;
     const keyset = c => c ? c.joueurs.slice().sort().join("|") : null, mine = keyset({joueurs: sel.map(p => p.cle)});
-    const etat = !COACH ? (pub ? "choix" : "suggestion")
+    const etat = !EDIT ? (pub ? "choix" : "suggestion")
       : retiredOf(m) ? (pub ? "retrait" : "suggestion")
       : local === null ? (pub ? "modifiee" : "suggestion")
       : !(local || pub) ? "suggestion"
@@ -1286,21 +1297,24 @@ const dayShort = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocale
 const ETAT_COURT = {suggestion:"Sugg.", choix:"Choix", publiee:"Validée", attente:"À publier", modifiee:"Modifiée", a_revoir:"À revoir", retrait:"Retrait"};
 const PENDING = ["attente", "retrait"];   // ce que les joueurs ne voient pas encore
 const DECIDE = ["choix", "publiee", "attente", "modifiee", "a_revoir"];   // l'entraîneur a décidé : « retenu »
-const etatTag = (r, compact) => { const [c, t, why] = ETAT[r.etat] || ETAT.suggestion;
+// choix de l'entraîneur coupés : plus d'état à dire (toutes les feuilles sont des propositions), plus de pointillés
+const suggOf = r => ON("choix") && !EDIT && r.etat === "suggestion";
+const etatTag = (r, compact) => { if(!ON("choix")) return "";
+  const [c, t, why] = ETAT[r.etat] || ETAT.suggestion;
   const date = ["choix","publiee"].includes(r.etat) && r.valideLe ? " le "+esc(dayShort(r.valideLe)) : "";
   return '<span class="feuille '+c+'" title="'+esc(why)+'">'+(compact ? '<span class="tl">'+t+date+'</span><span class="ts">'+ETAT_COURT[r.etat]+'</span>' : t+date)+'</span>'; };
 const PUB_TXT = {envoi:"Publication…", envoyee:"Envoyée : les joueurs la verront comme votre choix d'ici une à deux minutes.",
   refuse:"Jeton refusé par GitHub (expiré, ou sans le droit « Actions ») : collez-en un nouveau.",
   erreur:"Publication impossible pour l'instant (connexion ?) : réessayez.", jeton:"Collez d'abord le jeton de publication."};
 function validCtl(r, compact){   // l'entraîneur valide (et publie) la feuille d'un match
-  if(!COACH || r.etat === "publiee") return "";
+  if(!EDIT || r.etat === "publiee") return "";
   if(PENDING.includes(r.etat)) return '<button class="link" data-publier="1">'+(PUB === "envoi" ? "publication…" : "publier")+'</button>';
   const word = r.etat === "suggestion" ? "Valider" : "Revalider";
   return '<button class="'+(compact ? "link" : "btn")+' valider" data-valider="'+esc(r.m.id)+'">'
     + (compact ? '<span class="tl">'+word+' la feuille</span><span class="ts">'+word+'</span>' : word+' la feuille')+'</button>';
 }
 function jetonBox(){   // la première fois, le jeton de publication ; ensuite, où en est la publication
-  if(!COACH) return "";
+  if(!EDIT) return "";
   const need = PUB === "jeton" || PUB === "refuse" || (!stored(TOKEN) && PLAN.some(r => PENDING.includes(r.etat)));
   if(!need) return PUB && PUB !== "envoi" ? '<p class="note">'+esc(PUB_TXT[PUB] || "")+'</p>' : "";
   return '<div class="panel jeton noprint"><p><b>Publier vos feuilles pour les joueurs.</b> '
@@ -1308,12 +1322,13 @@ function jetonBox(){   // la première fois, le jeton de publication ; ensuite, 
     + '<div class="edit"><input id="jeton" type="password" autocomplete="off" aria-label="Jeton de publication"><button class="btn" data-jeton="1">Enregistrer et publier</button></div></div>';
 }
 function retireCtl(r, compact){   // retirer une validation : les joueurs reverront une suggestion
-  if(!COACH || !["publiee", "attente", "modifiee", "a_revoir"].includes(r.etat)) return "";
+  if(!EDIT || !["publiee", "attente", "modifiee", "a_revoir"].includes(r.etat)) return "";
   return '<button class="link retirer" data-retirer="'+esc(r.m.id)+'">'
     + (compact ? '<span class="tl">Retirer la validation</span><span class="ts">Retirer</span>' : 'Retirer la validation')+'</button>';
 }
-const squadTitle = r => ["choix","publiee"].includes(r.etat) ? "Les "+r.size+" choisis par l'entraîneur" : COACH ? "Les "+r.size+" pour ce match" : "Suggestion : "+r.size+" joueurs proposés";
-const etatLine = r => '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+retireCtl(r)+'</p>';
+const squadTitle = r => !ON("choix") ? "Proposition : "+r.size+" joueurs" : ["choix","publiee"].includes(r.etat) ? "Les "+r.size+" choisis par l'entraîneur"
+  : EDIT ? "Les "+r.size+" pour ce match" : "Suggestion : "+r.size+" joueurs proposés";
+const etatLine = r => ON("choix") ? '<p class="etat-ligne">'+etatTag(r)+' '+validCtl(r)+' '+retireCtl(r)+'</p>' : "";
 // le risque en un mot, pour les colonnes étroites du téléphone
 // le risque d'une feuille : ce qu'elle coûte en chances d'atteindre l'objectif de la saison, par rapport
 // à la meilleure équipe (tout le monde présent) = baisse de la victoire estimée × enjeu du match
@@ -1346,15 +1361,24 @@ const evitesLine = p => { const e = isGK(p) && evitesOf(p); if(!e || e.par_match
   const parts = (e.detail || []).map(x => esc(x.saison)+' : '+butsTxt(x.valeur)+' sur '+x.tirs+' tirs'+(x.poids < 1 ? ', compté à '+Math.round(100 * x.poids)+' %' : ''));
   return '<p class="small"><b>Buts évités</b> : environ '+butsTxt(e.par_match, 1)+' ± '+fr(e.marge.toFixed(1))+' '+butsMot(Math.abs(e.par_match) + e.marge)+' par match, par rapport au gardien moyen des poules ('
     + e.moyenne+' % d\'arrêts)'+(Math.abs(e.par_match) <= e.marge ? ' : dans la marge d\'erreur, pas d\'écart sûr' : '')+'. '+parts.join(" ; ")+'.</p>'; };
-function gkPairLine(r){   // la paire proposée, en buts par match, face à la plus sûre des paires disponibles
-  const per = p => { const e = evitesOf(p); return e && e.par_match != null ? e : null; };
-  const now = r.gks.map(per);
-  if(now.length < 2 || now.some(v => v == null)) return "";
-  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p)).map(per).sort((a, b) => b.par_match - a.par_match);
-  const best = pool.length >= 2 ? pool.slice(0, 2) : now, sum = l => l[0].par_match + l[1].par_match;
+// La paire proposée, en buts par match, face à la plus sûre des paires disponibles. Les deux gardiens d'une feuille se
+// partagent les tirs cadrés du match (D.meta.cadres_match) selon leur part habituelle (part_gb ; à défaut, moitié
+// chacun) : buts évités par tir de chacun × ses tirs. Avant (jusqu'au 16/11/2026), leurs buts évités « par match joué »
+// s'additionnaient, comme si chacun jouait tout le match : jusqu'à deux fois trop.
+function gkPairLine(r){
+  const S = D.meta.cadres_match, per = p => { const e = evitesOf(p); return e && e.par_tir != null ? e : null; };
+  if(!S || r.gks.length < 2 || r.gks.some(p => !per(p))) return "";
+  const pair = l => { const w = l.map(p => p.part_gb || 0), t = w.reduce((a, b) => a + b, 0);
+    const sh = new Map(l.map((p, i) => [p, t > 0 ? w[i] / t : 1 / l.length]));
+    return {sh, val: l.reduce((a, p) => a + sh.get(p) * S * per(p).par_tir, 0)}; };
+  const now = pair(r.gks.slice(0, 2));
+  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p)), pairs = [];
+  for(let i = 0; i < pool.length; i++) for(let j = i + 1; j < pool.length; j++) pairs.push(pair([pool[i], pool[j]]));
+  const best = pairs.sort((a, b) => b.val - a.val)[0] || now, sum = x => x.val;
   const gap = sum(best) - sum(now);
-  // marge de l'écart entre les deux paires (gardiens distincts, indépendants)
-  const margin = Math.sqrt([...new Set([...now, ...best])].reduce((a, e) => a + e.marge * e.marge, 0));
+  // marge de l'écart entre les deux paires : chaque gardien compte pour la différence de ses parts (estimations indépendantes)
+  const margin = S * Math.sqrt([...new Set([...now.sh.keys(), ...best.sh.keys()])]
+    .reduce((a, p) => a + ((best.sh.get(p) || 0) - (now.sh.get(p) || 0)) ** 2 * per(p).marge_tir ** 2, 0));
   return '<p class="small muted">Gardiens proposés : environ '+butsTxt(sum(now), 1)+' '+butsMot(sum(now))+' par match par rapport à des gardiens moyens'
     + (gap < 0.5 ? '.' : gap <= margin ? ' ; la paire la plus sûre disponible ferait environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux, mais dans la marge d\'erreur (± '+fr(margin.toFixed(1))+').'
       : ' ; la paire la plus sûre disponible : '+butsTxt(sum(best), 1)+', soit environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux par match (± '+fr(margin.toFixed(1))+').')+'</p>';
@@ -1384,7 +1408,8 @@ const manquePostes = r => r.postes.filter(c => c.n < c.min).map(c => (c.min - c.
 function advice(r){
   const m = r.m;
   if(!r.ok) return "Il manque "+(r.missingGK > 0 ? r.missingGK+" gardien"+(r.missingGK>1?"s":"") : r.missing+" joueur"+(r.missing>1?"s":""))+" disponible"+((r.missingGK>1||r.missing>1)?"s":"")+" pour la feuille.";
-  if(!r.postesOk) return "Postes clefs non couverts : il manque "+manquePostes(r).join(" et ")+". Rendez disponible un joueur de ce poste, ou indiquez dans l'onglet Joueurs qui peut y jouer (2e poste).";
+  if(!r.postesOk) return "Postes clefs non couverts : il manque "+manquePostes(r).join(" et ")+"."
+    + (EDIT ? " Rendez disponible un joueur de ce poste, ou indiquez dans l'onglet Joueurs qui peut y jouer (2e poste)." : "");
   if(m.coupe) return "Match de coupe : le gagner compte moins qu'en championnat, c'est le match où faire tourner l'effectif.";
   if(m.cle) return "Match clé pour la saison : alignez l'équipe la plus forte, sans rotation.";
   if(m.p_victoire != null && m.p_victoire >= 65) return "Adversaire à votre portée : vous pouvez faire tourner l'effectif sans grand risque.";
@@ -1425,13 +1450,13 @@ function viewSemaine(){
     + '<p class="advice">'+riskTag(r)+' '+esc(advice(r))+'</p>' + gkPairLine(r)
     + '<p class="small muted">'+(e.j ? 'Forme de l\'adversaire '+forme(e.forme) : "")
     + (e.passe && e.passe.face_a_face.length ? ' · '+esc(e.passe.saison)+' : '+e.passe.face_a_face.map(f => (f.res==="V"?"D":f.res==="D"?"V":"N")+" "+f.score.split("-").reverse().join("-")).join(", ") : "")+'</p></div>';
-  const conv = COACH && S.convoque[m.id];
+  const convOn = EDIT && ON("convocation"), conv = convOn && S.convoque[m.id];
   const court = r.ok && r.sel.some(p => poste(p)) ? (st => courtSVG(st, benchOf(r, st)))(startSeven(r)) : "";
   h += '<h2>'+squadTitle(r)+'</h2><div class="duo-semaine'+(court ? "" : " solo")+'"><div class="panel">'+etatLine(r)+squadChips(r)
-    + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : COACH ? "Convocation pas encore envoyée." : "")
+    + '<p class="small muted" style="margin-top:10px">'+(conv ? "Convocation envoyée le "+esc(new Date(conv).toLocaleString("fr-FR",{dateStyle:"medium",timeStyle:"short"}))+"." : convOn ? "Convocation pas encore envoyée." : "")
     + (r.rotated.length ? " Rotation proposée : "+r.rotated.map(p => esc(p.nom)).join(", ")+" ; au repos : "+r.resting.map(p => esc(p.nom)).join(", ")+"." : "")+'</p>'
-    + '<div class="edit noprint"><button class="btn" data-tab="planif">'+(COACH ? "Ajuster dans la planification" : "Voir la planification")+'</button>'
-    + '<button class="btn ghost" data-tab="convoc">'+(COACH ? "Préparer la convocation" : "Voir la convocation")+'</button></div></div>';
+    + '<div class="edit noprint"><button class="btn" data-tab="planif">'+(EDIT ? "Ajuster dans la planification" : "Voir la planification")+'</button>'
+    + (ON("convocation") ? '<button class="btn ghost" data-tab="convoc">'+(EDIT ? "Préparer la convocation" : "Voir la convocation")+'</button>' : '')+'</div></div>';
   h += court + '</div>';   // la feuille et le sept de départ côte à côte sur grand écran
   // grand écran : les matchs suivants et la saison côte à côte (demande de l'auteur, 08/10/2026)
   const s = D.saison;
@@ -1446,8 +1471,8 @@ function viewSemaine(){
 function squadChips(r){
   const chip = p => '<span class="'+(isGK(p)?"gb":"")+(r.rotated.includes(p)?" rot":"")+(availOf(p, r.m)==="i"?" unsure":"")+'">'+pmDot(p, r.m)+'<b>'+esc(p.num ?? "–")+'</b> '+esc(p.nom)+(isGK(p)?' <small>GB</small>':'')+'</span>';
   const nr = r.sel.filter(p => presMark(p, r.m) === "n");
-  return '<div class="sel12'+(!COACH && r.etat === "suggestion" ? " sugg" : "")+'">'+r.sel.map(chip).join("")+'</div>'
-    + (seesAll() ? '<p class="small muted">'+presCount(r.m).replace('class="prs"', 'class="prs-l"')+' · '+(nr.length ? nr.length+' sur la feuille sans réponse : '+esc(nr.map(p => p.nom).join(", ")) : "tous ceux de la feuille ont répondu")+'</p>' : "")
+  return '<div class="sel12'+(suggOf(r) ? " sugg" : "")+'">'+r.sel.map(chip).join("")+'</div>'
+    + (seesPres() ? '<p class="small muted">'+presCount(r.m).replace('class="prs"', 'class="prs-l"')+' · '+(nr.length ? nr.length+' sur la feuille sans réponse : '+esc(nr.map(p => p.nom).join(", ")) : "tous ceux de la feuille ont répondu")+'</p>' : "")
     + (r.ok ? "" : '<p class="note">'+esc(advice(r))+'</p>');
 }
 function startSeven(r){
@@ -1533,12 +1558,16 @@ function bilanBlock(now = new Date()){
   if(scorers.length) h += '<p><b>Buteurs</b> : '+scorers.map(o => esc(firstName(o.p))+' '+o.j.buts).join(", ")+'.</p>';
   if(gks.length) h += '<p><b>Gardiens</b> : '+gks.map(o => esc(firstName(o.p))+' '+(o.j.arrets || 0)+' arrêt'+((o.j.arrets || 0) > 1 ? "s" : "")+(o.j.pct != null ? ' ('+o.j.pct+' %)' : '')).join(", ")+'.</p>';
   h += '<p><b>Discipline</b> : '+(deux ? deux+' × 2 min' : 'aucune exclusion')+(jaunes ? ' · '+carton("j", jaunes) : '')+(rouges ? ' · '+carton("r", rouges) : '')+'.</p>';
-  if(chosen){
-    const sheet = new Set(rows.map(o => o.p.cle)), sel = new Set(chosen.joueurs || []);
+  // la feuille face au choix publié de l'entraîneur ; ses choix coupés, face à la proposition du tableau de bord gardée avant
+  // le coup d'envoi (D.selections), pour l'entraîneur seulement, comme les écarts de la planification
+  const sug = !chosen && !ON("choix") && seesAll() && (e => e && ((e.proposee || []).length ? e.proposee : e.auto || []))(((D.selections || {}).matchs || []).find(e => String(e.id) === String(x.id)));
+  const list = chosen ? chosen.joueurs || [] : sug || [];
+  if(chosen || list.length){
+    const sheet = new Set(rows.map(o => o.p.cle)), sel = new Set(list), w = chosen ? "retenu" : "proposé";
     const away = [...sel].filter(k => !sheet.has(k)).map(byCle).filter(Boolean), extra = rows.filter(o => !sel.has(o.p.cle)).map(o => o.p);
-    h += '<p><b>Choix de l\'entraîneur et feuille</b> : '+(!away.length && !extra.length ? "identiques."
-      : (away.length ? 'retenus mais pas sur la feuille : '+away.map(q => esc(firstName(q))).join(", ")+'. ' : '')
-        + (extra.length ? 'sur la feuille sans avoir été retenus : '+extra.map(q => esc(firstName(q))).join(", ")+'.' : ''))+'</p>';
+    h += '<p><b>'+(chosen ? 'Choix de l\'entraîneur et feuille' : 'Proposition du tableau de bord et feuille')+'</b> : '+(!away.length && !extra.length ? "identiques."
+      : (away.length ? w+'s mais pas sur la feuille : '+away.map(q => esc(firstName(q))).join(", ")+'. ' : '')
+        + (extra.length ? 'sur la feuille sans avoir été '+w+'s : '+extra.map(q => esc(firstName(q))).join(", ")+'.' : ''))+'</p>';
   }
   const vb = (m => m && ballot(m))(agendaList().find(a => String(a.id) === String(x.id)));
   if(vb) h += '<p><b>🏆 Homme du match</b> : '+(!vb.clos ? 'vote des joueurs de la feuille en cours ('+vb.votants+' sur '+vb.el.length+'), jusqu\'au '+esc(dateHeure(vb.w.fin))
@@ -1750,7 +1779,8 @@ function viewMoi(){
   let h = '<header class="top"><p class="when">Ce qui vous concerne, sur cet appareil</p><h1>Ma semaine</h1></header>' + meBlock();
   h += installCard();
   const last = lastMatchCard(me), f = bilanFacts(), fresh = !!f && (new Date() - new Date(f.day + "T12:00")) / 86400000 <= 4;
-  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match, le rendez-vous, votre vote pour l\'homme du match, votre caisse et vos chiffres. Ce choix reste sur cet appareil.</p>' + last;
+  if(!me) return h + '<p class="note">Choisissez qui vous êtes : vous verrez votre prochain match'+(ON("choix") ? ', le rendez-vous' : '')+', votre vote pour l\'homme du match, '
+    + (ON("caisse") ? 'votre caisse ' : '')+'et vos chiffres. Ce choix reste sur cet appareil.</p>' + last;
   h += annulesNote();
   if(!COACH && p) h += votesBlock(me);
   if(fresh) h += last;   // les jours qui suivent le match : en tête
@@ -1760,7 +1790,7 @@ function viewMoi(){
     if(gone(p, r.m)) return ["a", untilText(p)];
     if(availOf(p, r.m) === "a") return ["a", "absent"];
     const decided = DECIDE.includes(r.etat);
-    if(r.sel.includes(p)) return ["in", decided ? "✅ retenu par l'entraîneur" : "proposé (pas encore validé par l'entraîneur)"];
+    if(r.sel.includes(p)) return ["in", decided ? "✅ retenu par l'entraîneur" : ON("choix") ? "proposé (pas encore validé par l'entraîneur)" : "proposé par le tableau de bord"];
     if(r.resting.includes(p)) return ["rest", "au repos (rotation)"];
     return ["", decided ? "pas retenu" : "pas sur la feuille proposée"]; };
   if(P.length && p){
@@ -1769,7 +1799,7 @@ function viewMoi(){
     h += '<header class="matchcard moi"><p class="mc-when">'+esc(roundOf(m))+'</p>'
       + '<p class="moi-adv">'+logo(m.adversaire, "md")+' <b>'+esc(teamShort(m.adversaire))+'</b> <span class="small">'+(m.domicile ? "à domicile" : "à l'extérieur")+'</span></p>'
       + '<p class="moi-statut '+c+'">'+txt+'</p>'
-      + '<p class="moi-rdv">'+(rdv ? 'Rendez-vous à <b>'+esc(rdv.replace(":", "h"))+'</b>' : 'Rendez-vous : donné par l\'entraîneur avec la convocation')+'</p>'
+      + '<p class="moi-rdv">'+(rdv ? 'Rendez-vous à <b>'+esc(rdv.replace(":", "h"))+'</b>' : 'Rendez-vous : donné par l\'entraîneur'+(ON("convocation") ? ' avec la convocation' : ''))+'</p>'
       + '<div class="mc-chips">'+(ev ? '<details class="agenda"><summary class="chipx" title="Ajouter le match à mon agenda">'+quand+' <span aria-hidden="true">＋</span></summary>'
           + '<span class="agenda-menu"><a href="'+esc(googleAgenda(ev))+'" target="_blank" rel="noopener">Google Agenda</a>'
           + '<a href="#" data-ics="'+esc(m.id)+'" download="match-'+esc(String(m.id).replace(/[^\w-]/g, ""))+'.ics">Agenda du téléphone, Outlook… (.ics)</a></span></details>'
@@ -1779,11 +1809,12 @@ function viewMoi(){
       return '<li><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+' <span class="small muted">'+esc(fmtDate(r.m.date, r.m.provisoire))+'</span><br><span class="moi-statut '+c+'">'+txt+'</span></li>'; }).join("")+'</ul></div>';
   }
   if(!fresh) h += last;
-  if(D.caisse){
+  const bday = D.caisse && ((D.caisse.anniversaires || []).find(x => x.cle === me) || {}).jour;
+  const bdayLine = bday ? '<p class="small">🎂 Votre anniversaire : le '+esc(new Date(2000, Number(bday.slice(0, 2)) - 1, Number(bday.slice(3))).toLocaleDateString("fr-FR", {day: "numeric", month: "long"}))+'.</p>' : '';
+  if(D.caisse && !ON("caisse")) h += bdayLine;   // la caisse noire masquée : l'anniversaire reste
+  else if(D.caisse){
     const L = ledger(), b = L.bal[me] || {du: 0, paye: 0, cotise: false}, reste = Math.round(((b.du || 0) - (b.paye || 0)) * 100) / 100;
     const mine = L.fines.filter(f => f.joueur === me && f.regle !== "cotisation").slice(-5).reverse();
-    const bday = ((D.caisse.anniversaires || []).find(x => x.cle === me) || {}).jour;
-    const bdayLine = bday ? '<p class="small">🎂 Votre anniversaire : le '+esc(new Date(2000, Number(bday.slice(0, 2)) - 1, Number(bday.slice(3))).toLocaleDateString("fr-FR", {day: "numeric", month: "long"}))+'.</p>' : '';
     if(L.out.has(me) && reste <= 0) h += '<h2>Ma caisse noire</h2><div class="panel"><p class="small muted">Vous ne participez pas à la caisse noire.</p>'+bdayLine+'</div>';
     else h += '<h2>Ma caisse noire</h2><div class="panel"><p class="moi-caisse'+(reste > 0 ? " du" : "")+'">'+(reste > 0 ? euros(reste)+' à payer' : 'À jour 👍')+'</p>'
       + (mine.length ? '<ul class="plain">'+mine.map(f => { const r = RULE(f.regle) || {};
@@ -1821,7 +1852,7 @@ function viewPlanif(){
     + [["edit","modifie"],["why","explique"]].map(([v,t]) => '<button data-tap="'+v+'" aria-pressed="'+((S.tap || "edit") === v)+'">'+t+'</button>').join("")+'</div></div>';
   if(statusPending()) h += '<p class="note coach injury-box">Blessés, absents, séances annulées ou rendez-vous pas encore publiés : les autres ne les voient pas encore. <button class="btn" data-publier-blessures="1">Publier</button></p>';
   if(single) h += '<div class="pm-chips" role="tablist" aria-label="Match">'+P.map((r, i) => '<button class="pm'+(i === pm ? " on" : "")+'" data-pm="'+i+'" aria-selected="'+(i === pm)+'">'
-    + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+' · '+esc(ETAT_COURT[r.etat] || "")+'</small></span></button>').join("")+'</div>';
+    + logo(r.m.adversaire, "md")+'<span><b>'+esc(roundShort(r.m))+'</b> '+esc(teamShort(r.m.adversaire))+'<br><small>'+pct(r.m.p_victoire)+(ON("choix") ? ' · '+esc(ETAT_COURT[r.etat] || "") : '')+'</small></span></button>').join("")+'</div>';
   // les deux derniers matchs joués, d'après la feuille : qui y était, pour voir ce qui change
   // les deux derniers matchs terminés de la saison seulement (pas ceux de la saison passée)
   const done = (D.derniers || []).filter(x => !x.saison || x.saison === D.meta.saison).slice(-2), jr = (p, x) => (x.joueurs || {})[p.cle];
@@ -1838,8 +1869,8 @@ function viewPlanif(){
       + '<span class="tl">'+matchLine(r.m)+'<br>'+(r.m.rang_adv ? ord(r.m.rang_adv)+" · " : "")+'victoire '+pct(r.m.p_victoire)+'<br></span>'
       + '<span class="ts">'+esc(roundShort(r.m))+' · '+pct(r.m.p_victoire)+'<br></span>'
       + (r.m.coupe ? '<span class="tag cup">Coupe</span>' : r.m.cle ? '<span class="tag key"><span class="tl">Match clé</span><span class="ts">Clé</span></span>' : '<span class="tl">enjeu '+(r.m.enjeu == null ? "–" : (r.m.enjeu>0?"+":"")+r.m.enjeu)+'</span>')
-      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+'<br>'+etatTag(r, true)+(seesAll() ? '<br>'+presCount(r.m) : '')+'</div></div>').join("")
-    + '<div class="h" title="Matchs où il est proposé (retenu une fois la feuille validée par l\'entraîneur)"><span class="tl">proposé</span><span class="ts">✓</span></div>';
+      + (q ? '<br><span class="rotn">'+(r.m.cle ? '<span class="tl">sans rotation</span>' : r.rotated.length ? r.rotated.length+'<span class="tl"> rotation'+(r.rotated.length>1?"s":"")+'</span><span class="ts"> ↻</span>' : '<span class="tl">sans rotation</span>')+'</span>' : '')+(ON("choix") ? '<br>'+etatTag(r, true) : '')+(seesPres() ? '<br>'+presCount(r.m) : '')+'</div></div>').join("")
+    + '<div class="h" title="Matchs où il est proposé'+(ON("choix") ? ' (retenu une fois la feuille validée par l\'entraîneur)' : '')+'"><span class="tl">proposé</span><span class="ts">✓</span></div>';
   const groups = [["Gardiens", D.joueurs.filter(p => isGK(p))], ["Joueurs de champ", D.joueurs.filter(p => !isGK(p))]];
   for(const [title, list] of groups){
     h += '<div class="grp">'+title+'</div>';
@@ -1860,10 +1891,10 @@ function viewPlanif(){
         const sym = hurt ? "✚" : av === "a" ? "✕" : sel ? (rot || ext ? "↻" : av === "i" ? "?" : "✓") : rest ? "↓" : av === "i" ? "?" : "";
         const vs = r.m.p_victoire != null ? " (victoire "+r.m.p_victoire+" %)" : "", w = DECIDE.includes(r.etat) ? "retenu" : "proposé";
         const forced = r.forced.includes(p);
-        const what = hurt ? "blessé depuis le match du "+fmtDate(hb.de)+(hb.a ? ", de retour le "+fmtDate(hb.a) : ", jusqu'à son retour")+" : indisponible"+(COACH ? " ; touchez un match suivant pour le dire rétabli à partir de celui-ci" : "")
+        const what = hurt ? "blessé depuis le match du "+fmtDate(hb.de)+(hb.a ? ", de retour le "+fmtDate(hb.a) : ", jusqu'à son retour")+" : indisponible"+(EDIT ? " ; touchez un match suivant pour le dire rétabli à partir de celui-ci" : "")
           : fin ? untilText(p) + " : pas pour ce match"
-          : saidAbsent(p, r.m) ? "absent annoncé ("+motifTxt(statusOf(p.cle, evMatch(r.m)))+")"+(COACH ? " ; touchez pour le retenir quand même" : "")
-          : nr ? "pas encore renseigné : assez d'autres sont annoncés présents, la feuille se fait parmi eux"+(COACH ? " ; touchez pour le retenir quand même" : "")
+          : saidAbsent(p, r.m) ? "absent annoncé ("+motifTxt(statusOf(p.cle, evMatch(r.m)))+")"+(EDIT ? " ; touchez pour le retenir quand même" : "")
+          : nr ? "pas encore renseigné : assez d'autres sont annoncés présents, la feuille se fait parmi eux"+(EDIT ? " ; touchez pour le retenir quand même" : "")
           : av === "a" ? "absent"
           : pin === "in" ? "retenu : votre choix"
           : pin === "out" ? "écarté : votre choix"
@@ -1882,7 +1913,7 @@ function viewPlanif(){
             + (!r.fixed && r.presents.length && seesAll() && ownCall(p, r.m) && playerSays(p, r.m) === "attente" ? ", pas encore renseigné : complète les présents" : ""))
           : av === "i" ? "incertain" : depOf(p) ? "en dépannage : joue seulement s'il manque des joueurs" : "disponible, non "+w;
         const why = what + (mk && !what.includes(PM_TXT[mk]) && !(mk === "a" && what.startsWith("absent annoncé")) ? " · "+PM_TXT[mk] : "");
-        h += '<div><button class="cell '+cls+(mk ? " pm-"+mk : "")+(man?" man":"")+(rot || ext ?" rot":"")+(!COACH && r.etat === "suggestion" && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
+        h += '<div><button class="cell '+cls+(mk ? " pm-"+mk : "")+(man?" man":"")+(rot || ext ?" rot":"")+(suggOf(r) && sel ? " sugg" : "")+(single ? " wide" : "")+'" data-cell="'+esc(r.m.id)+'|'+esc(p.cle)+'" title="'+esc(why)+'" aria-label="'+esc(p.nom)+', '+esc(r.m.adversaire)+' : '+esc(why)+'">'+sym
           + (single ? '<span>'+(hurt ? "blessé" : fin ? "indispo." : av === "a" ? (nr ? "sans rép." : "absent") : sel ? (rot || ext ? "entre" : av === "i" ? "incertain" : w) : rest ? "repos" : av === "i" ? "incertain" : "–")
             + (mk && av !== "a" ? " · "+({p: "présent", a: "absent", n: "sans rép."})[mk] : "")+'</span>' : '')+'</button></div>';
       }
@@ -1899,15 +1930,16 @@ function viewPlanif(){
     + '<span class="tl">force </span>'+Math.round(100*r.force)+' %<br><span class="tl">victoire </span>'+pct(r.pAdj)+'<br>'
     + '<span class="tl">'+riskTag(r)+'</span><span class="ts">'+riskShort(r)+'</span>'
     + (r.gbSuite ? '<br><small class="low" title="Aucun autre gardien disponible pour reposer celui qui enchaîne">gardien : '+GB_SUITE+' matchs de suite dépassés</small>' : '')
-    + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(COACH ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
+    + (r.peu != null ? '<br><small class="low" title="Pas assez d\'autres joueurs disponibles (hors dépannage) pour en changer '+MIN_CHANGES+' depuis le match précédent">'+r.peu+' changement'+(r.peu > 1 ? 's' : '')+' seulement</small>' : '')+(EDIT ? [validCtl(r, true), retireCtl(r, true)].filter(Boolean).map(x => '<br>'+x).join("") : '')
 
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
-  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé (retenu quand l\'entraîneur valide la feuille) <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span> <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour) '+(seesAll() ? '<span>· le point dit ce que le joueur a répondu :</span> <span class="cell pm-p"></span> présent <span class="cell pm-a"></span> absent <span class="cell pm-n"></span> pas encore renseigné ·' : '')+' <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
+  h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé'+(ON("choix") ? ' (retenu quand l\'entraîneur valide la feuille)' : '')+' <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span>'+(ON("choix") ? ' <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour)' : '')+' '+(seesPres() ? '<span>· le point dit ce que le joueur a répondu :</span> <span class="cell pm-p"></span> présent <span class="cell pm-a"></span> absent <span class="cell pm-n"></span> pas encore renseigné ·' : '')+' <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
-    + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
+    + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match (hors 7 m) de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
     + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
-    + 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.</p></details>';
+    + (ON("choix") ? 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.'
+      : 'Les joueurs retenus par l\'entraîneur se lisent sur la feuille de match, une fois lue.')+'</p></details>';
   if(seesAll()) h += '<details class="calc"'+keep("ecarts", false)+'><summary class="small">L\'entraîneur face aux propositions</summary>'+ecartsBlock()+'</details>';
   h += '<div class="edit noprint coach"><button class="btn ghost" data-export="1">Sauvegarder mon planning</button>'+(stored(TOKEN) ? '<button class="link" data-oublier-jeton="1">Oublier le jeton de publication</button>' : '')+'<label class="btn ghost">Reprendre un planning<input type="file" id="import-plan" accept=".json,application/json" hidden></label></div>';
   return h;
@@ -1938,7 +1970,8 @@ function ecartsBlock(){
   if(!seesAll()) return "";
   const list = ecartsData(), nom = c => esc(memberName(c)), noms = l => l.map(nom).join(", ");
   if(!list.length) return ((D.pronostics || {}).influence || {}).n ? influenceBlock()
-    : '<p class="small muted">Pas encore de choix de l\'entraîneur à comparer : la proposition du tableau de bord est gardée pour chaque match, puis mise à côté de sa feuille publiée ou, à défaut, de la feuille du match.</p>';
+    : '<p class="small muted">Pas encore de choix de l\'entraîneur à comparer : la proposition du tableau de bord est gardée pour chaque match, puis mise à côté '
+      + (ON("choix") ? 'de sa feuille publiée ou, à défaut, de la feuille du match.' : 'de la feuille du match, une fois lue.')+'</p>';
   const per = {}, add = (c, k) => { (per[c] = per[c] || {cle: c, plus: 0, moins: 0, prop: 0, ret: 0})[k]++; };
   for(const e of list){ e.sug.forEach(c => add(c, "prop")); e.coach.forEach(c => add(c, "ret")); e.plus.forEach(c => add(c, "plus")); e.moins.forEach(c => add(c, "moins")); }
   const n = list.reduce((a, e) => a + e.plus.length, 0), mean = l => { const v = l.map(byCle).filter(p => p && rated(p)).map(p => p.scores.equilibre);
@@ -1952,7 +1985,7 @@ function ecartsBlock(){
     + (n ? ' Postes : entrent '+esc(postes(ins))+' ; sortent '+esc(postes(outs))+'.' : '')+'</p><ul class="plain ecarts">'
     + list.slice().reverse().map(e => { const f = e.publiee ? e.feuille || [] : [], horsFeuille = f.length ? e.coach.filter(c => !f.includes(c)) : [], enPlus = f.length ? f.filter(c => !e.coach.includes(c)) : [];
       return '<li><b>'+esc(roundShort(e))+' · '+esc(teamShort(e.adversaire || ""))+'</b> <span class="small muted">'+esc(fmtDate(e.date))
-        + (e.publiee ? '' : ' · pas de feuille publiée : celle du match')+'</span><br>'
+        + (e.publiee || !ON("choix") ? '' : ' · pas de feuille publiée : celle du match')+'</span><br>'
         + (e.plus.length ? '<span class="small"><span class="b-plus">+ '+noms(e.plus)+'</span> à la place de <span class="b-moins">− '+noms(e.moins)+'</span></span>'
           : '<span class="small muted">identique à la proposition</span>')
         + (horsFeuille.length || enPlus.length ? '<br><span class="small muted">Feuille du match : '+[horsFeuille.length ? 'retenu'+(horsFeuille.length > 1 ? 's' : '')+' mais absent'+(horsFeuille.length > 1 ? 's' : '')+' : '+noms(horsFeuille) : '',
@@ -1988,7 +2021,7 @@ function influenceBlock(){
   if(I.buts_plus != null) h += '<p class="small">Ceux qu\'il a fait entrer à la place des proposés ont marqué <b>'+I.buts_plus+'</b> but'+(I.buts_plus > 1 ? "s" : "")
     + ' pour '+fr(r1(I.attendus_plus))+' attendus d\'après leurs moyennes.</p>';
   h += '<ul class="plain ecarts">'+(I.matchs || []).slice().reverse().map(x => '<li><b>'+esc(roundShort(x))+' · '+esc(teamShort(x.adversaire || ""))+'</b> '
-    + '<span class="small muted">'+esc(fmtDate((x.date || "").slice(0, 10)))+(x.source === "feuille" ? ' · feuille du match' : '')+'</span><br><span class="small">'
+    + '<span class="small muted">'+esc(fmtDate((x.date || "").slice(0, 10)))+(x.source === "feuille" && ON("choix") ? ' · feuille du match' : '')+'</span><br><span class="small">'
     + (x.changes ? x.changes+' changement'+(x.changes > 1 ? "s" : "") : 'proposition suivie')+' · écart attendu avec la proposition '+butsTxt(x.avec_proposee, 1)
     + (x.avec_choix != null && x.changes ? ', avec son équipe '+butsTxt(x.avec_choix, 1) : '')+' · réel <b>'+butsTxt(x.reel)+'</b>'
     + (x.residu != null ? ' · '+pronoGap(x.residu)+' avec les présents' : '')+'</span></li>').join("")+'</ul>'
@@ -2030,7 +2063,7 @@ function viewConvoc(){
   h += '<div class="panel convoc" style="margin-top:12px"><p class="when">'+matchLine(m)+'</p><h2 style="margin:4px 0 8px">'+esc(D.meta.club_court)+' contre '+teamCell(m.adversaire)+'</h2>'
     + '<dl class="facts"><dt>Match</dt><dd>'+esc(fmtDate(m.date, m.provisoire))+'</dd>'
     + '<dt>Lieu</dt><dd>'+(m.salle ? esc(m.salle.nom)+'<br><span class="small muted">'+esc([m.salle.rue, [m.salle.code_postal, m.salle.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))+'</span>' : "pas encore fixé par la fédération")+'</dd>'
-    + '<dt><label for="rdv">Rendez-vous</label></dt><dd>'+(COACH ? '<input id="rdv" type="time" value="'+esc(S.rdv[m.id] || "")+'" data-match="'+esc(m.id)+'">' : 'fixé par l\'entraîneur')+'</dd></dl>'
+    + '<dt><label for="rdv">Rendez-vous</label></dt><dd>'+(EDIT ? '<input id="rdv" type="time" value="'+esc(S.rdv[m.id] || "")+'" data-match="'+esc(m.id)+'">' : 'fixé par l\'entraîneur')+'</dd></dl>'
     + etatLine(r) + squadChips(r)
     + '<textarea id="message" class="noprint coach" readonly rows="9">'+esc(convText(r))+'</textarea>'
     + '<div class="edit noprint coach"><button class="btn" data-copy="'+esc(m.id)+'">Copier pour le groupe</button><button class="btn ghost" data-print="1">Imprimer</button>'
@@ -2431,11 +2464,62 @@ function pronoSaison(){
     h += '<details class="prono-model"'+keep("prono-modele", false)+'><summary>Ce que les résultats et les présents apprennent au modèle</summary>'
       + '<p class="small">Chaque match des saisons lues ('+c.n_matchs+') prévu avec ce qu\'on savait avant lui : vainqueur trouvé '+(c.backtest || {}).vainqueur+' % du temps, écart à '+fr((c.backtest || {}).erreur)+' buts près en moyenne.</p>'
       + '<p class="small"><b>Terrain</b> : une équipe marque '+pc(c.dom)+' % de buts par rapport à ses moyennes à domicile, '+pc(c.ext)+' % à l\'extérieur (+4 et −4 % au départ). Sert à la simulation de la saison et aux matchs de coupe.</p>'
-      + '<p class="small"><b>Buteurs absents</b> ('+c.n_feuilles+' feuilles) : la force de frappe d\'une feuille, ce sont les buts par match de ses six meilleurs buteurs de champ. À 80 % de celle d\'une feuille habituelle, une équipe marque environ '+fr(r1(20 * c.beta))+' % de buts en moins : les autres compensent une bonne part.</p>'
+      + '<p class="small"><b>Buteurs absents</b> ('+c.n_feuilles+' feuilles) : la force de frappe d\'une feuille, ce sont les buts par match (hors 7 m) de ses six meilleurs buteurs de champ. À 80 % de celle d\'une feuille habituelle, une équipe marque environ '+fr(r1(20 * c.beta))+' % de buts en moins : les autres compensent une bonne part.</p>'
       + '<p class="small"><b>Gardiens</b> : chaque point d\'arrêts de plus que le gardien habituel retire environ '+fr(r1(c.gamma))+' % des buts de l\'adversaire.</p>'
       + '<p class="small muted">Ces deux derniers servent à l\'écart attendu de la feuille proposée (Semaine, Planification) et à la lecture de chaque match ci-dessus. Tout se recalcule à chaque collecte, à mesure que les feuilles s\'ajoutent.</p></details>';
   }
   return h + '</div>';
+}
+// Le banc d'essai (pipeline/banc.py ; demande de l'auteur, 16/11/2026 : mesurer avant d'améliorer) : chaque match des poules
+// lues en entier rejoué avec ce qu'on savait la veille, face à deux repères simples ; les chances de l'objectif rejouées sur
+// les poules terminées. Chiffres d'ensemble, pour l'entraîneur (seesAll), comme les écarts de la planification.
+const brierTxt = v => v == null ? "–" : fr(v.toFixed(3));
+const BANC_JUGE = 30;   // matchs rejoués avant de juger le hasard du match
+function bancScope(x){
+  const row = (label, s, err) => '<tr><td>'+label+'</td><td class="num">'+brierTxt(s.brier)+'</td><td class="num">'+(s.vainqueur == null ? "–" : s.vainqueur+" %")+'</td>'
+    + '<td class="num">'+(err == null ? "–" : fr(err))+'</td></tr>';
+  const m = x.modele, best = Math.min(x.elo.brier ?? 1, x.domicile.brier ?? 1), d = x.dispersion || {};
+  let h = '<div class="scroll"><table class="banc"><thead><tr><th></th><th title="Plus bas, mieux c\'est : 0 parfait, 0,25 pile ou face">Brier</th>'
+    + '<th><span class="tl">Vainqueur trouvé</span><span class="ts">Vainq.</span></th><th><span class="tl">Erreur sur l\'écart (buts)</span><span class="ts">Écart ±</span></th></tr></thead><tbody>'
+    + row("Notre modèle", m, m.erreur) + row("Elo", x.elo, null) + row("L\'équipe qui reçoit gagne", x.domicile, x.domicile.erreur) + '</tbody></table></div>';
+  const verdict = m.brier == null ? "" : x.n < BANC_JUGE ? "Avec "+x.n+" match"+(x.n > 1 ? "s" : "")+", trop tôt pour départager les trois."
+    : m.brier < best - 0.005 ? "Notre modèle fait mieux que les deux repères."
+    : m.brier <= best + 0.005 ? "Notre modèle fait à peu près comme le meilleur des deux repères." : "Notre modèle fait moins bien que le meilleur des deux repères : à revoir.";
+  const spread = x.n < BANC_JUGE ? "trop peu de matchs pour juger le hasard du match"
+    : d.z2 > 1.15 ? "le score varie plus que le modèle ne l'annonce : il est trop sûr de lui"
+    : d.z2 < 0.85 ? "le score varie moins que le modèle ne l'annonce : ses victoires estimées sont trop prudentes, tirées vers 50 %"
+    : "le hasard du match est bien réglé";
+  h += '<p class="small">'+verdict+' Écart du score : '+fr(d.annoncee)+' buts d\'écart type annoncés, '+fr(d.observee)+' observés (z² = '+fr(d.z2)
+    + ', 1 si c\'est juste) : '+spread+'. Nuls : '+x.nuls+' observé'+(x.nuls > 1 ? "s" : "")+', '+fr(x.nuls_annonces)+' annoncé'+(x.nuls_annonces >= 2 ? "s" : "")+'.</p>';
+  if((x.tranches || []).length) h += '<details'+keep("banc-tr-"+x.n, false)+'><summary class="small">Quand on annonce…</summary><div class="scroll"><table class="banc"><thead><tr>'
+    + '<th>Victoire annoncée</th><th>Matchs</th><th>En moyenne</th><th>Arrivé</th></tr></thead><tbody>'
+    + x.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
+    + '</tbody></table></div></details>';
+  if((x.par_matchs || []).length) h += '<p class="small muted">Selon les matchs déjà joués par la moins vue des deux équipes (Brier, notre modèle / Elo) : '
+    + x.par_matchs.map(p => esc(p.matchs)+' ('+p.n+') '+brierTxt(p.modele)+' / '+brierTxt(p.elo)).join(" ; ")+'.</p>';
+  return h;
+}
+function bancBlock(){
+  const B = D.banc;
+  if(!seesAll() || !B) return "";
+  let h = sec("banc", "Banc d'essai")+'Le banc d\'essai des pronostics</h2><div class="panel">'
+    + '<p class="small">Chaque match des poules lues en entier est rejoué avec ce qu\'on savait la veille, comme pour nos matchs, puis mis en face du score et de deux repères simples : '
+    + 'un classement Elo, et « l\'équipe qui reçoit gagne ». <b>Brier</b> : l\'écart au carré entre la victoire annoncée et ce qui est arrivé ; 0 parfait, 0,25 pile ou face, plus bas c\'est mieux. '
+    + 'Ce qu\'on changera aux pronostics devra faire baisser ces chiffres.</p>';
+  for(const [k, label] of [["passees", "Saisons passées"+(B.saisons.length ? " ("+B.saisons.join(", ")+", "+B.poules+" poule"+(B.poules > 1 ? "s" : "")+")" : "")], ["saison", "Cette saison, nos poules"]]){
+    const x = B[k];
+    if(x) h += '<h3 class="banc-h">'+esc(label)+' · '+x.n+' match'+(x.n > 1 ? "s" : "")+' rejoué'+(x.n > 1 ? "s" : "")+'</h3>' + bancScope(x);
+  }
+  const c = B.chances;
+  if(c) h += '<h3 class="banc-h">Les chances de '+esc(objectif(B.cible))+'</h3><p class="small">Rejouées après chaque journée des poules terminées ('+c.n+' estimations) : Brier <b>'
+    + brierTxt(c.brier)+'</b>, contre '+brierTxt(c.moment)+' pour « le classement du moment ». '
+    + (c.par_moment || []).map((p, i) => (i ? '' : 'En ')+esc(p.moment)+' de saison '+brierTxt(p.brier)+' (classement '+brierTxt(p.classement)+')').join(" ; ")+'.</p>'
+    + ((c.tranches || []).length ? '<details'+keep("banc-ch", false)+'><summary class="small">Quand on annonce…</summary><div class="scroll"><table class="banc"><thead><tr>'
+      + '<th>Chances annoncées</th><th>Estimations</th><th>En moyenne</th><th>Arrivé</th></tr></thead><tbody>'
+      + c.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
+      + '</tbody></table></div></details>' : '');
+  else h += '<p class="small muted">Les chances de l\'objectif se rejouent sur les poules terminées des saisons passées : aucune lue pour l\'instant.</p>';
+  return h + '<p class="small muted">Avantage du terrain '+fr(B.terrain[0])+' / '+fr(B.terrain[1])+', incertitude de départ sur la force d\'une équipe ±'+Math.round(100 * B.incertitude)+' %.</p></div>';
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";
@@ -2579,7 +2663,7 @@ function viewSaison(){
       h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées comme le règlement : confrontations directes, puis différence de buts. Règlement AURA : 2 montées par secteur (poules 71 et 72), au terme d\'une deuxième phase dont la formule sera publiée vers février.</p>';
     }
   }
-  h += pronoSaison() + notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
+  h += pronoSaison() + bancBlock() + notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
   if(!D.axes || !D.axes.length) h += '<p>'+(D.meta.club_matchs < 2 ? "Les axes de travail apparaîtront après quelques matchs : il faut de quoi comparer le club aux autres équipes." : "Aucun écart marqué par rapport aux autres équipes pour l\'instant.")+'</p>';
   else h += D.axes.map(a => '<div class="axis"><b>'+esc(a.titre)+'</b><span class="tag">'+esc(a.libelle)+'</span><br><span class="small muted">'+esc(a.constat)+'</span></div>').join("");
   h += D.meta.demo ? '<p class="small muted" style="margin-top:10px">Sur le site publié, un bouton télécharge ici la séance à importer dans l\'application de préparation des entraînements.</p>'
@@ -2652,7 +2736,7 @@ const santeBanner = () => {
 // première fois, seul le dernier passage. Proposition du tableau de bord et bilan des choix : entraîneur et celui qui
 // tient les présences seulement (la proposition tient compte des présences de chacun).
 const NOUV_VU = "hbpsm:nouveautes-vu", NOUV_MAX = 6;
-const NOUV_PRIO = {choix: 0, resultat: 1, bilan: 2, chances: 3, rang: 4, prono: 5, match: 6, proposition: 7, influence: 8, poules: 9, notes: 10, modele: 11};
+const NOUV_PRIO = {choix: 0, resultat: 1, bilan: 2, chances: 3, rang: 4, prono: 5, match: 6, proposition: 7, influence: 8, poules: 9, notes: 10, modele: 11, banc: 12};
 let LIVE = [];
 const parisMs = v => { const t = Date.parse(String(v || "").replace(" ", "T")); return isNaN(t) ? 0 : t; };
 const nouvWhen = v => { const d = new Date(String(v || "").replace(" ", "T"));
@@ -2682,6 +2766,8 @@ function nouvItem(x){   // [texte, onglet]
     case "choix": return ['📋 Feuille de l\'entraîneur '+({publiee: "publiée", modifiee: "modifiée", retiree: "retirée"})[x.etat]+' pour '+nouvMatch(x), "semaine"];
     case "proposition": return ['🔄 Proposition du tableau de bord revue pour '+nouvMatch(x)+' : '
       + [x.plus.length ? '<span class="b-plus">+ '+names(x.plus)+'</span>' : '', x.moins.length ? '<span class="b-moins">− '+names(x.moins)+'</span>' : ''].filter(Boolean).join(" "), "planif"];
+    case "banc": return ['🧪 Banc d\'essai : '+x.n+' matchs rejoués avec ce qu\'on savait la veille'
+      + (x.modele != null && x.elo != null ? ' ; Brier de notre modèle '+brierTxt(x.modele)+', d\'un Elo '+brierTxt(x.elo)+' (plus bas, mieux c\'est)' : ''), "saison"];
     case "influence": return ['⚖️ Choix de l\'entraîneur face aux propositions : '+x.n+' match'+(x.n > 1 ? "s" : "")+' mesuré'+(x.n > 1 ? "s" : ""), "planif"];
   }
   return null;
@@ -2694,6 +2780,7 @@ function nouvBanner(){
   const items = [], at = {};
   for(const e of fresh.slice().reverse()) for(const x of e.items || []){
     if(x.prive && !seesAll()) continue;
+    if(x.t === "choix" && !ON("choix")) continue;   // choix de l'entraîneur coupés : plus de feuille publiée à annoncer
     const k = x.t + "|" + (x.id || "");
     if(at[k] !== undefined){ if(x.avant !== undefined) items[at[k]] = Object.assign({}, items[at[k]], {avant: x.avant}); continue; }
     at[k] = items.length; items.push(x);
@@ -3281,8 +3368,10 @@ const empty = () => '<header class="top"><h1>'+esc(D.meta.club_court)+'</h1></he
 // n'est pas un verrou : le journal est chiffré avec la phrase du club.
 const PRESC = () => (D && D.presences) || {};
 let GESTION = false;   // cet appareil est celui qui tient les présences (revu à chaque rendu)
-const isManager = () => { const me = stored(MOI); return !!me && (PRESC().gestion || []).includes(me) && !!myCodeFor(me); };
+const isManager = () => { const me = stored(MOI); return ON("presences") && !!me && (PRESC().gestion || []).includes(me) && !!myCodeFor(me); };
 const seesAll = () => COACH || GESTION;
+// les réponses de présence dans la feuille proposée : coupées avec l'onglet (config.yml, fonctions ; 16/11/2026)
+const seesPres = () => ON("presences") && seesAll();
 const APP_KEY = "hbpsm:appareil", MOI_AUCUN = "hbpsm:moi-aucun", PRES_KEY = "hbpsm:presences";
 const PRES_T = ["moi", "dispo", "vote"];
 const MOTIFS = {malade: "🤒 Malade", blesse: "🩹 Blessé", vacances: "🏖️ Vacances", autre: "✏️ Autre"};
@@ -3335,7 +3424,7 @@ const agendaList = () => D.agenda || ((D.saison && D.saison.matchs) || []);
 const annKey = x => /^\d{4}-\d{2}-\d{2}$/.test(x) ? "E-" + x : String(x);
 if(S.annule) for(const k of Object.keys(S.annule)) if(annKey(k) !== k){ S.annule[annKey(k)] = S.annule[k]; delete S.annule[k]; }
 const annPub = () => ((CHOIX && CHOIX.annulees) || []).map(annKey);
-const annuleId = id => COACH && S.annule && id in S.annule ? !!S.annule[id] : GESTION && id in gest().annule ? !!gest().annule[id] : annPub().includes(id);
+const annuleId = id => EDIT && S.annule && id in S.annule ? !!S.annule[id] : GESTION && id in gest().annule ? !!gest().annule[id] : annPub().includes(id);
 const annulee = day => annuleId("E-" + day);
 const recentDay = () => addDays(ymd(new Date()), -60);
 const annDay = id => id.startsWith("E-") ? id.slice(2) : String((agendaList().find(m => "M-" + m.id === id) || {}).date || "9999").slice(0, 10);
@@ -3375,11 +3464,11 @@ const ETAT_P = {present: ["ok", "✓ présent"], absent: ["no", "✕ absent"], a
 const motifTxt = s => s.etat === "absent" ? (MOTIFS[s.motif] || "absent") + (s.texte ? " : " + s.texte : "") : "";
 // la feuille proposée : l'entraîneur et celui qui tient les présences tiennent compte des réponses ; les autres
 // d'aucune, pas même la leur (demande de l'auteur, 09/10/2026 : un joueur ne voit pas ses présences)
-const playerSays = (p, m) => seesAll() ? statusOf(p.cle, evMatch(m)).etat : "attente";
+const playerSays = (p, m) => seesPres() ? statusOf(p.cle, evMatch(m)).etat : "attente";
 // assez de joueurs sont annoncés présents (gardiens d'un côté, joueurs de champ de l'autre) : la feuille se fait parmi
 // eux ; sinon, comme avant, parmi tous les disponibles, sans les absents annoncés
 function restricts(m, gk){
-  if(!seesAll()) return false;
+  if(!seesPres()) return false;
   const k = m.id + "|" + gk;
   if(k in RESTRICT) return RESTRICT[k];
   const nGK = D.meta.gardiens ?? 2, n = gk ? nGK : sizeOf(m) - nGK;
@@ -3396,14 +3485,14 @@ const saidPresent = (p, m) => availOf(p, m) === "d" && (localAv(p, m) === "d" ||
 // l'auteur, 18/10/2026 : « on n'identifie toujours pas quels joueurs se sont mis présents ou pas ») : "p" présent, "a"
 // absent, "n" pas encore renseigné ; null pour les autres (confidentialité), hors effectif, indisponible ou blessé
 const presMark = (p, m) => {
-  if(!seesAll() || !String(p.cle).startsWith("R:") || !dispo(p) || gone(p, m) || injured(p, m)) return null;
+  if(!seesPres() || !String(p.cle).startsWith("R:") || !dispo(p) || gone(p, m) || injured(p, m)) return null;
   const s = playerSays(p, m);
   return s === "present" ? "p" : s === "absent" ? "a" : "n";
 };
 const PM_TXT = {p: "annoncé présent", a: "annoncé absent", n: "pas encore renseigné"};
 const pmDot = (p, m) => { const k = presMark(p, m); return k ? '<i class="pmk pm-'+k+'" title="'+PM_TXT[k]+'"></i>' : ""; };
 // en tête d'un match : combien de présents, d'absents, de sans-réponse (mêmes joueurs que la liste des présences)
-const presCount = m => { if(!seesAll()) return "";
+const presCount = m => { if(!seesPres()) return "";
   const t = tally(evMatch(m)), n = t.attente.length + t.sans.length;
   return '<span class="prs" title="Présences annoncées : '+t.present.length+' présent'+(t.present.length > 1 ? "s" : "")+', '+t.absent.length+' absent'+(t.absent.length > 1 ? "s" : "")+', '+n+' pas encore renseigné'+(n > 1 ? "s" : "")+'">'
     + '<i class="pmk pm-p"></i><b>'+t.present.length+'</b><i class="pmk pm-a"></i><b>'+t.absent.length+'</b><i class="pmk pm-n"></i><b>'+n+'</b></span>'; };
@@ -3500,10 +3589,10 @@ function quiBlock(){
       + '<div class="edit"><button class="btn'+(ownerHash(pick) ? " ghost" : "")+'" data-qui-ok="'+esc(pick)+'">C\'est bien moi'+(ownerHash(pick) ? " (sans code)" : "")+'</button>'
       + '<button class="btn ghost" data-qui-back="1">Choisir un autre nom</button></div>';
   } else {
-    h += '<p class="small muted">Une fois sur cet appareil. Votre vote pour l\'homme du match et vos propositions d\'amendes partent à ce nom : choisissez le vôtre.</p>'
+    h += '<p class="small muted">Une fois sur cet appareil. Votre vote pour l\'homme du match'+(ON("caisse") ? ' et vos propositions d\'amendes partent' : ' part')+' à ce nom : choisissez le vôtre.</p>'
       + '<div class="cchips qui-list">'+squad().slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom))).map(p => '<button class="cchip'+(p.cle === me ? " on" : "")+'" data-qui="'+esc(p.cle)+'">'+esc(p.nom)
         + (p.cle !== me && taken(p.cle) ? ' <small class="pris">déjà pris</small>' : '')+'</button>').join("")+'</div>'
-      + '<p class="small">'+(D.caisse ? '<button class="link" data-qui="'+esc(D.caisse.coach)+'">Je suis l\'entraîneur</button> · ' : '')
+      + '<p class="small">'+(D.caisse && ON("caisse") ? '<button class="link" data-qui="'+esc(D.caisse.coach)+'">Je suis l\'entraîneur</button> · ' : '')
       + '<button class="link" data-qui-aucun="1">Je ne suis pas joueur</button>'+(QUI ? ' · <button class="link" data-qui-close="1">Annuler</button>' : '')+'</p>';
   }
   return h + '</div></div>';
@@ -3757,7 +3846,7 @@ function viewPresences(){   // celui qui les tient, et lui seul (l'onglet est ca
 // entraînements sont suivis
 function seanceWithCounts(){
   const f = JSON.parse(JSON.stringify(D.seance_hbt)), s = f && f.contenu && f.contenu.seance;
-  if(COACH && PRESJ && s && s.date && PRESC().entrainements !== false){
+  if(COACH && ON("presences") && PRESJ && s && s.date && PRESC().entrainements !== false){
     const t = tally(evTraining(String(s.date).slice(0, 10))), gk = t.present.filter(isGK).length;
     s.effectifGardiens = gk; s.effectifJoueurs = t.present.length - gk;
   }
@@ -3778,7 +3867,7 @@ function render(keepScroll){
     : '<p class="demo">Une nouvelle version de la page est en ligne : elle s\'affichera d\'elle-même d\'ici quelques minutes, sans rien perdre de vos réglages.</p>';
   GESTION = isManager();
   applyTabs();
-  if(S.tab === "presences" && !GESTION) S.tab = !COACH && stored(MOI) ? "moi" : "planif";
+  if(!tabOn(S.tab)) S.tab = !COACH && stored(MOI) ? "moi" : "planif";   // onglet caché ou coupé, même demandé dans l'adresse
   PLAN = planning();
   document.getElementById("app").innerHTML = newer + santeBanner() + nouvBanner() + VIEWS[S.tab]() + quiBlock();
   document.querySelectorAll("nav.tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === S.tab));
@@ -3876,11 +3965,11 @@ document.addEventListener("click", ev => {
     const g = gest(); g.annule[k] = on; setGest(g); render(true); publishGestion(); }
   else if(t.dataset.vote){ const [mid, c] = t.dataset.vote.split("|"); vote(mid, c); }
   else if(t.dataset.presm){ S.presM = t.dataset.presm; save(); render(true); }
-  else if(t.dataset.cell && (S.tap === "why" || !COACH)){ showWhy(t.getAttribute("aria-label")); }
-  else if(!COACH && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
+  else if(t.dataset.cell && (S.tap === "why" || !EDIT)){ showWhy(t.getAttribute("aria-label")); }
+  else if(!EDIT && (t.dataset.tap || t.dataset.reset || t.dataset.copy || t.dataset.export || t.dataset.abs
                       || t.dataset.valider || t.dataset.retirer || t.dataset.publier || t.dataset.jeton || t.dataset.oublierJeton)){ return; }
   else if(t.dataset.retirer){ withdraw(t.dataset.retirer); }
-  else if(t.dataset.publierBlessures && COACH){ publishChoices(); }
+  else if(t.dataset.publierBlessures && EDIT){ publishChoices(); }
   else if(t.dataset.pm !== undefined){ S.pm = Number(t.dataset.pm); save(); render(true); }
   else if(t.dataset.cpickJ){ PICK.joueur = t.dataset.cpickJ; render(true); }
   else if(t.dataset.cpickR){ PICK.regle = t.dataset.cpickR; PICK.n = 1; PICK.montant = ""; render(true); }
@@ -3950,7 +4039,7 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("change", ev => {
   const t = ev.target;
-  if(!COACH && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
+  if(!EDIT && (t.id === "regle" || t.id === "rdv" || t.id === "import-plan" || t.dataset.dep !== undefined || t.dataset.poste !== undefined)){ render(true); return; }
   if(t.id === "cme"){ setMe(t.value); render(true); return; }
   if(t.id === "jtri"){ JTRI = t.value; render(true); return; }
   if(t.id === "cdate"){ PICK.date = t.value; return; }
@@ -4002,9 +4091,9 @@ async function sealVault(obj, phrase){   // le même coffre que pipeline/vault.p
   const enc = u => { let s = ""; for(const b of u) s += String.fromCharCode(b); return btoa(s); };
   return {format:"hbpsm-chiffre", v:1, kdf:"PBKDF2-SHA256", iterations, sel:enc(salt), chiffre:"AES-256-GCM", nonce:enc(iv), donnees:enc(data)};
 }
-async function fetchChoices(){   // vrai si les choix publiés ont changé
+async function fetchChoices(){   // vrai si les choix publiés ont changé ; coupés (config.yml, fonctions) : jamais lus
   const phrase = stored(PASS);
-  if(!CFG.choix || !phrase) return false;
+  if(!ON("choix") || !CFG.choix || !phrase) return false;
   let env = null;
   try {
     const r = await fetch(CFG.choix + "?t=" + Date.now(), {cache:"no-store"});
@@ -4045,7 +4134,7 @@ function withdraw(id){   // publiée : on la retire aussi pour les joueurs ; sin
   if(published) publishChoices();
 }
 async function publishChoices(){
-  if(!COACH) return;
+  if(!EDIT) return;
   const token = stored(TOKEN), phrase = stored(PASS);
   if(!token){ PUB = "jeton"; render(true); return; }
   if(!CFG.depot || !phrase){ PUB = "erreur"; render(true); return; }
