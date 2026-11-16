@@ -1301,11 +1301,20 @@ def pending_points(played, pending, known=(), priors=None, terrain=None, sims=40
 
 
 UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
+INCERTITUDE = "actuelle"   # sa forme (uncertainty) ; « racine » : selon ce qu'on sait d'elle au départ (k)
+BRUIT = 1.0    # le hasard du match : écart type des buts d'une équipe = BRUIT × √(buts attendus)
+# Réglages mis à l'épreuve par le banc d'essai (pipeline/banc.py, VARIANTES ; demande de l'auteur, 16/11/2026) :
+# ils ne changent qu'après une comparaison qui le justifie.
 
 
-def uncertainty(table, k_of):
-    """L'incertitude sur la force de chaque équipe : UNSURE au départ, réduite par ses matchs joués."""
-    return {t: UNSURE * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
+def uncertainty(table, k_of, base=None, forme=None):
+    """L'incertitude sur la force de chaque équipe, réduite par ses matchs joués j. « actuelle » : base × √(k / (j + k)),
+    base au départ quel que soit k (le poids du point de départ) ; « racine » : base / √(j + k), d'autant plus étroite
+    qu'on en sait plus au départ (k de 3, sans saison passée, à 5)."""
+    base = UNSURE if base is None else base
+    if (forme or INCERTITUDE) == "racine":
+        return {t: base / (table[t]["j"] + k_of[t]) ** 0.5 for t in table}
+    return {t: base * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
 
 
 def draw_strengths(rng, att0, dfn0, unsure, att, dfn):
@@ -1315,12 +1324,13 @@ def draw_strengths(rng, att0, dfn0, unsure, att, dfn):
         dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
 
 
-def play_match(rng, avg, att, dfn, home, away, dom_f, ext_f):
-    """Un match simulé : les buts de chaque équipe, tirés selon une loi normale de variance égale à leur moyenne.
+def play_match(rng, avg, att, dfn, home, away, dom_f, ext_f, bruit=None):
+    """Un match simulé : les buts de chaque équipe, tirés selon une loi normale d'écart type BRUIT × √(moyenne).
     La même loi sert au banc d'essai (pipeline/banc.py, match_law)."""
+    b = BRUIT if bruit is None else bruit
     mh = avg * att[home] * dfn[away] * dom_f
     ma = avg * att[away] * dfn[home] * ext_f
-    return (max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5))))
+    return (max(0, round(rng.gauss(mh, b * mh ** 0.5))), max(0, round(rng.gauss(ma, b * ma ** 0.5))))
 
 
 def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None,

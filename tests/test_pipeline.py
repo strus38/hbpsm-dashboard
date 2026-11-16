@@ -3333,6 +3333,16 @@ def test_banc_d_essai(sandbox, monkeypatch):
     # un hasard du match 1,6 fois plus large (2,56 fois la variance) : le banc le voit, le modèle est trop sûr de lui
     large = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3, bruit=1.6))], [], {}, (1.05, 0.97), 2)
     assert large["passees"]["dispersion"]["z2"] > 1.8 * p["dispersion"]["z2"]
+    # les variantes (16/11/2026) : la grille, la meilleure d'abord ; dans ce monde au hasard plus large, elle a un hasard
+    # plus large que le réglage en service, une meilleure log-loss et une dispersion plus juste
+    v = large["variantes"]
+    assert len(v) == len(banc.BASES) * len(banc.BRUITS) and large["meilleure"] == v[0]["nom"]
+    cur = next(x for x in v if x["nom"] == "en service")
+    assert (cur["base"], cur["forme"], cur["bruit"]) == (an.UNSURE, an.INCERTITUDE, an.BRUIT) and "ecart" not in cur["toutes"]
+    assert v[0]["bruit"] > an.BRUIT and v[0]["toutes"]["ecart"] < 0 and v[0]["toutes"]["z2"] < cur["toutes"]["z2"]
+    assert v[0]["toutes"]["logloss"] < cur["toutes"]["logloss"] and v[0]["chances"] and cur["chances"]["n"] == large["chances"]["n"]
+    assert sum(1 for x in v if x["chances"]) == 1 + banc.CHANCES_VARIANTES
+    assert all(x["z2"] is not None for x in large["passees"]["par_matchs"])
     # une poule pas finie : ses matchs sont rejoués, pas ses chances
     partial = saison_inventee(4, poules="C")[:-1]   # le dernier match pas encore joué
     assert banc.evaluate([dict(saison="2025-2026", matches=partial)], [], {}, (1.05, 0.97), 2)["chances"] is None
@@ -3361,7 +3371,8 @@ def test_banc_d_essai(sandbox, monkeypatch):
         coach.click("nav.tabs button[data-tab=saison]")
         text = coach.inner_text("main")
         assert "Le banc d'essai des pronostics" in text and "Notre modèle" in text and "L'équipe qui reçoit gagne" in text
-        assert "Les chances de finir dans les 2 premiers" in text and coach.locator("table.banc").count() >= 2
+        assert "Les chances de finir dans les 2 premiers" in text and coach.locator("table.banc").count() >= 3
+        assert "Les réglages essayés" in text and "(en service)" in text
         assert "Banc d'essai" in coach.evaluate("nouvItem({t: 'banc', n: 12, modele: 0.2, elo: 0.21})[0]")
         coach.set_viewport_size({"width": 360, "height": 780})
         assert coach.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
