@@ -1,14 +1,14 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-16T13:36:13.000Z",
+ "exporteLe": "2026-11-16T23:46:01.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-11-16",
+   "id": "tableau-de-bord-2026-11-17",
    "titre": "Préparer HB TAIN VION TOURNON 2",
-   "date": "2026-11-17",
+   "date": "2026-11-20",
    "equipe": "Seniors garçons",
    "categorieAge": "+18 ans",
    "objectifSeance": "Avant HB TAIN VION TOURNON 2 (journée 6, dim. 6 déc., à l’extérieur). 1) Tenir la deuxième mi-temps [Préparation physique] : Écart de 5,8 en première mi-temps, 3,6 en seconde. Adversaire : 33,7 buts marqués et 25,0 encaissés par match ; à surveiller : n° 69 (8,3 buts/match), n° 24 (3,3 buts/match).",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-16T13:36:13.000Z",
-   "modifieLe": "2026-11-16T13:36:13.000Z"
+   "creeLe": "2026-11-16T23:46:01.000Z",
+   "modifieLe": "2026-11-16T23:46:01.000Z"
   }
  }
 }
