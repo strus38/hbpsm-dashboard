@@ -18,7 +18,7 @@ from collections import Counter, defaultdict
 
 from .common import (DATA, PUBLIE, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team, write_json)
-from . import caisse, common, pronostic, selections, vault
+from . import banc, caisse, common, pronostic, selections, vault
 from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
@@ -971,9 +971,21 @@ def goals_saved_mix(now, past, rate_now, rate_past, w, labels):
         return None
     value = sum(x["poids"] * x["g"] for x in parts)
     margin = 1.96 * math.sqrt(sum(x["poids"] ** 2 * x["var"] for x in parts))
+    # par tir aussi : deux gardiens d'une même feuille se partagent les tirs du match, leurs « par match » ne
+    # s'additionnent pas (la paire de la Semaine, gkPairLine)
     return dict(tirs=round(shots_w), valeur=round(value), par_match=round(value / apps, 1), marge=round(margin / apps, 1),
+                par_tir=round(value / shots_w, 4), marge_tir=round(margin / shots_w, 4),
                 moyenne=round(100 * (rate_now or rate_past)),
                 detail=[{k: x[k] for k in ("saison", "poids", "tirs", "valeur")} for x in parts])
+
+
+def shots_faced(with_sheet):
+    """Tirs cadrés que subissent nos gardiens par match (buts encaissés + arrêts), sur nos feuilles lues ; None sans
+    feuille. Deux gardiens d'une feuille se les partagent (la paire de la Semaine)."""
+    if not with_sheet:
+        return None
+    total = sum(ga + sum(pl.get("saves") or 0 for pl in m["players"][side]) for m, side, _, _, ga in with_sheet)
+    return round(total / len(with_sheet), 1)
 
 
 def exclusion_cost(matches, config):
@@ -1059,6 +1071,10 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
         m, mw = r["m"], blend(r, h, "m")
         without = n_sheet - m
         rest = (sum(all_diffs) - sum(r["diffs"])) / without if without and m else None
+        # l'assiduité : ses matchs sur ceux qu'il pouvait jouer, comptés de la même façon ; les -18 et les saisons
+        # anciennes (un quart de match chacun) entrent des deux côtés (avant le 16/11/2026, seulement au numérateur)
+        own = (n_sheet + hw * n_past + hw2 * n_old + (hw2 * len(young_ws) if r["cle"] in young else 0)
+               + (hw2 * len(anc_ws) if r["cle"] in anc else 0))
         raw_imp = (sum(r["diffs"]) / m - rest) if rest is not None else 0.0
         shrink = min(m, without) / (min(m, without) + 2) if without and m else 0.0
         impact = raw_imp * shrink
@@ -1073,7 +1089,7 @@ def club_players(matches, config, roster, history=(), older=(), youth=(), ancien
             disc=max(0.0, 1 - penal / 2),
             imp=min(1.0, max(0.0, 0.5 + impact / 16)),
             clutch=0.5 + ((r["clutch"] / m) / max_clutch - 0.5) * m / (m + CLUTCH_PRUDENCE) if any_events and m and clutch_seen else 0.5,
-            assid=min(1.0, mw / (n_sheet + hw * n_past + hw2 * n_old)) if n_sheet + n_past + n_old else 0,
+            assid=min(1.0, mw / own) if own else 0,
             gk=min(1.0, max(0.0, (pct_lisse - 0.15) / 0.30)) if gk else 0,
             gk_vol=(saves / mw) / max_saves if gk else 0,
             exp=min(1.0, (experience or {}).get(r["cle"], 0) / EXP_PLEIN),
@@ -1287,6 +1303,26 @@ def pending_points(played, pending, known=(), priors=None, terrain=None, sims=40
 UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
 
 
+def uncertainty(table, k_of):
+    """L'incertitude sur la force de chaque équipe : UNSURE au départ, réduite par ses matchs joués."""
+    return {t: UNSURE * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
+
+
+def draw_strengths(rng, att0, dfn0, unsure, att, dfn):
+    """Une saison simulée : la force de chaque équipe, tirée autour de sa valeur (attaque, puis défense)."""
+    for t in att0:
+        att[t] = att0[t] * math.exp(rng.gauss(0, unsure[t]))
+        dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
+
+
+def play_match(rng, avg, att, dfn, home, away, dom_f, ext_f):
+    """Un match simulé : les buts de chaque équipe, tirés selon une loi normale de variance égale à leur moyenne.
+    La même loi sert au banc d'essai (pipeline/banc.py, match_law)."""
+    mh = avg * att[home] * dfn[away] * dom_f
+    ma = avg * att[away] * dfn[home] * ext_f
+    return (max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5))))
+
+
 def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, known=(), priors=None,
             terrain=None, waiting=()):
     """Course au classement : chances d'atteindre le rang visé et enjeu de chaque match.
@@ -1326,24 +1362,15 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
         base["statut"] = "termine" if over else "calendrier_inconnu"
         return base
     avg, att0, dfn0, k_of = forces(table, priors)
-    unsure = {t: UNSURE * (k_of[t] / (table[t]["j"] + k_of[t])) ** 0.5 for t in table}
+    unsure = uncertainty(table, k_of)
     rng = random.Random(seed)
     att, dfn = dict(att0), dict(dfn0)
-
-    def draw_strengths():
-        for t in table:
-            att[t] = att0[t] * math.exp(rng.gauss(0, unsure[t]))
-            dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
-
-    def play(f):
-        mh = avg * att[f["home"]] * dfn[f["away"]] * dom_f
-        ma = avg * att[f["away"]] * dfn[f["home"]] * ext_f
-        return (max(0, round(rng.gauss(mh, mh ** 0.5))), max(0, round(rng.gauss(ma, ma ** 0.5))))
+    play = lambda f: play_match(rng, avg, att, dfn, f["home"], f["away"], dom_f, ext_f)
 
     already = [(m["home"]["name"], m["away"]["name"], m["home"]["score"], m["away"]["score"]) for m in played]
 
     def season(force_win=False):
-        draw_strengths()
+        draw_strengths(rng, att0, dfn0, unsure, att, dfn)
         sim, res = list(already), {}
         for f in rest:
             gh, ga = play(f)
@@ -1396,7 +1423,8 @@ def outlook(matches, fixtures, club, poule, target=1, sims=10000, seed=38160, kn
             si_victoire=None if si_v is None else round(si_v),
             sinon=None if si_o is None else round(si_o), enjeu=enjeu,
             buts_pour=round(mu, 1), ecart=round(mu - mt, 1), attente=str(f["id"]) in waiting))
-    ranked = sorted((m for m in base["matchs"] if m["enjeu"] is not None), key=lambda m: -m["enjeu"])
+    # un match joué dont on attend le résultat n'est plus à préparer : jamais une des 3 places de match clé
+    ranked = sorted((m for m in base["matchs"] if m["enjeu"] is not None and not m["attente"]), key=lambda m: -m["enjeu"])
     keys = {m["id"] for m in ranked[:3] if m["enjeu"] > 0}
     for m in base["matchs"]:
         m["cle"] = m["id"] in keys
@@ -1530,7 +1558,10 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
     jour. Même résultat pour tout le monde, et d'une ouverture à l'autre."""
     # history : saisons passées et jeunes, avec leurs feuilles lues ; une saison ajoutée relâche aussi
     # l'objectif aussi : les matchs clés en dépendent
+    # une feuille corrigée (config.yml, corrections) change les notes : la planification se refait sans attendre
+    # la feuille suivante (16/11/2026)
     key = dict(feuilles=sorted(str(s) for s in sheets), forfaits=sorted(config.get("forfaits") or []),
+               corrections=json.dumps(config.get("corrections") or [], sort_keys=True, ensure_ascii=False),
                objectif=int((config.get("objectif") or {}).get("rang", 1)),
                historique=sorted([x.get("saison") or "", x.get("niveau") or 0, x.get("categorie") or "",
                                   sum(1 for m in x.get("matches") or [] if (m.get("source") or {}).get("fdme"))] for x in history),
@@ -1781,6 +1812,8 @@ def analyze(today=None, roster=None):
     # ce que toutes les saisons lues apprennent au modèle : avantage du terrain, poids des présents
     cal = pronostic.calibrate([x.get("matches") or [] for x in history] + [every_match + outside])
     terrain = (cal["dom"], cal["ext"])
+    # le banc d'essai : chaque match des poules lues en entier rejoué avec ce qu'on savait la veille (pipeline/banc.py)
+    bench = banc.evaluate(seasons, matches, priors, terrain, target)
     saison = (outlook(matches, fixtures, club_name, club_poule, target,
                       known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors,
                       terrain=terrain, waiting=waiting)
@@ -1840,8 +1873,11 @@ def analyze(today=None, roster=None):
                   historique=[x.get("saison") for x in seasons],
                   ecart_division=float(config.get("ecart_division", ECART)), planif_depuis=plan_since,
                   exclusion=dict(zip(("cout", "n"), exclusion_cost(
-                      every_match + [m for x in history for m in x.get("matches") or []], config)))),
+                      every_match + [m for x in history for m in x.get("matches") or []], config))),
+                  cadres_match=shots_faced(with_sheet) or shots_faced(
+                      [c for c in club_matches_of(year, config) if c[0].get("players", {}).get(c[1])])),
         prochain=nxt,
+        banc=bench,
         parcours=config.get("parcours") or [],   # le parcours de l'équipe depuis 2015 (onglet Saison)
         poules=views,
         resultats=sorted((dict(id=m["id"], poule=str(m.get("poule")), journee=m.get("journee"),

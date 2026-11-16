@@ -1361,15 +1361,24 @@ const evitesLine = p => { const e = isGK(p) && evitesOf(p); if(!e || e.par_match
   const parts = (e.detail || []).map(x => esc(x.saison)+' : '+butsTxt(x.valeur)+' sur '+x.tirs+' tirs'+(x.poids < 1 ? ', compté à '+Math.round(100 * x.poids)+' %' : ''));
   return '<p class="small"><b>Buts évités</b> : environ '+butsTxt(e.par_match, 1)+' ± '+fr(e.marge.toFixed(1))+' '+butsMot(Math.abs(e.par_match) + e.marge)+' par match, par rapport au gardien moyen des poules ('
     + e.moyenne+' % d\'arrêts)'+(Math.abs(e.par_match) <= e.marge ? ' : dans la marge d\'erreur, pas d\'écart sûr' : '')+'. '+parts.join(" ; ")+'.</p>'; };
-function gkPairLine(r){   // la paire proposée, en buts par match, face à la plus sûre des paires disponibles
-  const per = p => { const e = evitesOf(p); return e && e.par_match != null ? e : null; };
-  const now = r.gks.map(per);
-  if(now.length < 2 || now.some(v => v == null)) return "";
-  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p)).map(per).sort((a, b) => b.par_match - a.par_match);
-  const best = pool.length >= 2 ? pool.slice(0, 2) : now, sum = l => l[0].par_match + l[1].par_match;
+// La paire proposée, en buts par match, face à la plus sûre des paires disponibles. Les deux gardiens d'une feuille se
+// partagent les tirs cadrés du match (D.meta.cadres_match) selon leur part habituelle (part_gb ; à défaut, moitié
+// chacun) : buts évités par tir de chacun × ses tirs. Avant (jusqu'au 16/11/2026), leurs buts évités « par match joué »
+// s'additionnaient, comme si chacun jouait tout le match : jusqu'à deux fois trop.
+function gkPairLine(r){
+  const S = D.meta.cadres_match, per = p => { const e = evitesOf(p); return e && e.par_tir != null ? e : null; };
+  if(!S || r.gks.length < 2 || r.gks.some(p => !per(p))) return "";
+  const pair = l => { const w = l.map(p => p.part_gb || 0), t = w.reduce((a, b) => a + b, 0);
+    const sh = new Map(l.map((p, i) => [p, t > 0 ? w[i] / t : 1 / l.length]));
+    return {sh, val: l.reduce((a, p) => a + sh.get(p) * S * per(p).par_tir, 0)}; };
+  const now = pair(r.gks.slice(0, 2));
+  const pool = D.joueurs.filter(p => isGK(p) && availOf(p, r.m) !== "a" && !depOf(p) && per(p)), pairs = [];
+  for(let i = 0; i < pool.length; i++) for(let j = i + 1; j < pool.length; j++) pairs.push(pair([pool[i], pool[j]]));
+  const best = pairs.sort((a, b) => b.val - a.val)[0] || now, sum = x => x.val;
   const gap = sum(best) - sum(now);
-  // marge de l'écart entre les deux paires (gardiens distincts, indépendants)
-  const margin = Math.sqrt([...new Set([...now, ...best])].reduce((a, e) => a + e.marge * e.marge, 0));
+  // marge de l'écart entre les deux paires : chaque gardien compte pour la différence de ses parts (estimations indépendantes)
+  const margin = S * Math.sqrt([...new Set([...now.sh.keys(), ...best.sh.keys()])]
+    .reduce((a, p) => a + ((best.sh.get(p) || 0) - (now.sh.get(p) || 0)) ** 2 * per(p).marge_tir ** 2, 0));
   return '<p class="small muted">Gardiens proposés : environ '+butsTxt(sum(now), 1)+' '+butsMot(sum(now))+' par match par rapport à des gardiens moyens'
     + (gap < 0.5 ? '.' : gap <= margin ? ' ; la paire la plus sûre disponible ferait environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux, mais dans la marge d\'erreur (± '+fr(margin.toFixed(1))+').'
       : ' ; la paire la plus sûre disponible : '+butsTxt(sum(best), 1)+', soit environ '+fr(gap.toFixed(1))+' '+butsMot(gap)+' de mieux par match (± '+fr(margin.toFixed(1))+').')+'</p>';
@@ -1926,7 +1935,7 @@ function viewPlanif(){
     + '<br><button class="link coach" data-reset="'+esc(r.m.id)+'" title="Réinitialiser ce match"><span class="tl">réinitialiser</span><span class="ts">↺</span></button></div></div>').join("") + '<div></div></div></div>';
   h += '<details class="plan-legend"'+keep("legende", !isNarrow())+'><summary class="small">Légende</summary><p class="legend-plan small muted"><span class="cell in">✓</span> proposé'+(ON("choix") ? ' (retenu quand l\'entraîneur valide la feuille)' : '')+' <span class="cell in">↻</span> entre par rotation ou pour changer au moins '+MIN_CHANGES+' joueurs d\'un match au suivant <span class="cell rest">↓</span> au repos (rotation) <span class="cell"></span> disponible <span class="cell i">?</span> incertain <span class="cell a">✕</span> absent (ce match) <span class="coach"><span class="cell a nr">✕</span> pas encore renseigné, alors qu\'assez d\'autres sont annoncés présents ·</span>'+(ON("choix") ? ' <span class="cell a hurt">✚</span> blessé (à partir de ce match, jusqu\'à son retour)' : '')+' '+(seesPres() ? '<span>· le point dit ce que le joueur a répondu :</span> <span class="cell pm-p"></span> présent <span class="cell pm-a"></span> absent <span class="cell pm-n"></span> pas encore renseigné ·' : '')+' <span class="coach"><span class="cell in man">✓</span> votre choix · un clic : retenu, écarté, incertain, absent, blessé ·</span> <span class="fia">●●●</span> note solide, <span class="fia">●●○</span> indicative, <span class="fia">●○○</span> fragile, <span class="fia">○○○</span> sans note</p></details>';
   h += '<details class="calc"'+keep("calcul", false)+'><summary class="small">Comment c\'est calculé</summary><p class="note">Force : valeur des joueurs proposés rapportée à la meilleure équipe possible (tout le monde présent), d\'après les notes. Victoire : chance estimée au complet, diminuée selon la force alignée. '
-    + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
+    + 'Écart attendu : celui du modèle, corrigé selon qui joue, avec ce que les feuilles ont appris (onglet Saison, pronostics) : les buts par match (hors 7 m) de nos six meilleurs buteurs de champ alignés et le % d\'arrêts des gardiens retenus, face à une feuille habituelle. '
     + 'Risque : ce que la feuille coûte en chances de '+esc(objectif((D.saison || {}).cible))+' par rapport à la meilleure équipe, soit la baisse de la victoire estimée multipliée par l\'enjeu du match ; '
     + esc(RISK_SEUILS)+' ; élevé aussi si la feuille est incomplète ou un poste clef découvert. Un match de coupe, sans enjeu pour le classement, reste faible. Touchez une étiquette de risque pour le détail du match. '
     + (ON("choix") ? 'Les disponibilités saisies restent sur cet ordinateur ; blessés, absents et feuilles validées sont publiés, chiffrés.'
@@ -2455,11 +2464,62 @@ function pronoSaison(){
     h += '<details class="prono-model"'+keep("prono-modele", false)+'><summary>Ce que les résultats et les présents apprennent au modèle</summary>'
       + '<p class="small">Chaque match des saisons lues ('+c.n_matchs+') prévu avec ce qu\'on savait avant lui : vainqueur trouvé '+(c.backtest || {}).vainqueur+' % du temps, écart à '+fr((c.backtest || {}).erreur)+' buts près en moyenne.</p>'
       + '<p class="small"><b>Terrain</b> : une équipe marque '+pc(c.dom)+' % de buts par rapport à ses moyennes à domicile, '+pc(c.ext)+' % à l\'extérieur (+4 et −4 % au départ). Sert à la simulation de la saison et aux matchs de coupe.</p>'
-      + '<p class="small"><b>Buteurs absents</b> ('+c.n_feuilles+' feuilles) : la force de frappe d\'une feuille, ce sont les buts par match de ses six meilleurs buteurs de champ. À 80 % de celle d\'une feuille habituelle, une équipe marque environ '+fr(r1(20 * c.beta))+' % de buts en moins : les autres compensent une bonne part.</p>'
+      + '<p class="small"><b>Buteurs absents</b> ('+c.n_feuilles+' feuilles) : la force de frappe d\'une feuille, ce sont les buts par match (hors 7 m) de ses six meilleurs buteurs de champ. À 80 % de celle d\'une feuille habituelle, une équipe marque environ '+fr(r1(20 * c.beta))+' % de buts en moins : les autres compensent une bonne part.</p>'
       + '<p class="small"><b>Gardiens</b> : chaque point d\'arrêts de plus que le gardien habituel retire environ '+fr(r1(c.gamma))+' % des buts de l\'adversaire.</p>'
       + '<p class="small muted">Ces deux derniers servent à l\'écart attendu de la feuille proposée (Semaine, Planification) et à la lecture de chaque match ci-dessus. Tout se recalcule à chaque collecte, à mesure que les feuilles s\'ajoutent.</p></details>';
   }
   return h + '</div>';
+}
+// Le banc d'essai (pipeline/banc.py ; demande de l'auteur, 16/11/2026 : mesurer avant d'améliorer) : chaque match des poules
+// lues en entier rejoué avec ce qu'on savait la veille, face à deux repères simples ; les chances de l'objectif rejouées sur
+// les poules terminées. Chiffres d'ensemble, pour l'entraîneur (seesAll), comme les écarts de la planification.
+const brierTxt = v => v == null ? "–" : fr(v.toFixed(3));
+const BANC_JUGE = 30;   // matchs rejoués avant de juger le hasard du match
+function bancScope(x){
+  const row = (label, s, err) => '<tr><td>'+label+'</td><td class="num">'+brierTxt(s.brier)+'</td><td class="num">'+(s.vainqueur == null ? "–" : s.vainqueur+" %")+'</td>'
+    + '<td class="num">'+(err == null ? "–" : fr(err))+'</td></tr>';
+  const m = x.modele, best = Math.min(x.elo.brier ?? 1, x.domicile.brier ?? 1), d = x.dispersion || {};
+  let h = '<div class="scroll"><table class="banc"><thead><tr><th></th><th title="Plus bas, mieux c\'est : 0 parfait, 0,25 pile ou face">Brier</th>'
+    + '<th><span class="tl">Vainqueur trouvé</span><span class="ts">Vainq.</span></th><th><span class="tl">Erreur sur l\'écart (buts)</span><span class="ts">Écart ±</span></th></tr></thead><tbody>'
+    + row("Notre modèle", m, m.erreur) + row("Elo", x.elo, null) + row("L\'équipe qui reçoit gagne", x.domicile, x.domicile.erreur) + '</tbody></table></div>';
+  const verdict = m.brier == null ? "" : x.n < BANC_JUGE ? "Avec "+x.n+" match"+(x.n > 1 ? "s" : "")+", trop tôt pour départager les trois."
+    : m.brier < best - 0.005 ? "Notre modèle fait mieux que les deux repères."
+    : m.brier <= best + 0.005 ? "Notre modèle fait à peu près comme le meilleur des deux repères." : "Notre modèle fait moins bien que le meilleur des deux repères : à revoir.";
+  const spread = x.n < BANC_JUGE ? "trop peu de matchs pour juger le hasard du match"
+    : d.z2 > 1.15 ? "le score varie plus que le modèle ne l'annonce : il est trop sûr de lui"
+    : d.z2 < 0.85 ? "le score varie moins que le modèle ne l'annonce : ses victoires estimées sont trop prudentes, tirées vers 50 %"
+    : "le hasard du match est bien réglé";
+  h += '<p class="small">'+verdict+' Écart du score : '+fr(d.annoncee)+' buts d\'écart type annoncés, '+fr(d.observee)+' observés (z² = '+fr(d.z2)
+    + ', 1 si c\'est juste) : '+spread+'. Nuls : '+x.nuls+' observé'+(x.nuls > 1 ? "s" : "")+', '+fr(x.nuls_annonces)+' annoncé'+(x.nuls_annonces >= 2 ? "s" : "")+'.</p>';
+  if((x.tranches || []).length) h += '<details'+keep("banc-tr-"+x.n, false)+'><summary class="small">Quand on annonce…</summary><div class="scroll"><table class="banc"><thead><tr>'
+    + '<th>Victoire annoncée</th><th>Matchs</th><th>En moyenne</th><th>Arrivé</th></tr></thead><tbody>'
+    + x.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
+    + '</tbody></table></div></details>';
+  if((x.par_matchs || []).length) h += '<p class="small muted">Selon les matchs déjà joués par la moins vue des deux équipes (Brier, notre modèle / Elo) : '
+    + x.par_matchs.map(p => esc(p.matchs)+' ('+p.n+') '+brierTxt(p.modele)+' / '+brierTxt(p.elo)).join(" ; ")+'.</p>';
+  return h;
+}
+function bancBlock(){
+  const B = D.banc;
+  if(!seesAll() || !B) return "";
+  let h = sec("banc", "Banc d'essai")+'Le banc d\'essai des pronostics</h2><div class="panel">'
+    + '<p class="small">Chaque match des poules lues en entier est rejoué avec ce qu\'on savait la veille, comme pour nos matchs, puis mis en face du score et de deux repères simples : '
+    + 'un classement Elo, et « l\'équipe qui reçoit gagne ». <b>Brier</b> : l\'écart au carré entre la victoire annoncée et ce qui est arrivé ; 0 parfait, 0,25 pile ou face, plus bas c\'est mieux. '
+    + 'Ce qu\'on changera aux pronostics devra faire baisser ces chiffres.</p>';
+  for(const [k, label] of [["passees", "Saisons passées"+(B.saisons.length ? " ("+B.saisons.join(", ")+", "+B.poules+" poule"+(B.poules > 1 ? "s" : "")+")" : "")], ["saison", "Cette saison, nos poules"]]){
+    const x = B[k];
+    if(x) h += '<h3 class="banc-h">'+esc(label)+' · '+x.n+' match'+(x.n > 1 ? "s" : "")+' rejoué'+(x.n > 1 ? "s" : "")+'</h3>' + bancScope(x);
+  }
+  const c = B.chances;
+  if(c) h += '<h3 class="banc-h">Les chances de '+esc(objectif(B.cible))+'</h3><p class="small">Rejouées après chaque journée des poules terminées ('+c.n+' estimations) : Brier <b>'
+    + brierTxt(c.brier)+'</b>, contre '+brierTxt(c.moment)+' pour « le classement du moment ». '
+    + (c.par_moment || []).map((p, i) => (i ? '' : 'En ')+esc(p.moment)+' de saison '+brierTxt(p.brier)+' (classement '+brierTxt(p.classement)+')').join(" ; ")+'.</p>'
+    + ((c.tranches || []).length ? '<details'+keep("banc-ch", false)+'><summary class="small">Quand on annonce…</summary><div class="scroll"><table class="banc"><thead><tr>'
+      + '<th>Chances annoncées</th><th>Estimations</th><th>En moyenne</th><th>Arrivé</th></tr></thead><tbody>'
+      + c.tranches.map(t => '<tr><td>'+t.de+' à '+t.a+' %</td><td class="num">'+t.n+'</td><td class="num">'+t.annonce+' %</td><td class="num">'+t.observe+' %</td></tr>').join("")
+      + '</tbody></table></div></details>' : '');
+  else h += '<p class="small muted">Les chances de l\'objectif se rejouent sur les poules terminées des saisons passées : aucune lue pour l\'instant.</p>';
+  return h + '<p class="small muted">Avantage du terrain '+fr(B.terrain[0])+' / '+fr(B.terrain[1])+', incertitude de départ sur la force d\'une équipe ±'+Math.round(100 * B.incertitude)+' %.</p></div>';
 }
 
 const ord = n => n === 1 ? "1er" : n + "e";
@@ -2603,7 +2663,7 @@ function viewSaison(){
       h += '<p class="note">Estimation par simulation des matchs restants de la poule, d\'après les buts marqués et encaissés de chaque équipe. Égalités départagées comme le règlement : confrontations directes, puis différence de buts. Règlement AURA : 2 montées par secteur (poules 71 et 72), au terme d\'une deuxième phase dont la formule sera publiée vers février.</p>';
     }
   }
-  h += pronoSaison() + notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
+  h += pronoSaison() + bancBlock() + notreEquipe() + sec("travail", "À travailler")+'À travailler à l\'entraînement</h2><div class="panel">' + (exclNote() ? '<p class="small muted">'+esc(exclNote())+'</p>' : '');
   if(!D.axes || !D.axes.length) h += '<p>'+(D.meta.club_matchs < 2 ? "Les axes de travail apparaîtront après quelques matchs : il faut de quoi comparer le club aux autres équipes." : "Aucun écart marqué par rapport aux autres équipes pour l\'instant.")+'</p>';
   else h += D.axes.map(a => '<div class="axis"><b>'+esc(a.titre)+'</b><span class="tag">'+esc(a.libelle)+'</span><br><span class="small muted">'+esc(a.constat)+'</span></div>').join("");
   h += D.meta.demo ? '<p class="small muted" style="margin-top:10px">Sur le site publié, un bouton télécharge ici la séance à importer dans l\'application de préparation des entraînements.</p>'
@@ -2676,7 +2736,7 @@ const santeBanner = () => {
 // première fois, seul le dernier passage. Proposition du tableau de bord et bilan des choix : entraîneur et celui qui
 // tient les présences seulement (la proposition tient compte des présences de chacun).
 const NOUV_VU = "hbpsm:nouveautes-vu", NOUV_MAX = 6;
-const NOUV_PRIO = {choix: 0, resultat: 1, bilan: 2, chances: 3, rang: 4, prono: 5, match: 6, proposition: 7, influence: 8, poules: 9, notes: 10, modele: 11};
+const NOUV_PRIO = {choix: 0, resultat: 1, bilan: 2, chances: 3, rang: 4, prono: 5, match: 6, proposition: 7, influence: 8, poules: 9, notes: 10, modele: 11, banc: 12};
 let LIVE = [];
 const parisMs = v => { const t = Date.parse(String(v || "").replace(" ", "T")); return isNaN(t) ? 0 : t; };
 const nouvWhen = v => { const d = new Date(String(v || "").replace(" ", "T"));
@@ -2706,6 +2766,8 @@ function nouvItem(x){   // [texte, onglet]
     case "choix": return ['📋 Feuille de l\'entraîneur '+({publiee: "publiée", modifiee: "modifiée", retiree: "retirée"})[x.etat]+' pour '+nouvMatch(x), "semaine"];
     case "proposition": return ['🔄 Proposition du tableau de bord revue pour '+nouvMatch(x)+' : '
       + [x.plus.length ? '<span class="b-plus">+ '+names(x.plus)+'</span>' : '', x.moins.length ? '<span class="b-moins">− '+names(x.moins)+'</span>' : ''].filter(Boolean).join(" "), "planif"];
+    case "banc": return ['🧪 Banc d\'essai : '+x.n+' matchs rejoués avec ce qu\'on savait la veille'
+      + (x.modele != null && x.elo != null ? ' ; Brier de notre modèle '+brierTxt(x.modele)+', d\'un Elo '+brierTxt(x.elo)+' (plus bas, mieux c\'est)' : ''), "saison"];
     case "influence": return ['⚖️ Choix de l\'entraîneur face aux propositions : '+x.n+' match'+(x.n > 1 ? "s" : "")+' mesuré'+(x.n > 1 ? "s" : ""), "planif"];
   }
   return null;

@@ -61,9 +61,41 @@ de caisse.enc et propositions.enc (pour ne pas laisser d'envoi en attente renvoy
 et `caisse.yml` restent, plus lancés par la page. Tests : le `sandbox` rallume tout (`TOUTES`), `test_fonctions_coupees`
 vérifie config.yml tel quel. Pour rallumer une partie : `true` dans config.yml, rien d'autre.
 
+## Banc d'essai et petits défauts (demande de l'auteur, 16/11/2026)
+
+Question de l'auteur : peut-on améliorer prédictions, chances de l'objectif, notes ? Analyse faite sans les vraies
+données (chiffrées ; site de la fédération bloqué depuis la session cloud) : deux relectures du code et des
+simulations sur données inventées. Constats, à valider sur les vraies données avant tout changement :
+- matchs : buts des deux équipes tirés indépendamment (N(μ, √μ)) : hasard du match sans doute mal réglé ;
+  incertitude sur la force des équipes (UNSURE 8 %) sans doute trop étroite ; enjeu des matchs clés confondu
+  avec la force tirée du club, nul compté comme une défaite ; calendrier ignoré ; écart de division (0,12) jamais
+  vérifié ; `influence` sans portée (≈ 10 matchs ; choix coupés : groupe « suivi » vide) ;
+- notes : `imp` + `clutch` (30 %) surtout du bruit ; ancienneté comptée deux ou trois fois (`assid`, `exp`, `gk_vol`) ;
+  discipline surpondérée face à `exclusion_cost` ; `att` avec les 7 m, DECAY qui efface la saison passée, échelle
+  mobile ; gardiens lissés 10 tirs vers 30 % (40 vers l'équipe dans pronostic) ; `pAdj` non calibré ; un seul
+  PRUDENCE ; `avis` avant le lissage. Les notes : à décider avec l'auteur (règle permanente).
+Demande de l'auteur : « commence par les petits défauts et le banc d'essai ». Faits :
+- `freeze_plan` : `corrections` dans la clé (une feuille corrigée refait la planification ; la clé change : la
+  planification repart une fois au déploiement) ; `outlook` : un match `attente` n'est jamais clé ; force de frappe
+  hors 7 m (`pronostic.open_goals`, aussi `buts_plus`) et `pronostic.V` = 3 (bilans refaits) ; paire de gardiens :
+  `par_tir`, `marge_tir` (`goals_saved_mix`) × `meta.cadres_match` (`analyze.shots_faced`) × part habituelle
+  (`part_gb`) ; `assid` : les -18 et saisons anciennes d'un joueur qui n'a qu'elles aussi au dénominateur.
+- `pipeline/banc.py` (D.banc, onglet Saison pour `seesAll`, `bancBlock`, nouveauté « banc » `prive`) : chaque match
+  des poules lues en entier (saisons de notre division sans niveau ni catégorie, et nos poules cette saison) rejoué
+  avec ce qu'on savait la veille (`forces`, `uncertainty`, et `match_law` = loi sans tirage de `draw_strengths` +
+  `play_match`, vérifiée contre la simulation), face à Elo (K 30, +40 à domicile, saison passée reprise à moitié) et
+  « l'équipe qui reçoit gagne » ; Brier, log-loss, vainqueur, erreur sur l'écart, dispersion (z²), nuls, tranches,
+  par matchs déjà joués ; chances de l'objectif rejouées après chaque journée des poules terminées (300 saisons
+  simulées par journée), face au classement du moment. Environ 3 s pour huit poules. `outlook` appelle les mêmes
+  `draw_strengths` / `play_match` (sortie identique avant et après, vérifié). Constat sur données inventées : à
+  hasard de match juste, z² reste souvent au-dessus de 1 quand les équipes diffèrent beaucoup (incertitude UNSURE
+  trop étroite) : à regarder sur les vraies données.
+Suite proposée : hasard du match, incertitude, enjeu, calendrier, chacun gardé seulement s'il fait baisser les
+scores du banc ; puis les notes, avec l'auteur.
+
 ## État
 
-Testé (71 tests au 16/11/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (73 tests au 16/11/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).

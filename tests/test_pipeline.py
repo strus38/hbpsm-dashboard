@@ -2942,7 +2942,7 @@ def test_choix_face_aux_propositions(sandbox, monkeypatch):
     demo(sandbox, played_days=4)
     d2 = an.analyze("2026-10-12")
     a = next(x for x in d2["pronostics"]["matchs"] if x["id"] == nxt["id"])["apres"]
-    assert a["v"] == pronostic.V == 2 and a["proposee"]["source"] == "publication" and a["retenue"]["part"] > 0
+    assert a["v"] == pronostic.V and a["proposee"]["source"] == "publication" and a["retenue"]["part"] > 0
     assert a["choix"]["source"] == "publiee" and a["choix"]["plus"] == sorted(field[10:12]) and a["choix"]["moins"] == sorted(field[:2])
     assert a["jouee"]["ecart"] == round(a["jouee"]["pour"] - a["jouee"]["contre"], 1)
     inf = d2["pronostics"]["influence"]
@@ -3198,5 +3198,171 @@ def test_fonctions_coupees(sandbox, monkeypatch):
         assert player.evaluate("GESTION") is True   # allumées, il tiendrait les présences
         player.evaluate("CFG.fonctions.presences = false; render(true)")
         assert player.evaluate("GESTION") is False and player.locator("nav.tabs button[data-tab=presences]").is_hidden()
+        browser.close()
+    assert errors == []
+
+
+def test_petits_defauts(sandbox, monkeypatch):
+    """Les petits défauts relevés le 16/11/2026 : planification figée qui ignore une feuille corrigée, match clé sur un
+    match joué dont on attend le résultat, buts sur 7 m dans la force de frappe, paire de gardiens comptée deux fois,
+    assiduité des -18 comptée d'un seul côté."""
+    pw = pytest.importorskip("playwright.sync_api")
+    demo(sandbox)
+    calls, real = [], an.outlook
+    monkeypatch.setattr(an, "outlook", lambda *a, **k: calls.append((a, k)) or real(*a, **k))
+    d = an.analyze("2026-10-04")
+    # 1. une feuille corrigée (config.yml) refait la planification figée sans attendre la feuille suivante
+    m0, path = d["saison"]["matchs"][0], sandbox / "data" / an.PLANIF
+    state = json.loads(path.read_text("utf-8"))
+    state["matchs"][str(m0["id"])]["p"] = 1
+    path.write_text(json.dumps(state), "utf-8")
+    assert an.analyze("2026-10-04")["saison"]["matchs"][0]["p_plan"] == 1   # figée
+    fixed = dict(common.load_config(), corrections=[dict(match="999", gardiens=[dict(num=1, de=0, a=60)])])
+    monkeypatch.setattr(an, "load_config", lambda: fixed)
+    assert an.analyze("2026-10-04")["saison"]["matchs"][0]["p_plan"] == m0["p_victoire"]   # refaite
+    # 2. un match joué dont on attend le résultat ne prend pas une place de match clé
+    a, k = calls[0]
+    keys = [m["id"] for m in real(*a, **k)["matchs"] if m["cle"]]
+    assert keys
+    later = next(m for m in real(*a, **dict(k, waiting={str(keys[0])}))["matchs"] if m["id"] == keys[0])
+    assert later["attente"] and not later["cle"]
+    # 3. la force de frappe : les buts hors 7 m (un tireur de penalties absent ne coûte pas ses 7 m)
+    sheet = lambda goals, pens: dict(players=dict(home=[dict(num=7, name="TIREUR Invente", goals=goals, pen_goals=pens)] + [
+        dict(num=n, name=f"AUTRE Invente{n}", goals=2, pen_goals=0) for n in range(2, 8)], away=[]), events=[])
+    taux = lambda goals, pens: pronostic.team_model([(sheet(goals, pens), "home", 1.0)], conceded=lambda m, s: ({}, None))["taux"]
+    k7 = pronostic.player_key(dict(name="TIREUR Invente"))
+    assert taux(6, 5)[k7] < taux(6, 0)[k7] and pronostic.open_goals(dict(goals=6, pen_goals=5)) == 1
+    # 4. les -18 d'un joueur sans match senior comptent aussi au dénominateur de son assiduité
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]][:2]
+    young = []
+    for i, x in enumerate(club):
+        side = "home" if x["home"]["name"] == demo_data.CLUB else "away"
+        y = json.loads(json.dumps(x))
+        y.update(id=f"m18-{i}", date=f"2026-03-0{i + 1}", saison="2025-2026")
+        y["players"][side] = [dict(y["players"][side][0], name="ALIGNE Jamais", goals=4, num=99)] + y["players"][side][1:]
+        young.append(y)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026-m18.json",
+                      dict(saison="2025-2026", categorie="M18", competition="https://exemple/m18-1/", poules={}, matches=young))
+    monkeypatch.setattr(an, "load_config", common.load_config)
+    d = an.analyze("2026-10-04", roster={common.name_key("Jamais Aligné"): dict(nom="Jamais Aligné", poste="", disponible=True)})
+    new, n = next(p for p in d["joueurs"] if p["nom"] == "Jamais Aligné"), d["meta"]["club_feuilles"]
+    hw2 = an.HIST2 * an.fade(n)
+    assert not new.get("passe") and new["comps"]["assid"] == pytest.approx(hw2 * 2 / (n + hw2 * 2), abs=0.006)
+    # 5. la paire de gardiens : ils se partagent les tirs du match, leurs buts évités ne s'additionnent pas
+    assert d["meta"]["cadres_match"] > 0
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(d, {}), "utf-8")
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        page = browser.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(page_file.as_uri())
+        line = page.evaluate("""(() => { D.meta.cadres_match = 30; const gks = D.joueurs.filter(p => isGK(p));
+          gks.forEach(p => { p.evites_cumul = null; });
+          gks.slice(0, 2).forEach(p => { p.part_gb = 0.5; p.evites_cumul = {par_match: 3, marge: 1, par_tir: 0.1, marge_tir: 0.03}; });
+          return gkPairLine({gks: gks.slice(0, 2), m: PLAN[0].m}); })()""")
+        assert "environ +3 buts par match" in line and "+6" not in line
+        browser.close()
+    assert errors == []
+
+
+def saison_inventee(seed, poules="AB", equipes=8, bruit=1.0, saison="2025-2026"):
+    """Une saison passée inventée : poules complètes aller-retour, forces connues, le hasard du match de la simulation
+    (analyze.play_match) élargi de `bruit`."""
+    import datetime as dt
+    import math
+    import random
+    rng, out = random.Random(seed), []
+    for poule in poules:
+        teams = [f"EQUIPE INVENTEE {poule}{i}" for i in range(equipes)]
+        att = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
+        dfn = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
+        n = len(teams)
+        order = teams[:]
+        rounds = []
+        for r in range(n - 1):   # tableau à la ronde : chaque équipe joue une fois par journée
+            rounds.append([(order[i], order[n - 1 - i]) for i in range(n // 2)])
+            order = [order[0]] + [order[-1]] + order[1:-1]
+        rounds += [[(a, h) for h, a in day] for day in rounds]
+        for j, day in enumerate(rounds, 1):
+            for h, a in day:
+                mh, ma = 28 * att[h] * dfn[a] * 1.05, 28 * att[a] * dfn[h] * 0.97
+                gh = max(0, round(rng.gauss(mh, bruit * mh ** 0.5)))
+                ga = max(0, round(rng.gauss(ma, bruit * ma ** 0.5)))
+                d = (dt.date(2025, 9, 13) + dt.timedelta(days=7 * j)).isoformat()
+                out.append(dict(id=f"{saison}{poule}{j}{h[-2:]}", poule=poule, journee=j, date=d + "T20:00", saison=saison,
+                                played=True, home=dict(name=h, score=gh), away=dict(name=a, score=ga),
+                                players=dict(home=[], away=[])))
+    return out
+
+
+def test_banc_d_essai(sandbox, monkeypatch):
+    """Le banc d'essai (demande de l'auteur, 16/11/2026 : mesurer avant d'améliorer) : chaque match rejoué avec ce qu'on
+    savait la veille, face à Elo et à « l'équipe qui reçoit gagne » ; les chances de l'objectif rejouées sur les poules
+    terminées ; rien que des chiffres d'ensemble, pour l'entraîneur."""
+    import random
+    from pipeline import banc
+    # la loi sans tirage (match_law) est bien celle de la simulation (draw_strengths, play_match)
+    att0, dfn0 = {"A": 1.15, "B": 0.9}, {"A": 0.95, "B": 1.1}
+    unsure = {"A": 0.08, "B": 0.05}
+    ecart, mu, sd, pw, pd = banc.match_law(28.0, att0, dfn0, unsure, "A", "B", 1.05, 0.97)
+    rng, att, dfn, n, wins, draws, margins = random.Random(5), dict(att0), dict(dfn0), 40000, 0, 0, []
+    for _ in range(n):
+        an.draw_strengths(rng, att0, dfn0, unsure, att, dfn)
+        gh, ga = an.play_match(rng, 28.0, att, dfn, "A", "B", 1.05, 0.97)
+        wins, draws = wins + (gh > ga), draws + (gh == ga)
+        margins.append(gh - ga)
+    m = sum(margins) / n
+    assert abs(pw - wins / n) < 0.012 and abs(pd - draws / n) < 0.006 and abs(mu - m) < 0.15
+    assert abs(sd - (sum((x - m) ** 2 for x in margins) / n) ** 0.5) < 0.15
+    # un monde inventé au hasard du match de la simulation, aux équipes bien différentes : le modèle bat les repères
+    juste = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3))], [], {}, (1.05, 0.97), 2)
+    p = juste["passees"]
+    assert p["n"] == 2 * (8 * 7 - 4) and juste["saison"] is None and juste["poules"] == 2   # la 1re journée : rien à rejouer
+    assert p["modele"]["brier"] < p["elo"]["brier"] < p["domicile"]["brier"] and sum(t["n"] for t in p["tranches"]) == p["n"]
+    c = juste["chances"]
+    assert c["n"] == 2 * 8 * 13 and c["brier"] < c["moment"] and [x["moment"] for x in c["par_moment"]] == ["début", "milieu", "fin"]
+    # un hasard du match 1,6 fois plus large (2,56 fois la variance) : le banc le voit, le modèle est trop sûr de lui
+    large = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3, bruit=1.6))], [], {}, (1.05, 0.97), 2)
+    assert large["passees"]["dispersion"]["z2"] > 1.8 * p["dispersion"]["z2"]
+    # une poule pas finie : ses matchs sont rejoués, pas ses chances
+    partial = saison_inventee(4, poules="C")[:-1]   # le dernier match pas encore joué
+    assert banc.evaluate([dict(saison="2025-2026", matches=partial)], [], {}, (1.05, 0.97), 2)["chances"] is None
+    # dans la collecte : D.banc, sans aucun nom ; le bandeau l'annonce à l'entraîneur
+    demo(sandbox)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", competition="https://exemple/", poules={}, matches=saison_inventee(6)))
+    d = an.analyze("2026-10-04")
+    b = d["banc"]
+    assert b["passees"]["n"] > 0 and b["saison"]["n"] > 0 and b["chances"]["n"] > 0 and b["saisons"] == ["2025-2026"]
+    text = json.dumps(b, ensure_ascii=False)
+    assert "INVENTEE" not in text and not any(p["nom"] in text for p in d["joueurs"]) and demo_data.CLUB not in text
+    items = nouveautes.compare(dict(d, banc=None), d)
+    assert [x for x in items if x["t"] == "banc"] == [dict(t="banc", prive=True, n=b["toutes"]["n"], modele=b["toutes"]["modele"]["brier"],
+                                                          elo=b["toutes"]["elo"]["brier"])]
+    # la page : l'entraîneur le voit dans l'onglet Saison, pas un joueur
+    pw_ = pytest.importorskip("playwright.sync_api")
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(d, {}), "utf-8")
+    with pw_.sync_playwright() as pl:
+        browser = chrome(pl)
+        errors = []
+        coach = browser.new_page()
+        coach.on("pageerror", lambda e: errors.append(str(e)))
+        coach.goto(page_file.as_uri() + "#entraineur")
+        coach.click("nav.tabs button[data-tab=saison]")
+        text = coach.inner_text("main")
+        assert "Le banc d'essai des pronostics" in text and "Notre modèle" in text and "L'équipe qui reçoit gagne" in text
+        assert "Les chances de finir dans les 2 premiers" in text and coach.locator("table.banc").count() >= 2
+        assert "Banc d'essai" in coach.evaluate("nouvItem({t: 'banc', n: 12, modele: 0.2, elo: 0.21})[0]")
+        coach.set_viewport_size({"width": 360, "height": 780})
+        assert coach.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        player = browser.new_page()
+        player.on("pageerror", lambda e: errors.append(str(e)))
+        player.goto(page_file.as_uri())
+        player.click("nav.tabs button[data-tab=saison]")
+        assert "banc d'essai" not in player.inner_text("main").lower()
         browser.close()
     assert errors == []

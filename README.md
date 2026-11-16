@@ -163,7 +163,7 @@ de ce qu'on modifie ne quitte le navigateur, sauf la feuille que l'entraîneur v
 Les propositions sont les mêmes pour tous et d'une ouverture à l'autre : en consultation, rien de
 ce qui a pu être saisi dans le navigateur n'y entre, et les notes et chances de victoire qui
 guident la rotation restent figées entre deux matchs du club (elles repartent à chaque nouvelle
-feuille lue, ou si l'effectif change). D'un match au suivant, au moins deux joueurs changent,
+feuille lue, si l'effectif change, ou si une feuille est corrigée dans `config.yml`). D'un match au suivant, au moins deux joueurs changent,
 gardiens compris, à partir du dernier match joué. Un gardien ne fait pas plus de trois matchs de
 suite sans sortir, matchs déjà joués compris. Les échanges se font poste pour poste
 (même poste principal, ou un entrant qui tient le poste du sortant) et équilibrent, autant que
@@ -349,7 +349,8 @@ matchs joués est signalé « pas encore à jour » plutôt que comme une pénal
 
 Note sur 100 par joueur, à partir des feuilles du club : buts récents (les derniers matchs
 pèsent plus), efficacité si les tirs sont saisis, discipline, écart de l'équipe avec et sans le
-joueur, buts en fin de match serré, assiduité. Trois pondérations (équilibré, attaque, rigueur) ;
+joueur, buts en fin de match serré, assiduité (ses matchs sur ceux qu'il pouvait jouer, les -18 et
+les saisons anciennes d'un joueur qui n'a qu'elles comptés des deux côtés). Trois pondérations (équilibré, attaque, rigueur) ;
 celle conseillée dépend du profil de l'adversaire. Gardiens : d'abord le pourcentage d'arrêts
 (arrêts sur tirs cadrés subis, c'est-à-dire arrêts + buts pris), puis les arrêts par match,
 l'impact et l'assiduité. Joueurs de champ : les buts face aux tirs (réussite au tir).
@@ -456,7 +457,8 @@ gardé ses joueurs retrouve son propre bilan.
 ## En buts plutôt qu'en pourcentages
 
 - **Buts évités par un gardien** : ses arrêts, moins ce qu'aurait arrêté le gardien moyen des poules sur les
-  mêmes tirs cadrés (dès 60 tirs) ; sur sa fiche, et pour la paire proposée dans la Semaine.
+  mêmes tirs cadrés (dès 60 tirs) ; sur sa fiche, et pour la paire proposée dans la Semaine (les deux gardiens
+  se partagent les tirs cadrés du match selon leur part habituelle : buts évités par tir × tirs de chacun).
 - **Écart attendu** de chaque match, en buts, à côté de la victoire estimée, et ajusté à l'équipe retenue
   d'après ce que les feuilles ont appris des présents (voir « Pronostics et réalité »).
 - **Coût d'une exclusion de 2 minutes**, mesuré sur nos feuilles : l'écart de buts des deux minutes qui
@@ -478,8 +480,8 @@ au modèle, chaque match étant prévu avec ce qu'on savait avant lui :
 
 - **le terrain** : buts attendus à domicile et à l'extérieur, au lieu des ±4 % posés au départ (environ
   +6 % et −2,5 % au 09/10/2026) ; ils servent à la simulation de la saison et aux matchs de coupe ;
-- **les buteurs absents** : la force de frappe d'une feuille, ce sont les buts par match de ses six meilleurs
-  buteurs de champ (les six joueurs de champ sur le terrain : une feuille plus longue ne marque pas plus). Une
+- **les buteurs absents** : la force de frappe d'une feuille, ce sont les buts par match, hors 7 m (un tireur de
+  penalties absent ne coûte pas ses 7 m, qu'un autre tirera), de ses six meilleurs buteurs de champ (les six joueurs de champ sur le terrain : une feuille plus longue ne marque pas plus). Une
   équipe dont la force de frappe alignée vaut une part p de l'habitude marque environ 1 + β (p − 1) fois ses
   buts attendus ; β ≈ 0,33 : les autres compensent une bonne part ;
 - **les gardiens** : chaque point d'arrêts de plus que le gardien habituel de l'équipe retire environ γ % des
@@ -489,6 +491,28 @@ au modèle, chaque match étant prévu avec ce qu'on savait avant lui :
 attendu de la feuille proposée : écart du modèle + β (p − 1) × nos buts attendus + γ × (arrêts des gardiens
 alignés − arrêts habituels) × leurs buts attendus. La victoire estimée et le risque restent ceux de la force
 alignée (les notes).
+
+## Banc d'essai des pronostics
+
+Pour savoir si un changement aux pronostics les améliore, il faut d'abord les mesurer (demande de l'auteur,
+16/11/2026). À chaque collecte, `pipeline/banc.py` rejoue chaque match des poules lues en entier (notre division
+la saison passée, nos deux poules cette saison) avec ce qu'on savait la veille, exactement comme la page le
+calcule pour nos matchs, et le met en face du score et de deux repères simples : un classement Elo, et
+« l'équipe qui reçoit gagne ». Il rejoue aussi, après chaque journée des poules terminées, les chances de
+chaque équipe de finir dans les places visées, face à son rang final et au « classement du moment ».
+
+Scores, dans l'onglet Saison, pour l'entraîneur seulement :
+
+- **Brier** : l'écart au carré entre la victoire annoncée et ce qui est arrivé (0 parfait, 0,25 pile ou face) ;
+  plus bas, mieux c'est ; aussi log-loss, vainqueur trouvé, erreur moyenne sur l'écart ;
+- **dispersion** : l'écart type du score annoncé face à celui observé (z² vaut 1 si le hasard du match est
+  bien réglé ; au-dessus, le modèle est trop sûr de lui) ; nuls annoncés et observés ;
+- **tranches** : quand on annonce 60 à 80 %, combien de fois c'est arrivé ;
+- selon le nombre de matchs déjà joués (début de saison, où l'on s'appuie sur la saison passée).
+
+Rien que des chiffres d'ensemble, ni nom de joueur ni nom d'équipe (`D.banc`, chiffré comme le reste). Ce qu'on
+changera aux pronostics (hasard du match, incertitude sur la force des équipes, enjeu des matchs clés,
+calendrier) devra faire baisser ces chiffres.
 
 ## Calendrier, application, image du bilan, causerie
 
