@@ -18,6 +18,9 @@ import pathlib
 import sys
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[1]
+# les fonctions de config.yml (caisse noire, présences, choix de l'entraîneur, convocation), telles qu'elles sont lues
+CONFIG_FONCTIONS = common.fonctions
+TOUTES = dict.fromkeys(common.FONCTIONS, True)
 
 
 def chrome(p):
@@ -57,6 +60,9 @@ def sandbox(tmp_path, monkeypatch):
     monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
         json.loads(p.read_text("utf-8")) for p in sorted((data / "matches").glob("*.json"))])
+    # tout allumé, même ce que config.yml coupe (16/11/2026) : ces parties restent vérifiées, prêtes à revenir ;
+    # test_fonctions_coupees vérifie la page telle que config.yml la règle
+    monkeypatch.setattr(common, "fonctions", lambda config=None: dict(TOUTES))
     return tmp_path
 
 
@@ -3086,3 +3092,111 @@ def test_recalcul_apres_les_choix():
     assert ch["permissions"]["actions"] == "write"
     run = next(s["run"] for s in ch["jobs"]["publier"]["steps"] if "recalculer" in (s.get("name") or "").lower())
     assert "gh workflow run weekly.yml" in run and "-f recalcul=true" in run and '"queued"' in run
+
+
+def test_fonctions_coupees(sandbox, monkeypatch):
+    """Simplification (demande de l'auteur, 16/11/2026) : caisse noire masquée ; présences, choix de l'entraîneur et
+    convocation coupés (config.yml, fonctions). La page est la même pour tous, la proposition du tableau de bord ; les
+    joueurs retenus se lisent sur la feuille de match ; choix.enc n'est plus lu, ni par la page ni par la collecte."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setattr(common, "fonctions", CONFIG_FONCTIONS)   # config.yml tel qu'il est
+    assert common.fonctions() == dict.fromkeys(common.FONCTIONS, False)
+    assert common.fonctions({}) == TOUTES and common.fonctions({"fonctions": {"caisse": False}})["choix"]   # absente : allumée
+    cfg = publish.page_config(dict(common.load_config(), depot="exemple/depot"))
+    assert cfg["choix"] == "" and cfg["src"] and cfg["fonctions"] == dict.fromkeys(common.FONCTIONS, False)
+    # la collecte : choix.enc présent et lisible, mais plus lu (feuilles, annulations)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    data = an.analyze("2026-10-04")
+    upcoming = next(m for m in data["agenda"] if m["bp"] is None)
+    a = data["joueurs"][0]["cle"]
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(dict(format="hbpsm-choix", v=1, annulees=[f"M-{upcoming['id']}"],
+        matchs={str(upcoming["id"]): dict(joueurs=[a], le="2026-10-03T20:00:00Z")}), PHRASE, 2000))
+    assert an.published_box() == {} and an.published_cancellations() == set()
+    with monkeypatch.context() as m:
+        m.setattr(common, "fonctions", lambda config=None: dict(TOUTES))
+        assert an.published_box()["matchs"] and an.published_cancellations() == {f"M-{upcoming['id']}"}   # allumés : lus
+    # une feuille publiée avant la coupure, pour un match pas encore joué : oubliée ; pour un match joué, gardée
+    agenda = [dict(id="9", date="2026-10-10T20:30", adversaire="Club Fictif", domicile=True, journee=2, joueurs=[])]
+    selections.record({"9": dict(joueurs=[a], le="2026-10-08T21:00:00Z")}, agenda, "2026-10-05T12:00", "2026-2027")
+    ids = lambda out: [e["id"] for e in out["matchs"]]
+    assert "9" in ids(selections.record({}, agenda, "2026-10-06T12:00", "2026-2027"))   # allumés, rien de lu : rien ne bouge
+    assert "9" not in ids(selections.record({}, agenda, "2026-10-06T12:00", "2026-2027", publiees=False))
+    selections.record({"9": dict(joueurs=[a], le="2026-10-08T21:00:00Z")}, agenda, "2026-10-05T12:00", "2026-2027")
+    kept = selections.record({}, agenda, "2026-10-11T12:00", "2026-2027", publiees=False)
+    assert next(e for e in kept["matchs"] if e["id"] == "9")["retenue"] == [a]
+    # le bandeau ne parle plus de feuille de l'entraîneur publiée ou retirée
+    prev, new = dict(selections=dict(matchs=[dict(id="9", retenue=[a])])), dict(selections=dict(matchs=[]))
+    assert [x["t"] for x in nouveautes.compare(prev, new)] == ["choix"] and nouveautes.compare(prev, new, choix=False) == []
+    # la page
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(data, {"choix": "https://exemple.test/publie/choix.enc"}), "utf-8")
+    asked = []
+
+    def only_file(route):
+        asked.append(route.request.url)
+        route.continue_() if route.request.url.startswith("file:") else route.abort()
+
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        ctx = browser.new_context()
+        ctx.route("**/*", only_file)
+        errors = []
+        coach = ctx.new_page()
+        coach.on("pageerror", lambda e: errors.append(str(e)))
+        coach.goto(page_file.as_uri() + "#entraineur")   # comme depuis HANDBALL-training
+        coach.wait_for_selector("header.top h1")
+        assert coach.evaluate("COACH && !EDIT") and coach.evaluate("document.body.classList.contains('lecture')")
+        assert "Planification" in coach.inner_text("h1") and coach.inner_text("#club-mode") == "mode entraîneur"
+        shown = coach.evaluate("[...document.querySelectorAll('nav.tabs button[data-tab]')].filter(b => !b.hidden).map(b => b.dataset.tab)")
+        assert shown == ["planif", "semaine", "joueurs", "adv", "saison", "moi"]
+        assert coach.evaluate("primaryTabs()") == ["planif", "semaine", "joueurs", "saison"]
+        # plus rien à valider ni à publier ; une case dit sa raison, sans rien changer
+        assert coach.locator("[data-valider], [data-retirer], [data-publier], #jeton").count() == 0 and not coach.is_visible("#regle")
+        assert "proposition" in coach.inner_text("p.lecture-only >> nth=0") and coach.locator("main .sugg").count() == 0
+        coach.click(".cell[data-cell] >> nth=0")
+        assert coach.is_visible("#why") and coach.evaluate("JSON.stringify([S.dm, S.pin, S.valide || {}])") == "[{},{},{}]"
+        # ce qu'un ancien mode entraîneur a rangé dans ce navigateur ne change plus la proposition
+        before = coach.evaluate("PLAN[0].sel.map(p => p.cle)")
+        coach.evaluate("""(() => { const r = PLAN[0], c = r.sel[0].cle; S.dm[r.m.id] = {[c]: 'a'}; S.blesse = {[c]: {de: '2000-01-01', a: null}};
+          S.valide = {[r.m.id]: {joueurs: [c], le: '2026-10-03'}}; S.annule = {['M-' + r.m.id]: true}; render(true); })()""")
+        assert coach.evaluate("PLAN[0].sel.map(p => p.cle)") == before and coach.evaluate("PLAN[0].etat") == "suggestion"
+        # les présences : une absence annoncée ne compte plus, aucun point de présence
+        coach.evaluate("""(() => { const m = PLAN[0].m, c = PLAN[0].sel[0].cle; PRESJ = {ops: [{id: 'd:1', t: 'dispo', joueur: c, evs: ['M-' + m.id],
+          etat: 'absent', motif: 'malade', texte: '', app: 'x', le: new Date().toISOString()}]}; DECL = null; render(true); })()""")
+        assert coach.evaluate("PLAN[0].sel.map(p => p.cle)") == before and coach.evaluate("presCount(PLAN[0].m)") == ""
+        assert coach.locator(".pmk").count() == 0
+        # les choix publiés ne sont plus demandés, même avec la phrase et leur adresse
+        coach.evaluate("localStorage.setItem('hbpsm:phrase', 'x')")
+        assert coach.evaluate("fetchChoices()") is False and not any("choix.enc" in u for u in asked)
+        # Semaine : la proposition, sans convocation ; le bilan la met en face de la feuille du match (entraîneur)
+        coach.click("nav.tabs button[data-tab=semaine]")
+        assert "Proposition : " in coach.inner_text("main") and coach.locator("main [data-tab=convoc]").count() == 0
+        coach.evaluate("""(() => { const f = bilanFacts(), sheet = f.rows.map(o => o.p.cle), other = D.joueurs.find(p => !sheet.includes(p.cle));
+          D.selections = {matchs: [{id: f.x.id, auto: [...sheet.slice(1), other.cle]}]}; render(true); document.querySelector('.bilan').open = true; })()""")
+        bilan = coach.inner_text(".bilan")
+        assert "Proposition du tableau de bord et feuille" in bilan and "proposés mais pas sur la feuille" in bilan
+        assert "sur la feuille sans avoir été proposés" in bilan and "Choix de l'entraîneur" not in bilan
+        # téléphone : quatre onglets, les autres sous « Plus », rien ne déborde
+        coach.set_viewport_size({"width": 360, "height": 780})
+        coach.click("nav.tabs [data-plus]")
+        assert coach.evaluate("[...document.querySelectorAll('#plus-menu button')].map(b => b.dataset.tab)") == ["adv", "moi"]
+        assert coach.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        # un joueur : la caisse noire demandée dans l'adresse ouvre Ma semaine, sans caisse ; pas d'onglet Présences
+        player = ctx.new_page()
+        player.on("pageerror", lambda e: errors.append(str(e)))
+        player.goto(page_file.as_uri())
+        player.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle)")
+        player.goto(page_file.as_uri() + "#caisse")
+        player.reload()   # seule l'ancre change : la page ne se recharge pas d'elle-même
+        player.wait_for_selector("header.top h1")
+        main = player.inner_text("main")
+        assert player.inner_text("h1") == "Ma semaine" and "Ma caisse noire" not in main and "pas encore validé" not in main
+        assert player.evaluate("primaryTabs()") == ["moi", "semaine", "saison", "joueurs"]
+        player.evaluate("""(() => { const me = localStorage.getItem('hbpsm:moi'); D.presences = Object.assign({}, D.presences, {gestion: [me]});
+          localStorage.setItem('hbpsm:codes', JSON.stringify({[me]: {code: 'ABCD-EFGH', h: 'x'}})); CFG.fonctions.presences = true; render(true); })()""")
+        assert player.evaluate("GESTION") is True   # allumées, il tiendrait les présences
+        player.evaluate("CFG.fonctions.presences = false; render(true)")
+        assert player.evaluate("GESTION") is False and player.locator("nav.tabs button[data-tab=presences]").is_hidden()
+        browser.close()
+    assert errors == []

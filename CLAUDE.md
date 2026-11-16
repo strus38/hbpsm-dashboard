@@ -35,14 +35,35 @@ Le dépôt `strus38/hbpsm-dashboard` est PUBLIC et ne sert qu'à poser le code.
 - Garder chaque proposition du tableau de bord (`pipeline/selections.py`, `auto` et `proposee`) et la mettre
   en face des choix de l'entraîneur et des résultats (`pronostic.influence`) ; lire ce bilan avant de toucher à
   la rotation ou aux notes, et en parler à l'auteur.
+- Depuis le 16/11/2026 (voir « Parties coupées »), les choix de l'entraîneur sont coupés : plus de recalcul lancé
+  par `choix.yml` ; le choix de l'entraîneur, c'est la feuille de match lue, en face de `auto`.
 
 Secrets GitHub attendus : `HBPSM_CLE` (phrase secrète, 16 caractères au moins) et
 `HBPSM_EFFECTIF` (un joueur par ligne, « Prénom Nom »). En local, les passer en variables
 d'environnement ; ne jamais les écrire dans un fichier du dépôt.
 
+## Parties coupées (demande de l'auteur, 16/11/2026 : « Simplification de l'application »)
+
+Demande : masquer la caisse noire (pas utilisée) ; désactiver l'onglet Présences et les choix de l'entraîneur (« tu
+découvres les joueurs sélectionnés sur la feuille de match ») ; pareil pour la Convocation, inutile. Fait par
+interrupteurs, sans effacer le code : `fonctions` dans config.yml (caisse, presences, choix, convocation : false),
+`common.fonctions(config)` (absente = allumée), passé à la page par `CFG.fonctions` (`page_config`, et `render` pour
+l'aperçu et `suggestions.py`). Page : `ON(k)`, `EDIT` = `COACH && ON("choix")` (le mode entraîneur ne modifie plus
+rien : `body.lecture`, `SP()` neutre, ni validation, ni publication, ni cases ; il garde l'ouverture sur la
+planification, les écarts `seesAll` et les jetons de la santé), `tabOn` / `primaryTabs` (onglets cachés, même demandés
+dans l'adresse ; téléphone : entraîneur planif, semaine, joueurs, saison ; joueur moi, semaine, saison, joueurs),
+`seesPres` (réponses de présence hors de la proposition), `suggOf` / `etatTag` (plus d'état ni de pointillés), bilan
+du match : « Proposition du tableau de bord et feuille » pour l'entraîneur (`D.selections`, `auto`). Collecte :
+`analyze.published_box` renvoie {} (ni feuilles, ni blessés, ni annulations de choix.enc), `selections.record(publiees=
+False)` oublie une feuille publiée avant pour un match pas encore joué, `nouveautes.compare(choix=False)` sans élément
+« choix ». Restent : identité et code personnel, homme du match (votants : feuille lue seulement), lecture de fond
+de caisse.enc et propositions.enc (pour ne pas laisser d'envoi en attente renvoyé sans fin). Les workflows `choix.yml`
+et `caisse.yml` restent, plus lancés par la page. Tests : le `sandbox` rallume tout (`TOUTES`), `test_fonctions_coupees`
+vérifie config.yml tel quel. Pour rallumer une partie : `true` dans config.yml, rien d'autre.
+
 ## État
 
-Testé (70 tests au 18/10/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
+Testé (71 tests au 16/11/2026, `python -m pytest -q`, cinq minutes environ dont deux pour le test des envois parallèles) sur un faux site et de fausses
 feuilles qui reprennent la forme du vrai site : collecte, lecture des feuilles, analyse,
 chiffrement, reprise d'état, page publiée ouverte en fichier local. Les tests qui ouvrent un
 navigateur prennent le Chrome installé sur le PC (`HBPSM_NAVIGATEUR=chromium` sinon).

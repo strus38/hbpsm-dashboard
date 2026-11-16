@@ -82,6 +82,24 @@ l'onglet Actions. Une réponse 401 : jeton expiré ou mal copié ; 403 ou 404 : 
 dépôt pas choisis. Dates et heures sont celles de Paris. Quand les données changent,
 une Release « Données du … » est créée.
 
+## Parties coupées (16/11/2026)
+
+Pour simplifier l'application (demande de l'auteur), quatre parties sont coupées dans `config.yml`,
+rubrique `fonctions` ; leur code est gardé, `true` les rallume :
+
+| Fonction | Coupée, cela veut dire |
+|---|---|
+| `caisse` | l'onglet « Caisse noire » et « Ma caisse noire » de Ma semaine sont masqués (l'anniversaire reste dans Ma semaine) |
+| `presences` | plus d'onglet « Présences » ; les réponses de présence n'entrent plus dans la feuille proposée |
+| `choix` | l'entraîneur ne valide plus de feuille et ne publie plus blessés, absents, rendez-vous ni annulations ; `choix.enc` n'est plus lu, ni par la page ni par la collecte. La page montre à tous la même proposition du tableau de bord, et les joueurs retenus se découvrent sur la feuille de match, une fois lue. La proposition gardée avant chaque match est mise en face de cette feuille (« L'entraîneur face aux propositions », bilan du match pour l'entraîneur) |
+| `convocation` | plus d'onglet « Convocation » |
+
+Le lien `#entraineur` de HANDBALL-training marche toujours : la page s'ouvre sur la planification
+et montre à l'entraîneur les écarts entre propositions et feuilles, sans rien à modifier. L'homme
+du match (vote des joueurs de la feuille lue), « Qui êtes-vous ? » et le code personnel restent.
+Les sections ci-dessous sur la feuille validée, la caisse noire, la convocation et les présences
+décrivent ces parties telles qu'elles marchent une fois rallumées.
+
 ## Pour les entraîneurs
 
 Télécharger une fois `HBPSM-tableau-de-bord.html` depuis la dernière Release et le garder sur
@@ -213,6 +231,8 @@ marquée « (coupe) » : la collecte le retrouve dans les compétitions de `vois
 
 ## Feuille validée par l'entraîneur
 
+*Coupée depuis le 16/11/2026 (`fonctions.choix` de `config.yml`) : voir « Parties coupées ».*
+
 Tant que l'entraîneur n'a pas validé un match, tout le monde voit sur la page une
 **suggestion** du tableau de bord (cases en pointillés chez les visiteurs). En mode entraîneur,
 « Valider la feuille » (planification, semaine ou convocation) fige la feuille de ce match et
@@ -239,6 +259,8 @@ il reste dans son navigateur, jamais dans un fichier. « Oublier le jeton de pub
 bas de la planification, l'efface.
 
 ## Caisse noire
+
+*Masquée depuis le 16/11/2026 (`fonctions.caisse` de `config.yml`) : voir « Parties coupées ».*
 
 L'onglet « Caisse noire » reprend le règlement du groupe (`pipeline/caisse.py`), point par
 point. Il montre ce qu'il y a dans la caisse, le podium des amendes, les comptes de chacun et
@@ -316,7 +338,8 @@ matchs joués est signalé « pas encore à jour » plutôt que comme une pénal
 ## Réglages
 
 - `config.yml` : URL des poules, motifs de reconnaissance du club, taille de la feuille, rang
-  visé, équipe et jours d'entraînement.
+  visé, équipe et jours d'entraînement ; `fonctions` : parties de l'application coupées (voir
+  « Parties coupées »).
 - Effectif : le nom s'écrit « Prénom Nom » ; il est rapproché de celui de la feuille de match
   sans tenir compte de l'ordre, des accents ni de la casse. On peut ajouter `,POSTE`
   (GB, ALG, ARG, DC, ARD, ALD, PIV). Un joueur jamais aligné apparaît dans « Pas encore alignés ».
@@ -493,6 +516,9 @@ toucher au tableau de bord. Secrets : `HBPSM_JETON_CN` ici, `HBPSM_CLE` dans les
 
 ## Présences et homme du match
 
+*Présences coupées depuis le 16/11/2026 (`fonctions.presences` de `config.yml`) : voir « Parties coupées ».
+« Qui êtes-vous ? », le code personnel et l'homme du match restent.*
+
 À sa première ouverture, la page demande « Qui êtes-vous ? » : chacun choisit son nom une fois sur son
 appareil. Ce choix part au dépôt `strus38/hbpsm-cn` ; un nom déjà choisi sur un autre appareil est
 signalé (« C'est bien moi » ou « Choisir un autre nom »), et l'appareil d'origine voit qu'un autre s'est
@@ -620,3 +646,6 @@ vrai site ; ils couvrent la collecte, la lecture des feuilles, l'analyse, le chi
 reprise d'état et la page publiée ouverte en fichier local. Ce dernier test ouvre le Chrome
 installé sur le poste (`HBPSM_NAVIGATEUR=chromium` pour le Chromium de Playwright, après
 `playwright install chromium`). `python -m pipeline.demo_data` crée des données fictives pour un aperçu.
+Les tests rallument les parties coupées dans `config.yml` (caisse noire, présences, choix de
+l'entraîneur, convocation), qui restent ainsi vérifiées ; `test_fonctions_coupees` vérifie la page
+et la collecte telles que `config.yml` les règle.

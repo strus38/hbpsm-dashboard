@@ -18,7 +18,7 @@ from collections import Counter, defaultdict
 
 from .common import (DATA, PUBLIE, ROOT, is_club, load_config, load_matches, match_name, name_key,
                      norm, paris_now, read_json, same_team, write_json)
-from . import caisse, pronostic, selections, vault
+from . import caisse, common, pronostic, selections, vault
 from .parse_fdme import split_name
 
 POINTS = {"V": 3, "N": 2, "D": 1}  # barème FFHB
@@ -1552,9 +1552,10 @@ def freeze_plan(players, matchs, sheets, roster, config, history=()):
 
 def published_box():
     """Tout ce que l'entraîneur a publié (publie/choix.enc : feuilles, blessés, absents, rendez-vous, annulations),
-    quand la phrase du club est là ; {} sinon."""
+    quand la phrase du club est là ; {} sinon, et quand les choix de l'entraîneur sont coupés (config.yml,
+    fonctions, 16/11/2026) : les joueurs retenus se lisent alors sur la feuille de match."""
     path, secret = PUBLIE / "choix.enc", os.environ.get("HBPSM_CLE") or ""
-    if not path.exists() or not secret:
+    if not path.exists() or not secret or not common.fonctions()["choix"]:
         return {}
     try:
         box = vault.decrypt(read_json(path), secret) or {}
@@ -1822,7 +1823,7 @@ def analyze(today=None, roster=None):
     agenda = club_agenda(every_fixture, every_match, config, roster)
     # les feuilles publiées de l'entraîneur, et la proposition du tableau de bord à côté (pipeline/selections.py) :
     # avant les pronostics, qui disent après le match ce que valait chacune
-    chosen = selections.record(choix, agenda, now, config.get("saison"))
+    chosen = selections.record(choix, agenda, now, config.get("saison"), publiees=common.fonctions(config)["choix"])
     pronos, suivi = pronostic.record(saison, profiles, club_name, every_match + outside, year, cal, config, roster, players,
                                      now, config.get("saison"), w_past, choix,
                                      {e["id"]: e for e in chosen["matchs"]}) if club_name else ([], dict(n=0))

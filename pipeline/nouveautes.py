@@ -33,8 +33,9 @@ def _ids(rows):
     return {str(r.get("id")): r for r in rows or []}
 
 
-def compare(prev, data):
-    """Les changements entre les données publiées (prev, None la première fois) et les nouvelles."""
+def compare(prev, data, choix=True):
+    """Les changements entre les données publiées (prev, None la première fois) et les nouvelles. choix=False :
+    choix de l'entraîneur coupés (config.yml, fonctions), pas de « feuille de l'entraîneur publiée / retirée »."""
     if not prev or not data:
         return []
     items, club = [], (data.get("meta") or {}).get("club")
@@ -103,13 +104,13 @@ def compare(prev, data):
     so, sn = _ids((prev.get("selections") or {}).get("matchs")), _ids((data.get("selections") or {}).get("matchs"))
     for mid, e in sn.items():
         o = so.get(mid) or {}
-        if e.get("retenue") and e["retenue"] != o.get("retenue"):
+        if choix and e.get("retenue") and e["retenue"] != o.get("retenue"):
             items.append(dict(_match(e), t="choix", etat="modifiee" if o.get("retenue") else "publiee"))
         if e.get("auto") and o.get("auto") and e["auto"] != o["auto"]:
             items.append(dict(_match(e), t="proposition", prive=True, plus=sorted(set(e["auto"]) - set(o["auto"])),
                               moins=sorted(set(o["auto"]) - set(e["auto"]))))
     for mid, o in so.items():
-        if o.get("retenue") and not (sn.get(mid) or {}).get("retenue"):
+        if choix and o.get("retenue") and not (sn.get(mid) or {}).get("retenue"):
             items.append(dict(_match(o), t="choix", etat="retiree"))
     io, inn = pp.get("influence") or {}, np_.get("influence") or {}
     if inn.get("n") and inn.get("n") != io.get("n"):

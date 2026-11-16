@@ -38,9 +38,11 @@ def _describe(e, m, saison):
     return e
 
 
-def record(choix, agenda, now, saison):
+def record(choix, agenda, now, saison, publiees=True):
     """choix : feuilles publiées {match: {joueurs, le, suggestion}} (analyze.published_choices) ; agenda : matchs
-    du club (analyze.club_agenda) ; now : « AAAA-MM-JJTHH:MM », heure de Paris ; saison : « 2026-2027 »."""
+    du club (analyze.club_agenda) ; now : « AAAA-MM-JJTHH:MM », heure de Paris ; saison : « 2026-2027 ».
+    publiees=False : choix de l'entraîneur coupés (config.yml, fonctions) ; une feuille publiée avant pour un match
+    pas encore joué est oubliée, l'équipe retenue sera celle de la feuille de match."""
     kept = _load()
     for m in agenda:
         mid, c = str(m["id"]), (choix or {}).get(str(m["id"])) or {}
@@ -51,7 +53,7 @@ def record(choix, agenda, now, saison):
             e.update(retenue=sorted(c["joueurs"]), le=c.get("le"))
             if c.get("suggestion"):
                 e["proposee"] = sorted(c["suggestion"])
-        elif choix and e.get("retenue") and kick and not started:
+        elif (choix or not publiees) and e.get("retenue") and kick and not started:
             for k in ("retenue", "le", "proposee"):   # validation retirée avant le match : la proposition calculée reste
                 e.pop(k, None)
         if not (e.get("retenue") or e.get("auto")):
