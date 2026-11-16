@@ -265,6 +265,9 @@ def seal(today=None):
     secret = vault.passphrase()
     config = load_config()
     data = analyze(today)
+    # le banc d'essai dans le journal de la collecte : des chiffres d'ensemble, ni nom de joueur ni nom d'équipe
+    # (pipeline/banc.py) ; seul moyen de les lire sans la phrase du club
+    print("[banc] " + json.dumps(data.get("banc"), ensure_ascii=False, separators=(",", ":")))
     scratch = ROOT / "raw" / "export"
     # l'effectif annoncé de la prochaine séance : les réponses de présence (dépôt hbpsm-cn), tant que les entraînements
     # sont suivis (presences.entrainements) ; les séances et matchs annulés (choix.enc) : séance suivante, match marqué

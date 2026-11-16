@@ -86,7 +86,9 @@ Demande de l'auteur : « commence par les petits défauts et le banc d'essai ».
   `play_match`, vérifiée contre la simulation), face à Elo (K 30, +40 à domicile, saison passée reprise à moitié) et
   « l'équipe qui reçoit gagne » ; Brier, log-loss, vainqueur, erreur sur l'écart, dispersion (z²), nuls, tranches,
   par matchs déjà joués ; chances de l'objectif rejouées après chaque journée des poules terminées (300 saisons
-  simulées par journée), face au classement du moment. Environ 3 s pour huit poules. `outlook` appelle les mêmes
+  simulées par journée), face au classement du moment. Aussi en une ligne `[banc] {…}` (JSON, chiffres d'ensemble) dans le
+  journal de la collecte (`publish.seal`) : seul moyen de les lire sans la phrase (journal public : jamais de nom) ;
+  un banc en échec ne bloque jamais la publication (`[banc] non calculé`). Environ 3 s pour huit poules. `outlook` appelle les mêmes
   `draw_strengths` / `play_match` (sortie identique avant et après, vérifié). Constat sur données inventées : à
   hasard de match juste, z² reste souvent au-dessus de 1 quand les équipes diffèrent beaucoup (incertitude UNSURE
   trop étroite) : à regarder sur les vraies données.

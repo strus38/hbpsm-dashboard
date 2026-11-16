@@ -1813,7 +1813,11 @@ def analyze(today=None, roster=None):
     cal = pronostic.calibrate([x.get("matches") or [] for x in history] + [every_match + outside])
     terrain = (cal["dom"], cal["ext"])
     # le banc d'essai : chaque match des poules lues en entier rejoué avec ce qu'on savait la veille (pipeline/banc.py)
-    bench = banc.evaluate(seasons, matches, priors, terrain, target)
+    try:
+        bench = banc.evaluate(seasons, matches, priors, terrain, target)
+    except Exception as exc:   # un diagnostic : jamais au prix de la publication
+        print(f"[banc] non calculé ({type(exc).__name__})")
+        bench = None
     saison = (outlook(matches, fixtures, club_name, club_poule, target,
                       known=[t for t in teams.get(str(club_poule), ()) if norm(t) not in gone], priors=priors,
                       terrain=terrain, waiting=waiting)

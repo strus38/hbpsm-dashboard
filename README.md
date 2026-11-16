@@ -510,7 +510,8 @@ Scores, dans l'onglet Saison, pour l'entraîneur seulement :
 - **tranches** : quand on annonce 60 à 80 %, combien de fois c'est arrivé ;
 - selon le nombre de matchs déjà joués (début de saison, où l'on s'appuie sur la saison passée).
 
-Rien que des chiffres d'ensemble, ni nom de joueur ni nom d'équipe (`D.banc`, chiffré comme le reste). Ce qu'on
+Rien que des chiffres d'ensemble, ni nom de joueur ni nom d'équipe (`D.banc`, chiffré comme le reste, et une
+ligne `[banc]` dans le journal de la collecte pour les lire sans la phrase). Ce qu'on
 changera aux pronostics (hasard du match, incertitude sur la force des équipes, enjeu des matchs clés,
 calendrier) devra faire baisser ces chiffres.
 

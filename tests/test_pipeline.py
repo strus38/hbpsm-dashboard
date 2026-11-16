@@ -537,8 +537,9 @@ def test_effectif_et_feuilles(sandbox):
 PHRASE = "cinq mots tires au hasard"
 
 
-def test_publication_chiffree(sandbox, monkeypatch):
-    """Rien de nominatif en clair dans publie/, et l'état se reprend d'un lancement à l'autre."""
+def test_publication_chiffree(sandbox, monkeypatch, capsys):
+    """Rien de nominatif en clair dans publie/ ni dans le journal (banc d'essai), et l'état se reprend d'un lancement
+    à l'autre."""
     monkeypatch.setattr(vault, "ITERATIONS", 2000)
     monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
     monkeypatch.delenv("HBPSM_CLE", raising=False)
@@ -549,7 +550,12 @@ def test_publication_chiffree(sandbox, monkeypatch):
         publish.seal("2026-10-04")
     monkeypatch.setenv("HBPSM_CLE", PHRASE)
     demo(sandbox)
+    capsys.readouterr()
     publish.seal("2026-10-04")
+    log = [l for l in capsys.readouterr().out.splitlines() if l.startswith("[banc] ")]
+    data = vault.decrypt(json.loads((sandbox / "publie" / "hbpsm.enc").read_text("utf-8")), PHRASE)["data"]
+    assert len(log) == 1 and json.loads(log[0][7:])["saison"]["n"] > 0   # le banc d'essai, lisible dans le journal
+    assert not any(p["nom"] in log[0] for p in data["joueurs"]) and not any(t in log[0] for t in data["equipes"])
     out = sandbox / "publie"
     assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc", "hbpsm.enc", "manifeste.json",
                                                     "matchs.ics", publish.SEANCE_NAME, publish.PUBLIC_NAME]
