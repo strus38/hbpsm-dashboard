@@ -1,12 +1,12 @@
 {
  "format": "handball-training",
  "version": 3,
- "exporteLe": "2026-11-15T19:22:49.000Z",
+ "exporteLe": "2026-11-16T00:59:46.000Z",
  "application": "hbpsm-dashboard",
  "contenu": {
   "type": "seance",
   "seance": {
-   "id": "tableau-de-bord-2026-11-15",
+   "id": "tableau-de-bord-2026-11-16",
    "titre": "Préparer HB TAIN VION TOURNON 2",
    "date": "2026-11-17",
    "equipe": "Seniors garçons",
@@ -18,8 +18,8 @@
    "retour": "",
    "retourEcritLe": "",
    "exercices": [],
-   "creeLe": "2026-11-15T19:22:49.000Z",
-   "modifieLe": "2026-11-15T19:22:49.000Z"
+   "creeLe": "2026-11-16T00:59:46.000Z",
+   "modifieLe": "2026-11-16T00:59:46.000Z"
   }
  }
 }
