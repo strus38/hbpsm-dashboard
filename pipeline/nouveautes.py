@@ -6,11 +6,12 @@ avertir chacun par un bandeau).
 données qu'elle vient de calculer à celles publiées juste avant (hbpsm.enc, déchiffré) : résultats et feuilles du
 club, feuilles et résultats des autres équipes de nos poules, classement, chances d'atteindre l'objectif,
 pronostics des prochains matchs, bilans des pronostics, modèle, notes des joueurs, feuilles publiées de
-l'entraîneur, propositions du tableau de bord, bilan des choix de l'entraîneur. Un passage qui change quelque
+l'entraîneur, propositions du tableau de bord, bilan des choix de l'entraîneur, banc d'essai des pronostics (de
+nouveaux matchs rejoués, pipeline/banc.py). Un passage qui change quelque
 chose ajoute une ligne à data/nouveautes.json (repris de etat.enc) ; la page montre, en bandeau, celles que
 l'appareil n'a pas encore vues.
 
-Les éléments `prive` (proposition du tableau de bord, bilan des choix de l'entraîneur) ne s'affichent qu'à
+Les éléments `prive` (proposition du tableau de bord, bilan des choix de l'entraîneur, banc d'essai) ne s'affichent qu'à
 l'entraîneur et à celui qui tient les présences : la proposition tient compte des présences de chacun.
 """
 from .common import DATA, read_json, write_json
@@ -33,8 +34,9 @@ def _ids(rows):
     return {str(r.get("id")): r for r in rows or []}
 
 
-def compare(prev, data):
-    """Les changements entre les données publiées (prev, None la première fois) et les nouvelles."""
+def compare(prev, data, choix=True):
+    """Les changements entre les données publiées (prev, None la première fois) et les nouvelles. choix=False :
+    choix de l'entraîneur coupés (config.yml, fonctions), pas de « feuille de l'entraîneur publiée / retirée »."""
     if not prev or not data:
         return []
     items, club = [], (data.get("meta") or {}).get("club")
@@ -103,14 +105,19 @@ def compare(prev, data):
     so, sn = _ids((prev.get("selections") or {}).get("matchs")), _ids((data.get("selections") or {}).get("matchs"))
     for mid, e in sn.items():
         o = so.get(mid) or {}
-        if e.get("retenue") and e["retenue"] != o.get("retenue"):
+        if choix and e.get("retenue") and e["retenue"] != o.get("retenue"):
             items.append(dict(_match(e), t="choix", etat="modifiee" if o.get("retenue") else "publiee"))
         if e.get("auto") and o.get("auto") and e["auto"] != o["auto"]:
             items.append(dict(_match(e), t="proposition", prive=True, plus=sorted(set(e["auto"]) - set(o["auto"])),
                               moins=sorted(set(o["auto"]) - set(e["auto"]))))
     for mid, o in so.items():
-        if o.get("retenue") and not (sn.get(mid) or {}).get("retenue"):
+        if choix and o.get("retenue") and not (sn.get(mid) or {}).get("retenue"):
             items.append(dict(_match(o), t="choix", etat="retiree"))
+    # le banc d'essai (pipeline/banc.py) : de nouveaux matchs rejoués ; pour l'entraîneur
+    bo, bn = (prev.get("banc") or {}).get("toutes") or {}, (data.get("banc") or {}).get("toutes") or {}
+    if bn.get("n") and bn.get("n") != bo.get("n"):
+        items.append(dict(t="banc", prive=True, n=bn["n"], modele=(bn.get("modele") or {}).get("brier"),
+                          elo=(bn.get("elo") or {}).get("brier")))
     io, inn = pp.get("influence") or {}, np_.get("influence") or {}
     if inn.get("n") and inn.get("n") != io.get("n"):
         items.append(dict(t="influence", prive=True, n=inn["n"], diff=inn.get("diff"), marge=inn.get("marge")))

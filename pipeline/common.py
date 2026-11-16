@@ -20,6 +20,18 @@ def load_config():
     return yaml.safe_load((ROOT / "config.yml").read_text("utf-8"))
 
 
+# Les parties de l'application qu'on peut couper sans effacer leur code (config.yml, « fonctions » ; demande de
+# l'auteur, 16/11/2026 : simplifier) : caisse noire, présences, choix de l'entraîneur, convocation.
+FONCTIONS = ("caisse", "presences", "choix", "convocation")
+
+
+def fonctions(config=None):
+    """{nom: allumée} ; une fonction absente de config.yml reste allumée. Toujours appelée par le module
+    (common.fonctions) : les tests rallument tout d'un seul remplacement."""
+    conf = ((load_config() if config is None else config) or {}).get("fonctions") or {}
+    return {k: conf.get(k, True) is not False for k in FONCTIONS}
+
+
 PARIS = zoneinfo.ZoneInfo("Europe/Paris")
 
 

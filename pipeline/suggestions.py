@@ -10,6 +10,9 @@ journal des présences : pour chaque match de la planification, la proposition s
 ni logos, ni polices, ni dépôt. La page, qui porte les données en clair, n'est écrite que dans un dossier
 temporaire effacé aussitôt.
 
+Choix de l'entraîneur ou présences coupés (config.yml, fonctions ; 16/11/2026) : la page les ignore, la proposition
+est celle que tous voient.
+
 Sans navigateur (Playwright absent, Chrome introuvable), rien n'est calculé et la collecte continue.
 HBPSM_SUGGESTIONS=0 coupe ce calcul (tests).
 """

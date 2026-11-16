@@ -18,6 +18,9 @@ import pathlib
 import sys
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[1]
+# les fonctions de config.yml (caisse noire, présences, choix de l'entraîneur, convocation), telles qu'elles sont lues
+CONFIG_FONCTIONS = common.fonctions
+TOUTES = dict.fromkeys(common.FONCTIONS, True)
 
 
 def chrome(p):
@@ -57,6 +60,9 @@ def sandbox(tmp_path, monkeypatch):
     monkeypatch.setattr(an, "ROOT", tmp_path)  # roster.csv du poste (vrais noms) jamais lu par les tests
     monkeypatch.setattr(an, "load_matches", lambda: [
         json.loads(p.read_text("utf-8")) for p in sorted((data / "matches").glob("*.json"))])
+    # tout allumé, même ce que config.yml coupe (16/11/2026) : ces parties restent vérifiées, prêtes à revenir ;
+    # test_fonctions_coupees vérifie la page telle que config.yml la règle
+    monkeypatch.setattr(common, "fonctions", lambda config=None: dict(TOUTES))
     return tmp_path
 
 
@@ -531,8 +537,9 @@ def test_effectif_et_feuilles(sandbox):
 PHRASE = "cinq mots tires au hasard"
 
 
-def test_publication_chiffree(sandbox, monkeypatch):
-    """Rien de nominatif en clair dans publie/, et l'état se reprend d'un lancement à l'autre."""
+def test_publication_chiffree(sandbox, monkeypatch, capsys):
+    """Rien de nominatif en clair dans publie/ ni dans le journal (banc d'essai), et l'état se reprend d'un lancement
+    à l'autre."""
     monkeypatch.setattr(vault, "ITERATIONS", 2000)
     monkeypatch.setattr(vault.encrypt, "__defaults__", (2000,))
     monkeypatch.delenv("HBPSM_CLE", raising=False)
@@ -543,7 +550,12 @@ def test_publication_chiffree(sandbox, monkeypatch):
         publish.seal("2026-10-04")
     monkeypatch.setenv("HBPSM_CLE", PHRASE)
     demo(sandbox)
+    capsys.readouterr()
     publish.seal("2026-10-04")
+    log = [l for l in capsys.readouterr().out.splitlines() if l.startswith("[banc] ")]
+    data = vault.decrypt(json.loads((sandbox / "publie" / "hbpsm.enc").read_text("utf-8")), PHRASE)["data"]
+    assert len(log) == 1 and json.loads(log[0][7:])["saison"]["n"] > 0   # le banc d'essai, lisible dans le journal
+    assert not any(p["nom"] in log[0] for p in data["joueurs"]) and not any(t in log[0] for t in data["equipes"])
     out = sandbox / "publie"
     assert sorted(p.name for p in out.iterdir()) == ["HBPSM-tableau-de-bord.html", "etat.enc", "hbpsm.enc", "manifeste.json",
                                                     "matchs.ics", publish.SEANCE_NAME, publish.PUBLIC_NAME]
@@ -2936,7 +2948,7 @@ def test_choix_face_aux_propositions(sandbox, monkeypatch):
     demo(sandbox, played_days=4)
     d2 = an.analyze("2026-10-12")
     a = next(x for x in d2["pronostics"]["matchs"] if x["id"] == nxt["id"])["apres"]
-    assert a["v"] == pronostic.V == 2 and a["proposee"]["source"] == "publication" and a["retenue"]["part"] > 0
+    assert a["v"] == pronostic.V and a["proposee"]["source"] == "publication" and a["retenue"]["part"] > 0
     assert a["choix"]["source"] == "publiee" and a["choix"]["plus"] == sorted(field[10:12]) and a["choix"]["moins"] == sorted(field[:2])
     assert a["jouee"]["ecart"] == round(a["jouee"]["pour"] - a["jouee"]["contre"], 1)
     inf = d2["pronostics"]["influence"]
@@ -3086,3 +3098,277 @@ def test_recalcul_apres_les_choix():
     assert ch["permissions"]["actions"] == "write"
     run = next(s["run"] for s in ch["jobs"]["publier"]["steps"] if "recalculer" in (s.get("name") or "").lower())
     assert "gh workflow run weekly.yml" in run and "-f recalcul=true" in run and '"queued"' in run
+
+
+def test_fonctions_coupees(sandbox, monkeypatch):
+    """Simplification (demande de l'auteur, 16/11/2026) : caisse noire masquée ; présences, choix de l'entraîneur et
+    convocation coupés (config.yml, fonctions). La page est la même pour tous, la proposition du tableau de bord ; les
+    joueurs retenus se lisent sur la feuille de match ; choix.enc n'est plus lu, ni par la page ni par la collecte."""
+    pw = pytest.importorskip("playwright.sync_api")
+    monkeypatch.setattr(common, "fonctions", CONFIG_FONCTIONS)   # config.yml tel qu'il est
+    assert common.fonctions() == dict.fromkeys(common.FONCTIONS, False)
+    assert common.fonctions({}) == TOUTES and common.fonctions({"fonctions": {"caisse": False}})["choix"]   # absente : allumée
+    cfg = publish.page_config(dict(common.load_config(), depot="exemple/depot"))
+    assert cfg["choix"] == "" and cfg["src"] and cfg["fonctions"] == dict.fromkeys(common.FONCTIONS, False)
+    # la collecte : choix.enc présent et lisible, mais plus lu (feuilles, annulations)
+    monkeypatch.setenv("HBPSM_CLE", PHRASE)
+    demo(sandbox)
+    data = an.analyze("2026-10-04")
+    upcoming = next(m for m in data["agenda"] if m["bp"] is None)
+    a = data["joueurs"][0]["cle"]
+    common.write_json(sandbox / "publie" / "choix.enc", vault.encrypt(dict(format="hbpsm-choix", v=1, annulees=[f"M-{upcoming['id']}"],
+        matchs={str(upcoming["id"]): dict(joueurs=[a], le="2026-10-03T20:00:00Z")}), PHRASE, 2000))
+    assert an.published_box() == {} and an.published_cancellations() == set()
+    with monkeypatch.context() as m:
+        m.setattr(common, "fonctions", lambda config=None: dict(TOUTES))
+        assert an.published_box()["matchs"] and an.published_cancellations() == {f"M-{upcoming['id']}"}   # allumés : lus
+    # une feuille publiée avant la coupure, pour un match pas encore joué : oubliée ; pour un match joué, gardée
+    agenda = [dict(id="9", date="2026-10-10T20:30", adversaire="Club Fictif", domicile=True, journee=2, joueurs=[])]
+    selections.record({"9": dict(joueurs=[a], le="2026-10-08T21:00:00Z")}, agenda, "2026-10-05T12:00", "2026-2027")
+    ids = lambda out: [e["id"] for e in out["matchs"]]
+    assert "9" in ids(selections.record({}, agenda, "2026-10-06T12:00", "2026-2027"))   # allumés, rien de lu : rien ne bouge
+    assert "9" not in ids(selections.record({}, agenda, "2026-10-06T12:00", "2026-2027", publiees=False))
+    selections.record({"9": dict(joueurs=[a], le="2026-10-08T21:00:00Z")}, agenda, "2026-10-05T12:00", "2026-2027")
+    kept = selections.record({}, agenda, "2026-10-11T12:00", "2026-2027", publiees=False)
+    assert next(e for e in kept["matchs"] if e["id"] == "9")["retenue"] == [a]
+    # le bandeau ne parle plus de feuille de l'entraîneur publiée ou retirée
+    prev, new = dict(selections=dict(matchs=[dict(id="9", retenue=[a])])), dict(selections=dict(matchs=[]))
+    assert [x["t"] for x in nouveautes.compare(prev, new)] == ["choix"] and nouveautes.compare(prev, new, choix=False) == []
+    # la page
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(data, {"choix": "https://exemple.test/publie/choix.enc"}), "utf-8")
+    asked = []
+
+    def only_file(route):
+        asked.append(route.request.url)
+        route.continue_() if route.request.url.startswith("file:") else route.abort()
+
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        ctx = browser.new_context()
+        ctx.route("**/*", only_file)
+        errors = []
+        coach = ctx.new_page()
+        coach.on("pageerror", lambda e: errors.append(str(e)))
+        coach.goto(page_file.as_uri() + "#entraineur")   # comme depuis HANDBALL-training
+        coach.wait_for_selector("header.top h1")
+        assert coach.evaluate("COACH && !EDIT") and coach.evaluate("document.body.classList.contains('lecture')")
+        assert "Planification" in coach.inner_text("h1") and coach.inner_text("#club-mode") == "mode entraîneur"
+        shown = coach.evaluate("[...document.querySelectorAll('nav.tabs button[data-tab]')].filter(b => !b.hidden).map(b => b.dataset.tab)")
+        assert shown == ["planif", "semaine", "joueurs", "adv", "saison", "moi"]
+        assert coach.evaluate("primaryTabs()") == ["planif", "semaine", "joueurs", "saison"]
+        # plus rien à valider ni à publier ; une case dit sa raison, sans rien changer
+        assert coach.locator("[data-valider], [data-retirer], [data-publier], #jeton").count() == 0 and not coach.is_visible("#regle")
+        assert "proposition" in coach.inner_text("p.lecture-only >> nth=0") and coach.locator("main .sugg").count() == 0
+        coach.click(".cell[data-cell] >> nth=0")
+        assert coach.is_visible("#why") and coach.evaluate("JSON.stringify([S.dm, S.pin, S.valide || {}])") == "[{},{},{}]"
+        # ce qu'un ancien mode entraîneur a rangé dans ce navigateur ne change plus la proposition
+        before = coach.evaluate("PLAN[0].sel.map(p => p.cle)")
+        coach.evaluate("""(() => { const r = PLAN[0], c = r.sel[0].cle; S.dm[r.m.id] = {[c]: 'a'}; S.blesse = {[c]: {de: '2000-01-01', a: null}};
+          S.valide = {[r.m.id]: {joueurs: [c], le: '2026-10-03'}}; S.annule = {['M-' + r.m.id]: true}; render(true); })()""")
+        assert coach.evaluate("PLAN[0].sel.map(p => p.cle)") == before and coach.evaluate("PLAN[0].etat") == "suggestion"
+        # les présences : une absence annoncée ne compte plus, aucun point de présence
+        coach.evaluate("""(() => { const m = PLAN[0].m, c = PLAN[0].sel[0].cle; PRESJ = {ops: [{id: 'd:1', t: 'dispo', joueur: c, evs: ['M-' + m.id],
+          etat: 'absent', motif: 'malade', texte: '', app: 'x', le: new Date().toISOString()}]}; DECL = null; render(true); })()""")
+        assert coach.evaluate("PLAN[0].sel.map(p => p.cle)") == before and coach.evaluate("presCount(PLAN[0].m)") == ""
+        assert coach.locator(".pmk").count() == 0
+        # les choix publiés ne sont plus demandés, même avec la phrase et leur adresse
+        coach.evaluate("localStorage.setItem('hbpsm:phrase', 'x')")
+        assert coach.evaluate("fetchChoices()") is False and not any("choix.enc" in u for u in asked)
+        # Semaine : la proposition, sans convocation ; le bilan la met en face de la feuille du match (entraîneur)
+        coach.click("nav.tabs button[data-tab=semaine]")
+        assert "Proposition : " in coach.inner_text("main") and coach.locator("main [data-tab=convoc]").count() == 0
+        coach.evaluate("""(() => { const f = bilanFacts(), sheet = f.rows.map(o => o.p.cle), other = D.joueurs.find(p => !sheet.includes(p.cle));
+          D.selections = {matchs: [{id: f.x.id, auto: [...sheet.slice(1), other.cle]}]}; render(true); document.querySelector('.bilan').open = true; })()""")
+        bilan = coach.inner_text(".bilan")
+        assert "Proposition du tableau de bord et feuille" in bilan and "proposés mais pas sur la feuille" in bilan
+        assert "sur la feuille sans avoir été proposés" in bilan and "Choix de l'entraîneur" not in bilan
+        # téléphone : quatre onglets, les autres sous « Plus », rien ne déborde
+        coach.set_viewport_size({"width": 360, "height": 780})
+        coach.click("nav.tabs [data-plus]")
+        assert coach.evaluate("[...document.querySelectorAll('#plus-menu button')].map(b => b.dataset.tab)") == ["adv", "moi"]
+        assert coach.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        # un joueur : la caisse noire demandée dans l'adresse ouvre Ma semaine, sans caisse ; pas d'onglet Présences
+        player = ctx.new_page()
+        player.on("pageerror", lambda e: errors.append(str(e)))
+        player.goto(page_file.as_uri())
+        player.evaluate("localStorage.setItem('hbpsm:moi', D.joueurs.find(p => p.m).cle)")
+        player.goto(page_file.as_uri() + "#caisse")
+        player.reload()   # seule l'ancre change : la page ne se recharge pas d'elle-même
+        player.wait_for_selector("header.top h1")
+        main = player.inner_text("main")
+        assert player.inner_text("h1") == "Ma semaine" and "Ma caisse noire" not in main and "pas encore validé" not in main
+        assert player.evaluate("primaryTabs()") == ["moi", "semaine", "saison", "joueurs"]
+        player.evaluate("""(() => { const me = localStorage.getItem('hbpsm:moi'); D.presences = Object.assign({}, D.presences, {gestion: [me]});
+          localStorage.setItem('hbpsm:codes', JSON.stringify({[me]: {code: 'ABCD-EFGH', h: 'x'}})); CFG.fonctions.presences = true; render(true); })()""")
+        assert player.evaluate("GESTION") is True   # allumées, il tiendrait les présences
+        player.evaluate("CFG.fonctions.presences = false; render(true)")
+        assert player.evaluate("GESTION") is False and player.locator("nav.tabs button[data-tab=presences]").is_hidden()
+        browser.close()
+    assert errors == []
+
+
+def test_petits_defauts(sandbox, monkeypatch):
+    """Les petits défauts relevés le 16/11/2026 : planification figée qui ignore une feuille corrigée, match clé sur un
+    match joué dont on attend le résultat, buts sur 7 m dans la force de frappe, paire de gardiens comptée deux fois,
+    assiduité des -18 comptée d'un seul côté."""
+    pw = pytest.importorskip("playwright.sync_api")
+    demo(sandbox)
+    calls, real = [], an.outlook
+    monkeypatch.setattr(an, "outlook", lambda *a, **k: calls.append((a, k)) or real(*a, **k))
+    d = an.analyze("2026-10-04")
+    # 1. une feuille corrigée (config.yml) refait la planification figée sans attendre la feuille suivante
+    m0, path = d["saison"]["matchs"][0], sandbox / "data" / an.PLANIF
+    state = json.loads(path.read_text("utf-8"))
+    state["matchs"][str(m0["id"])]["p"] = 1
+    path.write_text(json.dumps(state), "utf-8")
+    assert an.analyze("2026-10-04")["saison"]["matchs"][0]["p_plan"] == 1   # figée
+    fixed = dict(common.load_config(), corrections=[dict(match="999", gardiens=[dict(num=1, de=0, a=60)])])
+    monkeypatch.setattr(an, "load_config", lambda: fixed)
+    assert an.analyze("2026-10-04")["saison"]["matchs"][0]["p_plan"] == m0["p_victoire"]   # refaite
+    # 2. un match joué dont on attend le résultat ne prend pas une place de match clé
+    a, k = calls[0]
+    keys = [m["id"] for m in real(*a, **k)["matchs"] if m["cle"]]
+    assert keys
+    later = next(m for m in real(*a, **dict(k, waiting={str(keys[0])}))["matchs"] if m["id"] == keys[0])
+    assert later["attente"] and not later["cle"]
+    # 3. la force de frappe : les buts hors 7 m (un tireur de penalties absent ne coûte pas ses 7 m)
+    sheet = lambda goals, pens: dict(players=dict(home=[dict(num=7, name="TIREUR Invente", goals=goals, pen_goals=pens)] + [
+        dict(num=n, name=f"AUTRE Invente{n}", goals=2, pen_goals=0) for n in range(2, 8)], away=[]), events=[])
+    taux = lambda goals, pens: pronostic.team_model([(sheet(goals, pens), "home", 1.0)], conceded=lambda m, s: ({}, None))["taux"]
+    k7 = pronostic.player_key(dict(name="TIREUR Invente"))
+    assert taux(6, 5)[k7] < taux(6, 0)[k7] and pronostic.open_goals(dict(goals=6, pen_goals=5)) == 1
+    # 4. les -18 d'un joueur sans match senior comptent aussi au dénominateur de son assiduité
+    club = [json.loads(f.read_text("utf-8")) for f in sorted((sandbox / "data" / "matches").glob("*.json"))]
+    club = [x for x in club if demo_data.CLUB in (x["home"]["name"], x["away"]["name"]) and x["players"]["home"]][:2]
+    young = []
+    for i, x in enumerate(club):
+        side = "home" if x["home"]["name"] == demo_data.CLUB else "away"
+        y = json.loads(json.dumps(x))
+        y.update(id=f"m18-{i}", date=f"2026-03-0{i + 1}", saison="2025-2026")
+        y["players"][side] = [dict(y["players"][side][0], name="ALIGNE Jamais", goals=4, num=99)] + y["players"][side][1:]
+        young.append(y)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026-m18.json",
+                      dict(saison="2025-2026", categorie="M18", competition="https://exemple/m18-1/", poules={}, matches=young))
+    monkeypatch.setattr(an, "load_config", common.load_config)
+    d = an.analyze("2026-10-04", roster={common.name_key("Jamais Aligné"): dict(nom="Jamais Aligné", poste="", disponible=True)})
+    new, n = next(p for p in d["joueurs"] if p["nom"] == "Jamais Aligné"), d["meta"]["club_feuilles"]
+    hw2 = an.HIST2 * an.fade(n)
+    assert not new.get("passe") and new["comps"]["assid"] == pytest.approx(hw2 * 2 / (n + hw2 * 2), abs=0.006)
+    # 5. la paire de gardiens : ils se partagent les tirs du match, leurs buts évités ne s'additionnent pas
+    assert d["meta"]["cadres_match"] > 0
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(d, {}), "utf-8")
+    with pw.sync_playwright() as p:
+        browser = chrome(p)
+        page = browser.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(page_file.as_uri())
+        line = page.evaluate("""(() => { D.meta.cadres_match = 30; const gks = D.joueurs.filter(p => isGK(p));
+          gks.forEach(p => { p.evites_cumul = null; });
+          gks.slice(0, 2).forEach(p => { p.part_gb = 0.5; p.evites_cumul = {par_match: 3, marge: 1, par_tir: 0.1, marge_tir: 0.03}; });
+          return gkPairLine({gks: gks.slice(0, 2), m: PLAN[0].m}); })()""")
+        assert "environ +3 buts par match" in line and "+6" not in line
+        browser.close()
+    assert errors == []
+
+
+def saison_inventee(seed, poules="AB", equipes=8, bruit=1.0, saison="2025-2026"):
+    """Une saison passée inventée : poules complètes aller-retour, forces connues, le hasard du match de la simulation
+    (analyze.play_match) élargi de `bruit`."""
+    import datetime as dt
+    import math
+    import random
+    rng, out = random.Random(seed), []
+    for poule in poules:
+        teams = [f"EQUIPE INVENTEE {poule}{i}" for i in range(equipes)]
+        att = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
+        dfn = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
+        n = len(teams)
+        order = teams[:]
+        rounds = []
+        for r in range(n - 1):   # tableau à la ronde : chaque équipe joue une fois par journée
+            rounds.append([(order[i], order[n - 1 - i]) for i in range(n // 2)])
+            order = [order[0]] + [order[-1]] + order[1:-1]
+        rounds += [[(a, h) for h, a in day] for day in rounds]
+        for j, day in enumerate(rounds, 1):
+            for h, a in day:
+                mh, ma = 28 * att[h] * dfn[a] * 1.05, 28 * att[a] * dfn[h] * 0.97
+                gh = max(0, round(rng.gauss(mh, bruit * mh ** 0.5)))
+                ga = max(0, round(rng.gauss(ma, bruit * ma ** 0.5)))
+                d = (dt.date(2025, 9, 13) + dt.timedelta(days=7 * j)).isoformat()
+                out.append(dict(id=f"{saison}{poule}{j}{h[-2:]}", poule=poule, journee=j, date=d + "T20:00", saison=saison,
+                                played=True, home=dict(name=h, score=gh), away=dict(name=a, score=ga),
+                                players=dict(home=[], away=[])))
+    return out
+
+
+def test_banc_d_essai(sandbox, monkeypatch):
+    """Le banc d'essai (demande de l'auteur, 16/11/2026 : mesurer avant d'améliorer) : chaque match rejoué avec ce qu'on
+    savait la veille, face à Elo et à « l'équipe qui reçoit gagne » ; les chances de l'objectif rejouées sur les poules
+    terminées ; rien que des chiffres d'ensemble, pour l'entraîneur."""
+    import random
+    from pipeline import banc
+    # la loi sans tirage (match_law) est bien celle de la simulation (draw_strengths, play_match)
+    att0, dfn0 = {"A": 1.15, "B": 0.9}, {"A": 0.95, "B": 1.1}
+    unsure = {"A": 0.08, "B": 0.05}
+    ecart, mu, sd, pw, pd = banc.match_law(28.0, att0, dfn0, unsure, "A", "B", 1.05, 0.97)
+    rng, att, dfn, n, wins, draws, margins = random.Random(5), dict(att0), dict(dfn0), 40000, 0, 0, []
+    for _ in range(n):
+        an.draw_strengths(rng, att0, dfn0, unsure, att, dfn)
+        gh, ga = an.play_match(rng, 28.0, att, dfn, "A", "B", 1.05, 0.97)
+        wins, draws = wins + (gh > ga), draws + (gh == ga)
+        margins.append(gh - ga)
+    m = sum(margins) / n
+    assert abs(pw - wins / n) < 0.012 and abs(pd - draws / n) < 0.006 and abs(mu - m) < 0.15
+    assert abs(sd - (sum((x - m) ** 2 for x in margins) / n) ** 0.5) < 0.15
+    # un monde inventé au hasard du match de la simulation, aux équipes bien différentes : le modèle bat les repères
+    juste = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3))], [], {}, (1.05, 0.97), 2)
+    p = juste["passees"]
+    assert p["n"] == 2 * (8 * 7 - 4) and juste["saison"] is None and juste["poules"] == 2   # la 1re journée : rien à rejouer
+    assert p["modele"]["brier"] < p["elo"]["brier"] < p["domicile"]["brier"] and sum(t["n"] for t in p["tranches"]) == p["n"]
+    c = juste["chances"]
+    assert c["n"] == 2 * 8 * 13 and c["brier"] < c["moment"] and [x["moment"] for x in c["par_moment"]] == ["début", "milieu", "fin"]
+    # un hasard du match 1,6 fois plus large (2,56 fois la variance) : le banc le voit, le modèle est trop sûr de lui
+    large = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3, bruit=1.6))], [], {}, (1.05, 0.97), 2)
+    assert large["passees"]["dispersion"]["z2"] > 1.8 * p["dispersion"]["z2"]
+    # une poule pas finie : ses matchs sont rejoués, pas ses chances
+    partial = saison_inventee(4, poules="C")[:-1]   # le dernier match pas encore joué
+    assert banc.evaluate([dict(saison="2025-2026", matches=partial)], [], {}, (1.05, 0.97), 2)["chances"] is None
+    # dans la collecte : D.banc, sans aucun nom ; le bandeau l'annonce à l'entraîneur
+    demo(sandbox)
+    common.write_json(sandbox / "data" / "historique" / "2025-2026.json",
+                      dict(saison="2025-2026", competition="https://exemple/", poules={}, matches=saison_inventee(6)))
+    d = an.analyze("2026-10-04")
+    b = d["banc"]
+    assert b["passees"]["n"] > 0 and b["saison"]["n"] > 0 and b["chances"]["n"] > 0 and b["saisons"] == ["2025-2026"]
+    text = json.dumps(b, ensure_ascii=False)
+    assert "INVENTEE" not in text and not any(p["nom"] in text for p in d["joueurs"]) and demo_data.CLUB not in text
+    items = nouveautes.compare(dict(d, banc=None), d)
+    assert [x for x in items if x["t"] == "banc"] == [dict(t="banc", prive=True, n=b["toutes"]["n"], modele=b["toutes"]["modele"]["brier"],
+                                                          elo=b["toutes"]["elo"]["brier"])]
+    # la page : l'entraîneur le voit dans l'onglet Saison, pas un joueur
+    pw_ = pytest.importorskip("playwright.sync_api")
+    page_file = sandbox / "page.html"
+    page_file.write_text(render(d, {}), "utf-8")
+    with pw_.sync_playwright() as pl:
+        browser = chrome(pl)
+        errors = []
+        coach = browser.new_page()
+        coach.on("pageerror", lambda e: errors.append(str(e)))
+        coach.goto(page_file.as_uri() + "#entraineur")
+        coach.click("nav.tabs button[data-tab=saison]")
+        text = coach.inner_text("main")
+        assert "Le banc d'essai des pronostics" in text and "Notre modèle" in text and "L'équipe qui reçoit gagne" in text
+        assert "Les chances de finir dans les 2 premiers" in text and coach.locator("table.banc").count() >= 2
+        assert "Banc d'essai" in coach.evaluate("nouvItem({t: 'banc', n: 12, modele: 0.2, elo: 0.21})[0]")
+        coach.set_viewport_size({"width": 360, "height": 780})
+        assert coach.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 0
+        player = browser.new_page()
+        player.on("pageerror", lambda e: errors.append(str(e)))
+        player.goto(page_file.as_uri())
+        player.click("nav.tabs button[data-tab=saison]")
+        assert "banc d'essai" not in player.inner_text("main").lower()
+        browser.close()
+    assert errors == []

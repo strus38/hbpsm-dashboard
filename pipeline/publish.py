@@ -31,7 +31,7 @@ import pathlib
 import sys
 import time
 
-from . import agenda, collect, nouveautes, presences, selections, suggestions, vault
+from . import agenda, collect, common, nouveautes, presences, selections, suggestions, vault
 from .analyze import analyze, published_box, published_cancellations
 from .build_dashboard import app_version, render
 from .common import DATA, MATCHES, PUBLIE, ROOT, load_config, norm, read_json, write_json
@@ -58,8 +58,10 @@ def page_config(config):
     slug = repo_slug(config)
     branch = os.environ.get("GITHUB_REF_NAME") or config.get("branche") or "main"
     raw = f"https://raw.githubusercontent.com/{slug}/{branch}/publie/" if slug else ""
+    on = common.fonctions(config)   # choix de l'entraîneur coupés : la page ne lit plus choix.enc
     return dict(src=raw + "hbpsm.enc" if raw else "", manifeste=raw + "manifeste.json" if raw else "",
-                choix=raw + "choix.enc" if raw else "", caisse=raw + "caisse.enc" if raw else "",
+                choix=raw + "choix.enc" if raw and on["choix"] else "", caisse=raw + "caisse.enc" if raw else "",
+                fonctions=on,
                 sante=raw + "sante.json" if raw else "", ics=raw + agenda.NAME if raw else "",
                 depot=slug, branche=branch,
                 **cn_config(config),
@@ -263,6 +265,9 @@ def seal(today=None):
     secret = vault.passphrase()
     config = load_config()
     data = analyze(today)
+    # le banc d'essai dans le journal de la collecte : des chiffres d'ensemble, ni nom de joueur ni nom d'équipe
+    # (pipeline/banc.py) ; seul moyen de les lire sans la phrase du club
+    print("[banc] " + json.dumps(data.get("banc"), ensure_ascii=False, separators=(",", ":")))
     scratch = ROOT / "raw" / "export"
     # l'effectif annoncé de la prochaine séance : les réponses de présence (dépôt hbpsm-cn), tant que les entraînements
     # sont suivis (presences.entrainements) ; les séances et matchs annulés (choix.enc) : séance suivante, match marqué
@@ -278,7 +283,7 @@ def seal(today=None):
         data["selections"] = selections.record_auto(auto, data.get("agenda") or [], data["meta"]["instant"], config.get("saison"))
     # ce qui a changé depuis la publication d'avant : le bandeau de la page (pipeline/nouveautes.py)
     source = "recalcul" if os.environ.get("HBPSM_RECALCUL") else "collecte"
-    items = nouveautes.compare(previous_data(secret), data)
+    items = nouveautes.compare(previous_data(secret), data, choix=common.fonctions(config)["choix"])
     data["nouveautes"] = nouveautes.record(items, source, data["meta"]["genere"])
     state = collect_state()
     roster_text = (ROOT / "roster.csv").read_text("utf-8") if (ROOT / "roster.csv").exists() else ""

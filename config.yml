@@ -13,6 +13,16 @@ poules:
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196332/"
   - id: "72"
     url: "https://www.ffhandball.fr/competitions/saison-2026-2027-22/regional/2eme-division-masculine-p16-aura-30501/poule-196334/"
+# Parties de l'application coupées (demande de l'auteur, 16/11/2026 : simplifier) ; true les rallume, leur code est
+# gardé. caisse : l'onglet Caisse noire (pas utilisée). presences : l'onglet Présences de celui qui les tient, et les
+# réponses dans la feuille proposée. choix : les choix de l'entraîneur (feuille validée, blessés, absents, rendez-vous,
+# annulations) ; la page propose une feuille, les joueurs retenus se lisent sur la feuille de match une fois lue.
+# convocation : l'onglet Convocation.
+fonctions:
+  caisse: false
+  presences: false
+  choix: false
+  convocation: false
 # Joueurs à choisir pour chaque match, dont les gardiens ("auto" = maximum déjà aligné cette saison)
 effectif_feuille: 12
 gardiens_feuille: 2

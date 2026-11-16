@@ -9,6 +9,7 @@ La même page sert dans deux modes :
 import hashlib
 import json
 
+from . import common
 from .common import DOCS, ROOT, write_json
 
 TEMPLATE = ROOT / "dashboard" / "template.html"
@@ -23,9 +24,11 @@ def _json(obj):
 
 
 def render(page_data, cfg=None):
-    """page_data=None donne la page publiée, sans donnée."""
+    """page_data=None donne la page publiée, sans donnée. Les fonctions coupées (config.yml, « fonctions ») vont
+    à toutes les pages : publiée, aperçu local, celle qui calcule les propositions (pipeline/suggestions.py)."""
     html = TEMPLATE.read_text("utf-8")
     cfg = dict(cfg or {}, app=app_version())
+    cfg.setdefault("fonctions", common.fonctions())
     return html.replace("__DATA__", _json(page_data)).replace("__CFG__", _json(cfg))
 
 

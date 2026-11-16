@@ -26,7 +26,8 @@ from . import analyze as an
 from .common import DATA, is_club, match_name, name_key, read_json, same_team, write_json
 
 NAME = "pronostics.json"   # data/, repris de etat.enc
-V = 2                      # version du calcul de la réalité : une autre version refait les bilans déjà faits
+V = 3                      # version du calcul de la réalité : une autre version refait les bilans déjà faits
+                           # (3, 16/11/2026 : force de frappe sans les buts sur 7 m)
                            # (2 : la proposition du tableau de bord et l'équipe jouée, chiffrées, 10/10/2026)
 GARDE = 80                 # pronostics gardés (un peu plus de deux saisons)
 
@@ -56,7 +57,7 @@ def club_key(roster):
 # ---------------------------------------------------------------- qui joue : buts habituels, gardiens
 def team_model(entries, keyf=player_key, conceded=None):
     """Ce qu'une équipe a l'habitude d'aligner, d'après ses feuilles : [(match, côté, poids)].
-    taux : buts par match de chaque joueur de champ, ramenés vers la moyenne de l'équipe (K_BUTS) ; base :
+    taux : buts hors 7 m par match de chaque joueur de champ (open_goals), ramenés vers la moyenne de l'équipe (K_BUTS) ; base :
     force de frappe d'une feuille habituelle (frappe) ; sr : % d'arrêts de chaque gardien, ramené vers
     celui de l'équipe (K_GB tirs) ; part : sa part des tirs cadrés subis ; noms : pour dire qui manquait."""
     conceded = conceded or an.keepers_conceded
@@ -71,7 +72,7 @@ def team_model(entries, keyf=player_key, conceded=None):
                     sv[k] += w * pl["saves"]
                     fc[k] += w * (pl["saves"] + against[pl["num"]])
                 continue
-            g[k] += w * (pl.get("goals") or 0)
+            g[k] += w * open_goals(pl)
             n[k] += w
     tn = sum(n.values())
     if not tn:
@@ -86,6 +87,12 @@ def team_model(entries, keyf=player_key, conceded=None):
     return dict(taux=taux, moyen=moyen, base=base, tr=tr, noms=noms, apps=dict(n), feuilles=len(entries),
                 sr={k: (sv[k] + K_GB * tr) / (fc[k] + K_GB) for k in fc} if tr is not None else {},
                 part={k: fc[k] / faced for k in fc} if faced else {})
+
+
+def open_goals(pl):
+    """Les buts d'un joueur hors 7 m (16/11/2026) : un tireur de penalties absent ne coûte pas ses 7 m, qu'un autre
+    tirera ; la force de frappe et les buts de ceux qui entrent se comptent ainsi."""
+    return max(0, (pl.get("goals") or 0) - (pl.get("pen_goals") or 0))
 
 
 def field(m, side, keyf=player_key):
@@ -346,7 +353,7 @@ def reality(m, side, avant, cal, models, keyf, choix=None, cles=None, gardiens=f
     if suggestion and coach:
         out["proposee"] = dict(lineup(us, suggestion, avant, cal, gardiens), source=source)
         plus, moins = sorted(set(coach) - set(suggestion)), sorted(set(suggestion) - set(coach))
-        goals = {keyf(pl): pl.get("goals") or 0 for pl in sheet if not pl.get("saves")}
+        goals = {keyf(pl): open_goals(pl) for pl in sheet if not pl.get("saves")}
         on = [k for k in plus if k in goals]   # ceux qu'il a fait entrer et qui ont joué dans le champ
         out["choix"] = dict(source="publiee" if choix else "feuille", plus=plus, moins=moins,
                             buts_plus=sum(goals[k] for k in on) if sheet else None,
