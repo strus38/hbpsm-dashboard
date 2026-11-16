@@ -92,8 +92,28 @@ Demande de l'auteur : « commence par les petits défauts et le banc d'essai ».
   `draw_strengths` / `play_match` (sortie identique avant et après, vérifié). Constat sur données inventées : à
   hasard de match juste, z² reste souvent au-dessus de 1 quand les équipes diffèrent beaucoup (incertitude UNSURE
   trop étroite) : à regarder sur les vraies données.
-Suite proposée : hasard du match, incertitude, enjeu, calendrier, chacun gardé seulement s'il fait baisser les
-scores du banc ; puis les notes, avec l'auteur.
+Première lecture réelle (collecte du 16/11/2026, 09:19 UTC, après la fusion de la PR #9) : 2025-2026 (4 poules,
+157 matchs rejoués, sans point de départ) : Brier 0,157 contre 0,204 (Elo) et 0,252 (domicile), vainqueur 79 %,
+écart à 7,2 buts près ; dispersion 9,7 observée contre 8,2 annoncée (z² 1,37) ; annoncé 91 % (80-100) arrivé 84 %,
+annoncé 70 % (60-80) arrivé 83 % ; nuls 8 contre 5,4 annoncés. Cette saison (23 matchs, avec point de départ) :
+0,205 contre 0,222 et 0,252, z² 0,97. Chances de l'objectif (91 estimations) : 0,109 contre 0,176 pour le
+classement du moment, pas mieux que lui en début de saison ; annoncé 99 % arrivé 92 %. Verdict : bon modèle, trop
+sûr de lui.
+Variantes (demande de l'auteur, 16/11/2026 : « commence par la comparaison de variantes ») : `analyze.INCERTITUDE`
+(« actuelle » : UNSURE × √(k/(j+k)) ; « racine » : base / √(j+k)) et `analyze.BRUIT` (écart type des buts = BRUIT ×
+√μ), réglables dans `uncertainty(base, forme)` et `play_match(bruit)`, valeurs en service inchangées (sortie
+d'`outlook` identique, vérifié) ; `banc.variantes()` : le réglage en service puis la grille `BASES` × `BRUITS` (15) ;
+chaque match rejoué porte les pronostics de toutes (`v`) ; `variant_scores` : log-loss, Brier, z², nuls annoncés,
+écart de log-loss match par match face au réglage en service et sa marge à 95 % ; chances de l'objectif pour le
+réglage en service et les 3 meilleures (`CHANCES_VARIANTES`) ; `D.banc.variantes` (la meilleure d'abord),
+`meilleure`, `reglage` ; z² aussi par moment de la saison (`par_matchs`). Page : `bancVariantes` (« Les réglages
+essayés »). Règle : un réglage ne change que si la meilleure variante fait mieux au-delà de la marge sur tous les
+matchs, sans faire pire au-delà de sa marge cette saison ni sur les chances ; la meilleure est choisie sur les mêmes
+matchs (avance un peu flattée). Sur données inventées : à hasard 1,3 fois plus large, les variantes « hasard ×1,3 »
+passent devant et z² retombe de 2,15 à 1,1, mais l'écart de log-loss (−0,021) reste dans sa marge (±0,028) sur
+208 matchs : z² détecte mieux, la log-loss tranche.
+Suite : lire les variantes sur les vraies données ; puis enjeu des matchs clés, calendrier ; puis les notes, avec
+l'auteur.
 
 ## État
 
