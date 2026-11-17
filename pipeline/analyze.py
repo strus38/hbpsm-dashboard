@@ -1258,15 +1258,19 @@ def pairs(with_sheet):
     return out
 
 
-def forces(table, priors=None):
+PESEE = 3   # le poids du point de départ d'une équipe, en matchs (forces) ; 2 de plus avec un effectif resté
+
+
+def forces(table, priors=None, pesee=None):
     """Buts marqués et encaissés attendus de chaque équipe, relatifs à la moyenne de la poule : ses matchs joués,
     ramenés vers une valeur de départ — la moyenne de poule, ou le niveau de la saison passée d'autant plus que
-    l'effectif est resté (continuité c), pesant 3 à 5 matchs. table : {équipe: ligne du classement}. Renvoie
-    (buts par match de la poule, attaque, défense, poids de départ de chacune)."""
+    l'effectif est resté (continuité c), pesant PESEE à PESEE + 2 matchs (3 à 5). table : {équipe: ligne du
+    classement}. Renvoie (buts par match de la poule, attaque, défense, poids de départ de chacune)."""
     total_j = sum(r["j"] for r in table.values()) or 1
     avg = sum(r["bp"] for r in table.values()) / total_j
     priors = priors or {}
-    k_of = {t: 3 + 2 * (priors[t][2] if t in priors else 0.0) for t in table}
+    k0 = PESEE if pesee is None else pesee
+    k_of = {t: k0 + 2 * (priors[t][2] if t in priors else 0.0) for t in table}
 
     def rate(t, scored):
         r, prior = table[t], priors.get(t)
@@ -1303,6 +1307,8 @@ def pending_points(played, pending, known=(), priors=None, terrain=None, sims=40
 UNSURE = 0.08  # incertitude de départ sur la force d'une équipe (±8 % de buts), réduite par les matchs joués
 INCERTITUDE = "actuelle"   # sa forme (uncertainty) ; « racine » : selon ce qu'on sait d'elle au départ (k)
 BRUIT = 1.0    # le hasard du match : écart type des buts d'une équipe = BRUIT × √(buts attendus)
+ETIREMENT = 0.0   # l'écart attendu d'un match, tiré × N(1, ETIREMENT) : de plus larges victoires quand les forces
+                  # diffèrent, sans élargir les matchs serrés (0 : pas d'étirement, aucun tirage de plus)
 # Réglages mis à l'épreuve par le banc d'essai (pipeline/banc.py, VARIANTES ; demande de l'auteur, 16/11/2026) :
 # ils ne changent qu'après une comparaison qui le justifie.
 
@@ -1324,12 +1330,17 @@ def draw_strengths(rng, att0, dfn0, unsure, att, dfn):
         dfn[t] = dfn0[t] * math.exp(rng.gauss(0, unsure[t]))
 
 
-def play_match(rng, avg, att, dfn, home, away, dom_f, ext_f, bruit=None):
-    """Un match simulé : les buts de chaque équipe, tirés selon une loi normale d'écart type BRUIT × √(moyenne).
-    La même loi sert au banc d'essai (pipeline/banc.py, match_law)."""
+def play_match(rng, avg, att, dfn, home, away, dom_f, ext_f, bruit=None, etirement=None):
+    """Un match simulé : les buts de chaque équipe, tirés selon une loi normale d'écart type BRUIT × √(moyenne) ;
+    avec ETIREMENT, l'écart attendu est d'abord tiré × N(1, ETIREMENT), le total des buts gardé. La même loi sert au
+    banc d'essai (pipeline/banc.py, match_law)."""
     b = BRUIT if bruit is None else bruit
+    e = ETIREMENT if etirement is None else etirement
     mh = avg * att[home] * dfn[away] * dom_f
     ma = avg * att[away] * dfn[home] * ext_f
+    if e:
+        d, t = (mh - ma) * rng.gauss(1, e), mh + ma
+        mh, ma = max(0.5, (t + d) / 2), max(0.5, (t - d) / 2)
     return (max(0, round(rng.gauss(mh, b * mh ** 0.5))), max(0, round(rng.gauss(ma, b * ma ** 0.5))))
 
 
