@@ -112,8 +112,29 @@ matchs, sans faire pire au-delà de sa marge cette saison ni sur les chances ; l
 matchs (avance un peu flattée). Sur données inventées : à hasard 1,3 fois plus large, les variantes « hasard ×1,3 »
 passent devant et z² retombe de 2,15 à 1,1, mais l'écart de log-loss (−0,021) reste dans sa marge (±0,028) sur
 208 matchs : z² détecte mieux, la log-loss tranche.
-Suite : lire les variantes sur les vraies données ; puis enjeu des matchs clés, calendrier ; puis les notes, avec
-l'auteur.
+Lecture des variantes sur les vraies données (collecte du 16/11/2026, 10:12 UTC, après la fusion de la PR #10) :
+aucune ne bat le réglage en service (log-loss 0,487 sur 180 matchs) ; les plus proches font pire dans la marge
+(±12 % au départ : +0,003 ± 0,005 ; « selon le départ » 0,2 : +0,003 ± 0,004 ; hasard ×1,15 : +0,005 ± 0,007), les
+plus larges pire au-delà (±16 % et ×1,3 : +0,019 ± 0,017 ; « selon le départ » 0,3 et ×1,3 : +0,021 ± 0,018). Le
+réglage reste donc (règle). z² en service : 1,47 (0 à 2 matchs joués), 1,50 (3 à 5), 1,26 (6 et plus) en 2025-2026 :
+l'excès de dispersion dure toute la saison. Lecture : le score varie plus qu'annoncé, mais élargir la loi rend les
+victoires estimées moins bonnes ; l'excès vient des larges victoires de favoris (annoncé 60-80 % arrivé 77-83 % : trop
+prudent ; annoncé 80-100 % arrivé 84 % : trop sûr), pas de surprises. Chances de l'objectif : les variantes plus
+larges font un peu mieux (log-loss 0,302 à 0,304 contre 0,310 ; Brier 0,106 contre 0,109 ; 91 estimations sur peu de
+poules, sans marge) : pas de quoi changer. Pistes proposées à l'auteur : forces moins ramenées vers la moyenne (k de
+`forces`) et dispersion qui grandit avec l'écart des forces (larges victoires) ; puis enjeu des matchs clés,
+calendrier ; puis les notes, avec l'auteur.
+Deuxième grille (demande de l'auteur, 16/11/2026 : « lance les deux réglages ») : `analyze.PESEE` (3 : matchs
+« moyens » du point de départ d'une équipe, k = PESEE + 2 × continuité dans `forces(pesee=)`) et `analyze.ETIREMENT`
+(0 : l'écart attendu d'un match est tiré × N(1, ETIREMENT), le total gardé, `play_match(etirement=)` ; la loi sans
+tirage, `banc.match_law(etirement=)`, ajoute ETIREMENT² × écart² à la variance, vérifiée contre la simulation),
+valeurs en service inchangées (sortie d'`outlook` identique, vérifié). `banc.V` = 3 ; `banc.variantes()` : le réglage
+en service puis `PESEES` (3, 2, 1,5, 1) × `ETIREMENTS` (0, 0,25, 0,5, 0,75), 16 réglages ; la grille d'avant
+(incertitude × hasard) n'est plus rejouée (aucun gain, ci-dessus), `INCERTITUDE` et `BRUIT` restent réglables. Page :
+« point de départ N matchs, écart étiré ±X % » (téléphone : « dép. N · ét. X % »), base et hasard ajoutés quand ils
+diffèrent du réglage en service. Sur données inventées (écart étiré de 60 % dans le monde inventé) : les variantes
+étirées à 0,5-0,75 passent devant et z² retombe d'environ 1,8 à 1,2 ; l'effet du point de départ y est faible. À lire
+sur la collecte qui suit la fusion, avec la même règle.
 
 ## État
 

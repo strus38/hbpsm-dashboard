@@ -515,11 +515,17 @@ ligne `[banc]` dans le journal de la collecte pour les lire sans la phrase). Ce 
 changera aux pronostics (hasard du match, incertitude sur la force des équipes, enjeu des matchs clés,
 calendrier) devra faire baisser ces chiffres.
 
-Le banc essaie aussi d'autres réglages sur les mêmes matchs (« Les réglages essayés ») : l'incertitude sur la force
-des équipes (plus large au départ, ou selon ce qu'on sait d'elles) et le hasard du match (plus large). Pour chacun :
-log-loss, et son écart avec le réglage en service avec une marge d'erreur, z², nuls annoncés, chances de l'objectif.
-Un réglage ne change que si une variante fait mieux au-delà de la marge, sans dégrader la saison en cours ni les
-chances de l'objectif.
+Le banc essaie aussi d'autres réglages sur les mêmes matchs (« Les réglages essayés »). Pour chacun : log-loss, et
+son écart avec le réglage en service avec une marge d'erreur, z², nuls annoncés, chances de l'objectif. Un réglage ne
+change que si une variante fait mieux au-delà de la marge, sans dégrader la saison en cours ni les chances de
+l'objectif.
+
+- Premier essai (16/11/2026) : l'incertitude sur la force des équipes (plus large au départ, ou selon ce qu'on sait
+  d'elles) et le hasard du match (plus large). Aucun n'a battu le réglage en service.
+- Essai en cours : le **point de départ** (combien de matchs « moyens » pèse le départ d'une équipe avant ses
+  résultats : 3 en service, 2, 1,5 ou 1 ; moins, et ses forces suivent plus vite ce qu'elle montre) et l'**écart
+  étiré** (l'écart attendu varie d'un match à l'autre, de ±0 en service à ±75 % : de plus larges victoires quand les
+  forces diffèrent, sans plus de surprises).
 
 ## Calendrier, application, image du bilan, causerie
 

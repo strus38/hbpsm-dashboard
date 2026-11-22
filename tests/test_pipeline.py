@@ -3274,17 +3274,17 @@ def test_petits_defauts(sandbox, monkeypatch):
     assert errors == []
 
 
-def saison_inventee(seed, poules="AB", equipes=8, bruit=1.0, saison="2025-2026"):
-    """Une saison passée inventée : poules complètes aller-retour, forces connues, le hasard du match de la simulation
-    (analyze.play_match) élargi de `bruit`."""
+def saison_inventee(seed, poules="AB", equipes=8, bruit=1.0, saison="2025-2026", etire=0.0, ecart_forces=0.18):
+    """Une saison passée inventée : poules complètes aller-retour, forces connues (écart type `ecart_forces`), le hasard du
+    match de la simulation (analyze.play_match) élargi de `bruit`, l'écart attendu étiré × N(1, `etire`)."""
     import datetime as dt
     import math
     import random
     rng, out = random.Random(seed), []
     for poule in poules:
         teams = [f"EQUIPE INVENTEE {poule}{i}" for i in range(equipes)]
-        att = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
-        dfn = {t: math.exp(rng.gauss(0, 0.18)) for t in teams}
+        att = {t: math.exp(rng.gauss(0, ecart_forces)) for t in teams}
+        dfn = {t: math.exp(rng.gauss(0, ecart_forces)) for t in teams}
         n = len(teams)
         order = teams[:]
         rounds = []
@@ -3295,6 +3295,9 @@ def saison_inventee(seed, poules="AB", equipes=8, bruit=1.0, saison="2025-2026")
         for j, day in enumerate(rounds, 1):
             for h, a in day:
                 mh, ma = 28 * att[h] * dfn[a] * 1.05, 28 * att[a] * dfn[h] * 0.97
+                if etire:
+                    d, t = (mh - ma) * rng.gauss(1, etire), mh + ma
+                    mh, ma = max(0.5, (t + d) / 2), max(0.5, (t - d) / 2)
                 gh = max(0, round(rng.gauss(mh, bruit * mh ** 0.5)))
                 ga = max(0, round(rng.gauss(ma, bruit * ma ** 0.5)))
                 d = (dt.date(2025, 9, 13) + dt.timedelta(days=7 * j)).isoformat()
@@ -3333,15 +3336,26 @@ def test_banc_d_essai(sandbox, monkeypatch):
     # un hasard du match 1,6 fois plus large (2,56 fois la variance) : le banc le voit, le modèle est trop sûr de lui
     large = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(3, bruit=1.6))], [], {}, (1.05, 0.97), 2)
     assert large["passees"]["dispersion"]["z2"] > 1.8 * p["dispersion"]["z2"]
-    # les variantes (16/11/2026) : la grille, la meilleure d'abord ; dans ce monde au hasard plus large, elle a un hasard
-    # plus large que le réglage en service, une meilleure log-loss et une dispersion plus juste
-    v = large["variantes"]
-    assert len(v) == len(banc.BASES) * len(banc.BRUITS) and large["meilleure"] == v[0]["nom"]
+    # l'étirement de l'écart (16/11/2026) : la loi sans tirage est encore celle de la simulation
+    ecart, mu, sd, pw, pd = banc.match_law(28.0, att0, dfn0, unsure, "A", "B", 1.05, 0.97, etirement=0.6)
+    rng, wins, margins = random.Random(6), 0, []
+    for _ in range(n):
+        an.draw_strengths(rng, att0, dfn0, unsure, att, dfn)
+        gh, ga = an.play_match(rng, 28.0, att, dfn, "A", "B", 1.05, 0.97, etirement=0.6)
+        wins += gh > ga
+        margins.append(gh - ga)
+    m = sum(margins) / n
+    assert abs(pw - wins / n) < 0.012 and abs(mu - m) < 0.2 and abs(sd - (sum((x - m) ** 2 for x in margins) / n) ** 0.5) < 0.2
+    # les variantes : la grille (poids du point de départ × étirement), la meilleure d'abord ; dans un monde aux larges
+    # victoires de favoris, une variante à l'écart étiré passe devant, avec une dispersion plus juste
+    etiree = banc.evaluate([dict(saison="2025-2026", matches=saison_inventee(4, poules="ABCD", etire=0.6))], [], {}, (1.05, 0.97), 2)
+    v = etiree["variantes"]
+    assert len(v) == len(banc.PESEES) * len(banc.ETIREMENTS) and etiree["meilleure"] == v[0]["nom"]
     cur = next(x for x in v if x["nom"] == "en service")
-    assert (cur["base"], cur["forme"], cur["bruit"]) == (an.UNSURE, an.INCERTITUDE, an.BRUIT) and "ecart" not in cur["toutes"]
-    assert v[0]["bruit"] > an.BRUIT and v[0]["toutes"]["ecart"] < 0 and v[0]["toutes"]["z2"] < cur["toutes"]["z2"]
-    assert v[0]["toutes"]["logloss"] < cur["toutes"]["logloss"] and v[0]["chances"] and cur["chances"]["n"] == large["chances"]["n"]
-    assert sum(1 for x in v if x["chances"]) == 1 + banc.CHANCES_VARIANTES
+    assert (cur["base"], cur["forme"], cur["bruit"], cur["pesee"], cur["etirement"]) == (an.UNSURE, an.INCERTITUDE, an.BRUIT, an.PESEE, an.ETIREMENT)
+    assert "ecart" not in cur["toutes"] and v[0]["etirement"] >= 0.5 and v[0]["toutes"]["ecart"] < 0
+    assert v[0]["toutes"]["z2"] < cur["toutes"]["z2"] - 0.3 and v[0]["toutes"]["logloss"] < cur["toutes"]["logloss"]
+    assert v[0]["chances"] and cur["chances"]["n"] == etiree["chances"]["n"] and sum(1 for x in v if x["chances"]) == 1 + banc.CHANCES_VARIANTES
     assert all(x["z2"] is not None for x in large["passees"]["par_matchs"])
     # une poule pas finie : ses matchs sont rejoués, pas ses chances
     partial = saison_inventee(4, poules="C")[:-1]   # le dernier match pas encore joué
